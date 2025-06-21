@@ -222,23 +222,6 @@ lockoutContent:SetWidth(lockoutScrollFrame:GetWidth() - 30)
 lockoutContent:SetHeight(400) -- Initial height, updated later
 lockoutContent:Show()
 
--- Initialize highlightLine with a nil check
-if lockoutContent then
-    print("LMAHI Debug: Creating highlightLine")
-    highlightLine = lockoutContent:CreateTexture(nil, "OVERLAY")
-    if highlightLine then
-        highlightLine:SetTexture("Interface\\Buttons\\WHITE8X8")
-        highlightLine:SetVertexColor(0.8, 0.8, 0.8, 0.3)
-        highlightLine:SetHeight(17)
-        highlightLine:Hide()
-        highlightLine:SetFrameLevel(lockoutContent:GetFrameLevel() + 5)
-    else
-        print("LMAHI Error: Failed to create highlightLine texture")
-    end
-else
-    print("LMAHI Error: lockoutContent is nil, cannot create highlightLine")
-end
-
 highlightFrame = CreateFrame("Frame", nil, lockoutScrollFrame)
 highlightFrame:SetAllPoints(lockoutScrollFrame)
 highlightFrame:EnableMouse(false)
@@ -528,6 +511,24 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         settingsFrame:SetScale(LMAHI_SavedData.zoomLevel)
         customInputFrame:SetScale(LMAHI_SavedData.zoomLevel)
 
+        -- Initialize highlightLine here to ensure lockoutContent is ready
+        if lockoutContent then
+            print("LMAHI Debug: Creating highlightLine in ADDON_LOADED")
+            highlightLine = lockoutContent:CreateTexture(nil, "OVERLAY")
+            if highlightLine then
+                highlightLine:SetTexture("Interface\\Buttons\\WHITE8X8")
+                highlightLine:SetVertexColor(0.8, 0.8, 0.8, 0.3)
+                highlightLine:SetHeight(17)
+                highlightLine:Hide()
+                highlightLine:SetFrameLevel(lockoutContent:GetFrameLevel() + 5)
+                print("LMAHI Debug: highlightLine created successfully")
+            else
+                print("LMAHI Error: Failed to create highlightLine texture")
+            end
+        else
+            print("LMAHI Error: lockoutContent is nil in ADDON_LOADED, skipping highlightLine creation")
+        end
+
         -- Initialize collapse buttons and section headers
         local currentOffset = -20
         for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
@@ -676,9 +677,9 @@ SlashCmdList["LMAHIDEBUG"] = function()
     end
     table.sort(customList, function(a, b)
         local aIndex = LMAHI_SavedData.customLockoutOrder[tostring(a.id)] or 999
-        bIndex = LMAHI_SavedData.customLockoutOrder[tostring(b.id)] or 1010
+        local bIndex = LMAHI_SavedData.customLockoutOrder[tostring(b.id)] or 1010
         if aIndex == bIndex then
-            return a.id < b.id
+            return a.id < b
         end
         return aIndex < bIndex
     end)
