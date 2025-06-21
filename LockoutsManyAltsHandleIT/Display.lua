@@ -54,6 +54,20 @@ function LMAHI.UpdateDisplay()
     LMAHI.collapseButtons = {}
     LMAHI.sectionHeaders = {}
 
+    -- Create or update highlightLine
+    if not LMAHI.highlightLine and LMAHI.lockoutContent then
+        LMAHI.highlightLine = LMAHI.lockoutContent:CreateTexture(nil, "OVERLAY", nil, 8)
+        LMAHI.highlightLine:SetTexture("Interface\\Buttons\\WHITE8X8")
+        LMAHI.highlightLine:SetVertexColor(0.8, 0.8, 0.8, 0.3)
+        LMAHI.highlightLine:SetHeight(17)
+        LMAHI.highlightLine:Hide()
+        print("LMAHI Debug: highlightLine created, parent:", LMAHI.highlightLine:GetParent():GetName(), "frameLevel:", LMAHI.highlightLine:GetFrameLevel())
+    elseif LMAHI.highlightLine then
+        print("LMAHI Debug: highlightLine exists, parent:", LMAHI.highlightLine:GetParent():GetName(), "frameLevel:", LMAHI.highlightLine:GetFrameLevel())
+    else
+        print("LMAHI Debug: highlightLine not created, lockoutContent is nil")
+    end
+
     -- Calculate total pages
     local charList = {}
     for charName, _ in pairs(LMAHI_SavedData.characters or {}) do
@@ -219,17 +233,15 @@ function LMAHI.UpdateDisplay()
                     hoverRegion:EnableMouse(true)
                     hoverRegion:SetFrameLevel(LMAHI.lockoutContent:GetFrameLevel() + 4)
                     hoverRegion:SetScript("OnEnter", function(self)
-                        print("LMAHI Debug: Hovering over lockout row", lockout.name, "at offset", currentOffset - ((j-1) * 17) - 10)
+                        print("LMAHI Debug: Hovering over lockout row", lockout.name, "hoverRegion yOffset:", select(5, self:GetPoint()))
                         if LMAHI.highlightLine then
                             LMAHI.highlightLine:ClearAllPoints()
-                            local scrollOffset = LMAHI.lockoutScrollFrame:GetVerticalScroll()
-                            local _, _, _, yOffset = self:GetPoint()
-                            LMAHI.highlightLine:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 0, yOffset + scrollOffset)
-                            LMAHI.highlightLine:SetPoint("TOPRIGHT", LMAHI.lockoutContent, "TOPRIGHT", 0, yOffset + scrollOffset)
-                            LMAHI.highlightLine:SetWidth(LMAHI.lockoutContent:GetWidth())
+                            LMAHI.highlightLine:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
+                            LMAHI.highlightLine:SetPoint("TOPRIGHT", self, "TOPRIGHT", 0, 0)
                             LMAHI.highlightLine:SetHeight(17)
                             LMAHI.highlightLine:Show()
-                            print("LMAHI Debug: highlightLine shown for", lockout.name, "at yOffset", yOffset, "scrollOffset", scrollOffset, "visible:", LMAHI.highlightLine:IsVisible())
+                            local _, _, _, _, y = LMAHI.highlightLine:GetPoint()
+                            print("LMAHI Debug: highlightLine positioned for", lockout.name, "at yOffset:", y, "visible:", LMAHI.highlightLine:IsVisible(), "parent:", LMAHI.highlightLine:GetParent():GetName())
                         else
                             print("LMAHI Debug: highlightLine is nil in OnEnter")
                         end
