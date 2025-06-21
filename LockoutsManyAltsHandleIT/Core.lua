@@ -505,7 +505,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         LMAHI_SavedData.customLockouts = LMAHI_SavedData.customLockouts or {}
         LMAHI.lockoutData.custom = LMAHI_SavedData.customLockouts
         LMAHI.InitializeLockouts()
-        LMAHI.SaveCharacterData()
+        LMAHI.SaveCharacterData() -- Ensure new characters get correct order
         LMAHI.currentPage = 1
         mainFrame:SetScale(LMAHI_SavedData.zoomLevel)
         settingsFrame:SetScale(LMAHI_SavedData.zoomLevel)
@@ -514,19 +514,19 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         -- Initialize highlightLine
         if lockoutContent then
             print("LMAHI Debug: Creating highlightLine in ADDON_LOADED")
-            highlightLine = lockoutContent:CreateTexture(nil, "OVERLAY", nil, 5) -- Higher sublevel for visibility
+            highlightLine = lockoutContent:CreateTexture(nil, "OVERLAY", nil, 7) -- Higher sublevel
             if highlightLine then
                 highlightLine:SetTexture("Interface\\Buttons\\WHITE8X8")
                 highlightLine:SetVertexColor(0.8, 0.8, 0.8, 0.3)
                 highlightLine:SetHeight(17)
                 highlightLine:Hide()
-                LMAHI.highlightLine = highlightLine -- Ensure global assignment
+                LMAHI.highlightLine = highlightLine
                 print("LMAHI Debug: highlightLine created, parent:", highlightLine:GetParent():GetName())
             else
                 print("LMAHI Error: Failed to create highlightLine texture")
             end
         else
-            print("LMAHI Error: lockoutContent is nil in ADDON_LOADED, skipping highlightLine creation")
+            print("LMAHI Error: lockoutContent is nil in ADDON_LOADED")
         end
     elseif event == "PLAYER_LOGIN" then
         UpdateButtonPosition()
@@ -717,9 +717,7 @@ function LMAHI.UpdateCustomInputDisplay()
         orderInput:SetScript("OnEnterPressed", function(self)
             local newOrder = tonumber(self:GetText())
             if newOrder and newOrder >= 1 and newOrder <= #customList then
-                local oldOrder = LMAHI_SavedData.customLockoutOrder[tostring(self.lockoutId)] or i
                 LMAHI_SavedData.customLockoutOrder[tostring(self.lockoutId)] = newOrder
-                
                 local tempList = {}
                 for _, otherLockout in ipairs(customList) do
                     if otherLockout.id ~= self.lockoutId then
@@ -727,15 +725,12 @@ function LMAHI.UpdateCustomInputDisplay()
                     end
                 end
                 table.sort(tempList, function(a, b) return a.order < b.order end)
-                
                 local newCustomLockoutOrder = {}
                 local currentOrder = 1
-                
                 if newOrder == 1 then
                     newCustomLockoutOrder[tostring(self.lockoutId)] = 1
                     currentOrder = 2
                 end
-                
                 for _, entry in ipairs(tempList) do
                     if currentOrder == newOrder then
                         newCustomLockoutOrder[tostring(self.lockoutId)] = currentOrder
@@ -744,13 +739,10 @@ function LMAHI.UpdateCustomInputDisplay()
                     newCustomLockoutOrder[tostring(entry.id)] = currentOrder
                     currentOrder = currentOrder + 1
                 end
-                
                 if newOrder > #tempList + 1 then
                     newCustomLockoutOrder[tostring(self.lockoutId)] = newOrder
                 end
-                
                 LMAHI_SavedData.customLockoutOrder = newCustomLockoutOrder
-                
                 LMAHI.UpdateCustomInputDisplay()
                 LMAHI.UpdateDisplay()
             else
@@ -767,6 +759,7 @@ function LMAHI.UpdateCustomInputDisplay()
         removeButton:SetText("Remove")
         removeButton.lockoutId = lockout.id
         removeButton:Show()
+        print("LMAHI Debug: Created removeButton for custom lockout", lockout.name, "ID", lockout.id)
 
         removeButton:SetScript("OnClick", function(self)
             local x, y = self:GetCenter()
@@ -814,7 +807,7 @@ function LMAHI.UpdateCustomInputDisplay()
         removeButton:SetScript("OnLeave", GameTooltip_Hide)
         table.insert(removeCustomButtons, removeButton)
     end
-    print("LMAHI Debug: Exiting UpdateCustomInputDisplay, customList size:", #customList)
+    print("LMAHI Debug: Exiting UpdateCustomInputDisplay, customList size:", #customList, "removeCustomButtons:", #removeCustomButtons)
 end
 
 -- Update settings display
@@ -896,9 +889,7 @@ function LMAHI.UpdateSettingsDisplay()
         editBox:SetScript("OnEnterPressed", function(self)
             local newOrder = tonumber(self:GetText())
             if newOrder and newOrder >= 1 and newOrder <= #charList then
-                local oldOrder = LMAHI_SavedData.charOrder[self.charName] or i
                 LMAHI_SavedData.charOrder[self.charName] = newOrder
-                
                 local tempList = {}
                 for _, otherChar in ipairs(charList) do
                     if otherChar ~= self.charName then
@@ -906,15 +897,12 @@ function LMAHI.UpdateSettingsDisplay()
                     end
                 end
                 table.sort(tempList, function(a, b) return a.order < b.order end)
-                
                 local newCharOrder = {}
                 local currentOrder = 1
-                
                 if newOrder == 1 then
                     newCharOrder[self.charName] = 1
                     currentOrder = 2
                 end
-                
                 for _, entry in ipairs(tempList) do
                     if currentOrder == newOrder then
                         newCharOrder[self.charName] = currentOrder
@@ -923,13 +911,10 @@ function LMAHI.UpdateSettingsDisplay()
                     newCharOrder[entry.name] = currentOrder
                     currentOrder = currentOrder + 1
                 end
-                
                 if newOrder > #tempList + 1 then
                     newCharOrder[self.charName] = newOrder
                 end
-                
                 LMAHI_SavedData.charOrder = newCharOrder
-                
                 LMAHI.UpdateSettingsDisplay()
                 LMAHI.UpdateDisplay()
             else
@@ -939,5 +924,45 @@ function LMAHI.UpdateSettingsDisplay()
         end)
         editBox:Show()
         table.insert(charOrderInputs, editBox)
+
+        local removeButton = CreateFrame("Button", nil, LMAHI.charListContent, "UIPanelButtonTemplate")
+        removeButton:SetSize(60, 20)
+        removeButton:SetPoint("LEFT", editBox, "RIGHT", 5, 0)
+        removeButton:SetText("Remove")
+        removeButton.charName = charName
+        removeButton:Show()
+        print("LMAHI Debug: Created removeButton for character", charName)
+
+        removeButton:SetScript("OnClick", function(self)
+            StaticPopupDialogs["LMAHI_CONFIRM_REMOVE_CHAR_" .. charName] = {
+                text = string.format("Do you want to remove\n%s\nfrom the character list?", charName),
+                button1 = "Yes",
+                button2 = "No",
+                OnAccept = function()
+                    LMAHI_SavedData.characters[charName] = nil
+                    LMAHI_SavedData.lockouts[charName] = nil
+                    LMAHI_SavedData.charOrder[charName] = nil
+                    LMAHI_SavedData.classColors[charName] = nil
+                    LMAHI_SavedData.factions[charName] = nil
+                    LMAHI.UpdateSettingsDisplay()
+                    LMAHI.UpdateDisplay()
+                    LMAHI.SaveCharacterData()
+                end,
+                timeout = 0,
+                whileDead = true,
+                hideOnEscape = true,
+            }
+            StaticPopup_Show("LMAHI_CONFIRM_REMOVE_CHAR_" .. charName)
+        end)
+
+        removeButton:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Remove Character")
+            GameTooltip:Show()
+        end)
+
+        removeButton:SetScript("OnLeave", GameTooltip_Hide)
+        table.insert(removeButtons, removeButton)
     end
+    print("LMAHI Debug: Exiting UpdateSettingsDisplay, charList size:", #charList, "removeButtons:", #removeButtons)
 end
