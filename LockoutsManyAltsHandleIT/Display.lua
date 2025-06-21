@@ -34,11 +34,7 @@ end
 function LMAHI.SetCollapseIconRotation(button, isCollapsed)
     if button.icon then
         button.icon:SetTexCoord(0, 1, 0, 1)
-        if isCollapsed then
-            button.icon:SetRotation(math.rad(90))
-        else
-            button.icon:SetRotation(math.rad(270))
-        end
+        button.icon:SetTexture(isCollapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
     end
 end
 
@@ -154,7 +150,7 @@ function LMAHI.UpdateDisplay()
                 collapseButton:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 10, currentOffset)
                 local icon = collapseButton:CreateTexture(nil, "ARTWORK")
                 icon:SetAllPoints()
-                icon:SetTexture(isCollapsed and "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up" or "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up")
+                icon:SetTexture(isCollapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
                 collapseButton.icon = icon
                 LMAHI.SetCollapseIconRotation(collapseButton, isCollapsed)
                 collapseButton:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
@@ -224,12 +220,14 @@ function LMAHI.UpdateDisplay()
                     hoverRegion:SetScript("OnEnter", function()
                         print("LMAHI Debug: Hovering over lockout row", lockout.name)
                         if LMAHI.highlightLine then
+                            LMAHI.highlightLine:ClearAllPoints()
                             LMAHI.highlightLine:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 0, currentOffset - ((j-1) * 17) - 10)
                             LMAHI.highlightLine:SetPoint("TOPRIGHT", LMAHI.lockoutContent, "TOPRIGHT", 0, currentOffset - ((j-1) * 17) - 10)
+                            LMAHI.highlightLine:SetWidth(LMAHI.lockoutContent:GetWidth())
                             LMAHI.highlightLine:Show()
-                            print("LMAHI Debug: highlightLine shown for", lockout.name)
+                            print("LMAHI Debug: highlightLine shown for", lockout.name, "visible:", LMAHI.highlightLine:IsVisible())
                         else
-                            print("LMAHI Debug: highlightLine is nil in OnEnter, highlighting disabled")
+                            print("LMAHI Debug: highlightLine is nil in OnEnter")
                         end
                     end)
                     hoverRegion:SetScript("OnLeave", function()
