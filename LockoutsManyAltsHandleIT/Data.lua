@@ -68,3 +68,102 @@ LMAHI.CLASS_COLORS = {
     WARLOCK = { r = 0.53, g = 0.53, b = 0.93 },
     WARRIOR = { r = 0.78, g = 0.61, b = 0.43 },
 }
+
+function LMAHI.InitializeLockouts()
+    LMAHI.lockoutData = {
+        custom = LMAHI_SavedData.customLockouts or {},
+        raids = {
+            { id = 1, name = "Amirdrassil, the Dream's Hope" },
+            { id = 2, name = "Vault of the Incarnates" },
+            { id = 3, name = "Aberrus, the Shadowed Crucible" },
+            { id = 4, name = "Nerub-ar Palace" },
+        },
+        dungeons = {
+            { id = 101, name = "The Nokhud Offensive" },
+            { id = 102, name = "Brackenhide Hollow" },
+            { id = 103, name = "Halls of Infusion" },
+            { id = 104, name = "Algeth'ar Academy" },
+            { id = 105, name = "Ruby Life Pools" },
+            { id = 106, name = "Neltharus" },
+            { id = 107, name = "The Azure Vault" },
+            { id = 108, name = "Uldaman: Legacy of Tyr" },
+            { id = 109, name = "Dawn of the Infinite" },
+        },
+        quests = {
+            { id = 70627, name = "Aiding the Accord" },
+            { id = 70893, name = "Aiding the Accord: Dragonbane Keep" },
+            { id = 71210, name = "Aiding the Accord: The Hunt" },
+            { id = 72068, name = "Aiding the Accord: The Isles Call" },
+        },
+        rares = {
+            { id = 69928, name = "Zaqali Elders" },
+            { id = 73166, name = "Aurostor the Hibernator" },
+        },
+        currencies = {
+            { id = 2245, name = "Flightstones" },
+            { id = 2003, name = "Dragon Isles Supplies" },
+            { id = 2122, name = "Storm Sigil" },
+            { id = 2118, name = "Elemental Overflow" },
+        },
+    }
+    LMAHI.lockoutTypes = { "custom", "raids", "dungeons", "quests", "rares", "currencies" }
+end
+
+function LMAHI.SaveCharacterData()
+    local charName = UnitName("player") .. "-" .. GetRealmName()
+    print("LMAHI Debug: Saving character data for", charName)
+
+    if not LMAHI_SavedData.characters[charName] then
+        LMAHI_SavedData.characters[charName] = true
+        LMAHI_SavedData.lockouts[charName] = {}
+        LMAHI_SavedData.classColors[charName] = {}
+        LMAHI_SavedData.factions[charName] = UnitFactionGroup("player") or "Alliance"
+
+        -- Assign highest charOrder index
+        local maxOrder = 0
+        for _, order in pairs(LMAHI_SavedData.charOrder) do
+            if type(order) == "number" and order > maxOrder then
+                maxOrder = order
+            end
+        end
+        LMAHI_SavedData.charOrder[charName] = maxOrder + 1
+        print("LMAHI Debug: New character", charName, "assigned charOrder", maxOrder + 1)
+
+        -- Get class color
+        local _, class = UnitClass("player")
+        if class and LMAHI.CLASS_COLORS[class] then
+            LMAHI_SavedData.classColors[charName] = LMAHI.CLASS_COLORS[class]
+        else
+            LMAHI_SavedData.classColors[charName] = { r = 1, g = 1, b = 1 }
+        end
+    end
+
+    -- Initialize lockouts for this character
+    for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
+        for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
+            local lockoutId = tostring(lockout.id)
+            if LMAHI_SavedData.lockouts[charName][lockoutId] == nil then
+                LMAHI_SavedData.lockouts[charName][lockoutId] = false
+            end
+        end
+    end
+
+    -- Update lockout status (example; replace with actual logic)
+    for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
+        if lockoutType == "raids" then
+            for i = 1, GetNumSavedInstances() do
+                local name, id, reset, _, locked = GetSavedInstanceInfo(i)
+                if locked then
+                    for _, lockout in ipairs(LMAHI.lockoutData.raids) do
+                        if lockout.name == name then
+                            LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = true
+                        end
+                    end
+                end
+            end
+        elseif lockoutType == "custom" then
+            -- Custom lockouts already handled in Core.lua
+        end
+        -- Add logic for dungeons, quests, rares, currencies as needed
+    end
+end
