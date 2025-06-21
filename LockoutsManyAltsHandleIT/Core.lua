@@ -155,7 +155,9 @@ leftArrow:SetNormalTexture("Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up")
 leftArrow:SetPushedTexture("Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Down")
 leftArrow:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
 leftArrow:SetScript("OnClick", function()
+    print("LMAHI Debug: Left arrow clicked, currentPage before:", LMAHI.currentPage)
     LMAHI.currentPage = math.max(1, LMAHI.currentPage - 1)
+    print("LMAHI Debug: currentPage after:", LMAHI.currentPage)
     LMAHI.UpdateDisplay()
 end)
 leftArrow:SetScript("OnEnter", function(self)
@@ -172,7 +174,9 @@ rightArrow:SetNormalTexture("Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up")
 rightArrow:SetPushedTexture("Interface\\Buttons\\UI-SpellbookIcon-NextPage-Down")
 rightArrow:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
 rightArrow:SetScript("OnClick", function()
-    LMAHI.currentPage = math.min(LMAHI.maxPages, LMAHI.currentPage + 1)
+    print("LMAHI Debug: Right arrow clicked, currentPage before:", LMAHI.currentPage, "maxPages:", LMAHI.maxPages)
+    LMAHI.currentPage = math.min(LMAHI.maxPages or 1, LMAHI.currentPage + 1)
+    print("LMAHI Debug: currentPage after:", LMAHI.currentPage)
     LMAHI.UpdateDisplay()
 end)
 rightArrow:SetScript("OnEnter", function(self)
@@ -220,74 +224,15 @@ lockoutContent:Show()
 
 highlightLine = lockoutContent:CreateTexture(nil, "OVERLAY")
 highlightLine:SetTexture("Interface\\Buttons\\WHITE8X8")
-highlightLine:SetVertexColor(0.8, 0.8, 0.8, 0.1)
-highlightLine:SetHeight(10)
+highlightLine:SetVertexColor(0.8, 0.8, 0.8, 0.3)
+highlightLine:SetHeight(17)
 highlightLine:Hide()
+highlightLine:SetFrameLevel(lockoutContent:GetFrameLevel() + 5)
 
 highlightFrame = CreateFrame("Frame", nil, lockoutScrollFrame)
 highlightFrame:SetAllPoints(lockoutScrollFrame)
 highlightFrame:EnableMouse(false)
 highlightFrame:SetFrameLevel(lockoutScrollFrame:GetFrameLevel() + 2)
-
--- Highlight hover functionality
-lockoutContent:EnableMouse(true)
-lockoutContent:SetScript("OnUpdate", function(self)
-    if not MouseIsOver(self) then
-        LMAHI.highlightLine:Hide()
-        return
-    end
-
-    local _, relativeY = GetCursorPosition()
-    local scale = self:GetEffectiveScale()
-    relativeY = relativeY / scale
-    local contentTop = self:GetTop() * scale
-    local offsetY = contentTop - relativeY
-
-    local currentOffset = -20
-    local highlightY = nil
-    local rowHeight = 17
-
-    for _, lockoutType in ipairs(LMAHI.lockoutTypes or {}) do
-        currentOffset = currentOffset - 30
-        if not LMAHI_SavedData.collapsedSections[lockoutType] then
-            local sortedLockouts = {}
-            for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
-                table.insert(sortedLockouts, lockout)
-            end
-            if lockoutType == "custom" then
-                table.sort(sortedLockouts, function(a, b)
-                    local aIndex = LMAHI_SavedData.customLockoutOrder[tostring(a.id)] or 999
-                    local bIndex = LMAHI_SavedData.customLockoutOrder[tostring(b.id)] or 1010
-                    if aIndex == bIndex then
-                        return a.id < b.id
-                    end
-                    return aIndex < bIndex
-                end)
-            end
-            for j, _ in ipairs(sortedLockouts) do
-                local rowTop = -(currentOffset - ((j-1) * rowHeight) - 10)
-                local rowBottom = rowTop - rowHeight
-                if offsetY >= rowBottom and offsetY <= rowTop then
-                    highlightY = -(currentOffset - ((j-1) * rowHeight) - 10)
-                    break
-                end
-            end
-            currentOffset = currentOffset - (#(LMAHI.lockoutData[lockoutType] or {}) * 20)
-            currentOffset = currentOffset - 10
-        else
-            currentOffset = currentOffset - 5
-        end
-        if highlightY then break end
-    end
-
-    if highlightY then
-        LMAHI.highlightLine:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 0, highlightY)
-        LMAHI.highlightLine:SetPoint("TOPRIGHT", LMAHI.lockoutContent, "TOPRIGHT", 0, highlightY)
-        LMAHI.highlightLine:Show()
-    else
-        LMAHI.highlightLine:Hide()
-    end
-end)
 
 -- Custom input frame
 customInputFrame = CreateFrame("Frame", "LMAHI_CustomInputFrame", UIParent, "BasicFrameTemplateWithInset")
@@ -1057,21 +1002,7 @@ function LMAHI.UpdateSettingsDisplay()
             local offsetY = 98
 
             StaticPopupDialogs["LMAHI_CONFIRM_REMOVE_" .. charName] = {
-                text = (function()
-                    local charDisplayName, realmName = strsplit("-", charName)
-                    local classColor = LMAHI_SavedData.classColors[charName] or { r = 1, g = 1, b = 1 }
-                    local faction = LMAHI_SavedData.factions[charName] or "Alliance"
-                    local factionColor = LMAHI.FACTION_COLORS[faction] or { r = 0.8, g = 0.8, b = 0.8 }
-
-                    local classColorHex = string.format("|cff%02x%02x%02x",
-                        classColor.r * 255, classColor.g * 255, classColor.b * 255)
-                    local factionColorHex = string.format("|cff%02x%02x%02x",
-                        factionColor.r * 255, factionColor.g * 255, factionColor.b * 255)
-
-                    return string.format("Do you really want to remove\n%s%s|r  %s%s|r\nfrom this addon!",
-                        classColorHex, charDisplayName,
-                        factionColorHex, realmName or "Unknown")
-                end)(),
+                text = string.format("Do you want to remove\n%s\nfrom the addon?", charName),
                 button1 = "Yes",
                 button2 = "No",
                 OnAccept = function()
@@ -1080,23 +1011,14 @@ function LMAHI.UpdateSettingsDisplay()
                     LMAHI_SavedData.charOrder[charName] = nil
                     LMAHI_SavedData.classColors[charName] = nil
                     LMAHI_SavedData.factions[charName] = nil
-
-                    local newOrder = 1
-                    for _, otherChar in ipairs(charList) do
-                        if otherChar ~= charName then
-                            LMAHI_SavedData.charOrder[otherChar] = newOrder
-                            newOrder = newOrder + 1
-                        end
-                    end
-
                     LMAHI.UpdateSettingsDisplay()
                     LMAHI.UpdateDisplay()
+                    LMAHI.SaveCharacterData()
                 end,
                 timeout = 0,
                 whileDead = true,
                 hideOnEscape = true,
             }
-
             StaticPopup_Show("LMAHI_CONFIRM_REMOVE_" .. charName)
             local dialog = StaticPopup_FindVisible("LMAHI_CONFIRM_REMOVE_" .. charName)
             if dialog then
@@ -1112,7 +1034,6 @@ function LMAHI.UpdateSettingsDisplay()
         end)
 
         removeButton:SetScript("OnLeave", GameTooltip_Hide)
-
         table.insert(removeButtons, removeButton)
     end
 end
