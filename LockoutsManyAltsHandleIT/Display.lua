@@ -164,13 +164,19 @@ function LMAHI.UpdateDisplay()
                     hoverRegion:EnableMouse(true)
                     hoverRegion:SetScript("OnEnter", function()
                         print("LMAHI Debug: Hovering over lockout row", lockout.name)
-                        LMAHI.highlightLine:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 0, currentOffset - ((j-1) * 17) - 10)
-                        LMAHI.highlightLine:SetPoint("TOPRIGHT", LMAHI.lockoutContent, "TOPRIGHT", 0, currentOffset - ((j-1) * 17) - 10)
-                        LMAHI.highlightLine:Show()
+                        if LMAHI.highlightLine then
+                            LMAHI.highlightLine:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 0, currentOffset - ((j-1) * 17) - 10)
+                            LMAHI.highlightLine:SetPoint("TOPRIGHT", LMAHI.lockoutContent, "TOPRIGHT", 0, currentOffset - ((j-1) * 17) - 10)
+                            LMAHI.highlightLine:Show()
+                        else
+                            print("LMAHI Debug: highlightLine is nil in OnEnter")
+                        end
                     end)
                     hoverRegion:SetScript("OnLeave", function()
                         print("LMAHI Debug: Leaving lockout row", lockout.name)
-                        LMAHI.highlightLine:Hide()
+                        if LMAHI.highlightLine then
+                            LMAHI.highlightLine:Hide()
+                        end
                     end)
                     hoverRegion:Show()
                     table.insert(LMAHI.hoverRegions, hoverRegion)
