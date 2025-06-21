@@ -53,7 +53,7 @@ function LMAHI.UpdateDisplay()
 
     -- Create or update highlightLine
     if not LMAHI.highlightLine and LMAHI.lockoutContent then
-        LMAHI.highlightLine = LMAHI.lockoutContent:CreateTexture(nil, "OVERLAY", nil, 8)
+        LMAHI.highlightLine = LMAHI.lockoutContent:CreateTexture(nil, "OVERLAY", nil, 7) -- Fixed sublevel from 8 to 7
         LMAHI.highlightLine:SetTexture("Interface\\Buttons\\WHITE8X8")
         LMAHI.highlightLine:SetVertexColor(0.8, 0.8, 0.8, 0.3)
         LMAHI.highlightLine:SetHeight(17)
