@@ -20,7 +20,7 @@ LMAHI_SavedData = LMAHI_SavedData or {
 
 -- Frame variables
 local mainFrame, charFrame, lockoutScrollFrame, lockoutContent, settingsFrame, customInputFrame
-local highlightLine, highlightFrame
+local highlightFrame
 local charListScrollFrame, charListContent, customInputScrollFrame, customInputScrollContent
 local sectionHeaders = {}
 local lockoutLabels = {}
@@ -206,6 +206,7 @@ lockoutScrollFrame:SetPoint("TOPLEFT", charFrame, "TOPRIGHT", -1195, -50)
 lockoutScrollFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -35, 10)
 lockoutScrollFrame:EnableMouseWheel(true)
 lockoutScrollFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 1)
+lockoutScrollFrame:SetClipsChildren(false) -- Prevent clipping of highlightLine
 lockoutScrollFrame:Show()
 
 lockoutScrollFrame:SetScript("OnMouseWheel", function(self, delta)
@@ -510,24 +511,6 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         mainFrame:SetScale(LMAHI_SavedData.zoomLevel)
         settingsFrame:SetScale(LMAHI_SavedData.zoomLevel)
         customInputFrame:SetScale(LMAHI_SavedData.zoomLevel)
-
-        -- Initialize highlightLine
-        if lockoutContent then
-            print("LMAHI Debug: Creating highlightLine in ADDON_LOADED")
-            highlightLine = lockoutContent:CreateTexture(nil, "OVERLAY", nil, 7) -- Higher sublevel
-            if highlightLine then
-                highlightLine:SetTexture("Interface\\Buttons\\WHITE8X8")
-                highlightLine:SetVertexColor(0.8, 0.8, 0.8, 0.3)
-                highlightLine:SetHeight(17)
-                highlightLine:Hide()
-                LMAHI.highlightLine = highlightLine
-                print("LMAHI Debug: highlightLine created, parent:", highlightLine:GetParent():GetName())
-            else
-                print("LMAHI Error: Failed to create highlightLine texture")
-            end
-        else
-            print("LMAHI Error: lockoutContent is nil in ADDON_LOADED")
-        end
     elseif event == "PLAYER_LOGIN" then
         UpdateButtonPosition()
     end
@@ -632,7 +615,6 @@ LMAHI.lockoutScrollFrame = lockoutScrollFrame
 LMAHI.lockoutContent = lockoutContent
 LMAHI.settingsFrame = settingsFrame
 LMAHI.customInputFrame = customInputFrame
-LMAHI.highlightLine = highlightLine
 LMAHI.highlightFrame = highlightFrame
 LMAHI.charListScrollFrame = charListScrollFrame
 LMAHI.charListContent = charListContent
