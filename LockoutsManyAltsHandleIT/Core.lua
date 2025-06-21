@@ -43,6 +43,7 @@ mainFrame:SetScript("OnDragStop", function(self)
 end)
 mainFrame:Hide()
 mainFrame:SetScale(LMAHI_SavedData.zoomLevel or 1)
+print("LMAHI Debug: mainFrame created, name:", mainFrame:GetName())
 
 mainFrame.CloseButton:SetScript("OnClick", function()
     mainFrame:Hide()
@@ -199,6 +200,7 @@ charFrame:SetBackdrop({
 charFrame:SetBackdropColor(0, 0, 0, 1)
 charFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 3)
 charFrame:Show()
+print("LMAHI Debug: charFrame created, name:", charFrame:GetName())
 
 -- Lockout scroll frame
 lockoutScrollFrame = CreateFrame("ScrollFrame", "LMAHI_LockoutScrollFrame", mainFrame, "UIPanelScrollFrameTemplate")
@@ -208,6 +210,7 @@ lockoutScrollFrame:EnableMouseWheel(true)
 lockoutScrollFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 1)
 lockoutScrollFrame:SetClipsChildren(false) -- Prevent clipping of highlightLine
 lockoutScrollFrame:Show()
+print("LMAHI Debug: lockoutScrollFrame created, name:", lockoutScrollFrame:GetName())
 
 lockoutScrollFrame:SetScript("OnMouseWheel", function(self, delta)
     local current = self:GetVerticalScroll()
@@ -222,11 +225,13 @@ lockoutScrollFrame:SetScrollChild(lockoutContent)
 lockoutContent:SetWidth(lockoutScrollFrame:GetWidth() - 30)
 lockoutContent:SetHeight(400) -- Initial height, updated later
 lockoutContent:Show()
+print("LMAHI Debug: lockoutContent created, name:", lockoutContent:GetName())
 
 highlightFrame = CreateFrame("Frame", nil, lockoutScrollFrame)
 highlightFrame:SetAllPoints(lockoutScrollFrame)
 highlightFrame:EnableMouse(false)
 highlightFrame:SetFrameLevel(lockoutScrollFrame:GetFrameLevel() + 2)
+print("LMAHI Debug: highlightFrame created, name:", highlightFrame:GetName())
 
 -- Custom input frame
 customInputFrame = CreateFrame("Frame", "LMAHI_CustomInputFrame", UIParent, "BasicFrameTemplateWithInset")
@@ -245,6 +250,7 @@ customInputFrame:SetScript("OnDragStop", function(self)
 end)
 customInputFrame:Hide()
 customInputFrame:SetScale(LMAHI_SavedData.zoomLevel or 1)
+print("LMAHI Debug: customInputFrame created, name:", customInputFrame:GetName())
 
 local customInputTitle = customInputFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
 customInputTitle:SetPoint("TOP", customInputFrame, "TOP", 0, -3)
@@ -363,11 +369,13 @@ customInputScrollFrame:SetPoint("TOPLEFT", customInputContent, "BOTTOMLEFT", 2, 
 customInputScrollFrame:EnableMouseWheel(true)
 customInputScrollFrame:SetFrameLevel(customInputFrame:GetFrameLevel() + 2)
 customInputScrollFrame:Show()
+print("LMAHI Debug: customInputScrollFrame created, name:", customInputScrollFrame:GetName())
 
 customInputScrollContent = CreateFrame("Frame", nil, customInputScrollFrame)
 customInputScrollFrame:SetScrollChild(customInputScrollContent)
 customInputScrollContent:SetSize(440, 400)
 customInputScrollContent:Show()
+print("LMAHI Debug: customInputScrollContent created, name:", customInputScrollContent:GetName())
 
 customInputScrollFrame:SetScript("OnMouseWheel", function(self, delta)
     local current = self:GetVerticalScroll()
@@ -395,6 +403,7 @@ settingsFrame:SetScript("OnDragStop", function(self)
 end)
 settingsFrame:Hide()
 settingsFrame:SetScale(LMAHI_SavedData.zoomLevel or 1)
+print("LMAHI Debug: settingsFrame created, name:", settingsFrame:GetName())
 
 local settingsTitle = settingsFrame:CreateFontString(nil, "ARTWORK", "GameFontHighLightLarge")
 settingsTitle:SetPoint("TOP", settingsFrame, "TOP", 0, -3)
@@ -406,11 +415,13 @@ charListScrollFrame:SetSize(380, 340)
 charListScrollFrame:SetPoint("TOP", settingsFrame, "TOP", 0, -30)
 charListScrollFrame:SetFrameLevel(settingsFrame:GetFrameLevel() + 2)
 charListScrollFrame:Show()
+print("LMAHI Debug: charListScrollFrame created, name:", charListScrollFrame:GetName())
 
 charListContent = CreateFrame("Frame", nil, charListScrollFrame)
 charListScrollFrame:SetScrollChild(charListContent)
 charListContent:SetSize(240, 400)
 charListContent:Show()
+print("LMAHI Debug: charListContent created, name:", charListContent:GetName())
 
 charListScrollFrame:SetScript("OnMouseWheel", function(self, delta)
     local current = self:GetVerticalScroll()
@@ -511,6 +522,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         mainFrame:SetScale(LMAHI_SavedData.zoomLevel)
         settingsFrame:SetScale(LMAHI_SavedData.zoomLevel)
         customInputFrame:SetScale(LMAHI_SavedData.zoomLevel)
+        print("LMAHI Debug: ADDON_LOADED, lockoutTypes:", LMAHI.lockoutTypes and table.concat(LMAHI.lockoutTypes, ", ") or "nil")
     elseif event == "PLAYER_LOGIN" then
         UpdateButtonPosition()
     end
