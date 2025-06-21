@@ -1,9 +1,10 @@
 ## Interface: 110107
 ## Title: LockoutsManyAltsHandleIT
-## Notes: Track lockouts across multiple characters with a clean UI.
+## Notes: Tracks raid, dungeon, quest, and rare lockouts across multiple characters
 ## Author: Psycho
 ## SavedVariables: LMAHI_SavedData
 ## Version: 1.0
+## IconTexture: 975738
 
 Core.lua
 Utilities.lua
