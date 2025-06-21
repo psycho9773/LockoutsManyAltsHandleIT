@@ -7,6 +7,7 @@ LMAHI.maxPages = 1
 LMAHI.lockoutLabels = LMAHI.lockoutLabels or {}
 LMAHI.collapseButtons = LMAHI.collapseButtons or {}
 LMAHI.sectionHeaders = LMAHI.sectionHeaders or {}
+LMAHI.hoverRegions = LMAHI.hoverRegions or {}
 
 local charLabels = {}
 local realmLabels = {}
@@ -39,20 +40,11 @@ function LMAHI.SetCollapseIconRotation(button, isCollapsed)
 end
 
 function LMAHI.UpdateDisplay()
+    print("LMAHI Debug: Entering UpdateDisplay")
     if not LMAHI.mainFrame or not LMAHI.lockoutData or not LMAHI.lockoutTypes then
-        print("LMAHI Debug: UpdateDisplay aborted - missing mainFrame, lockoutData, or lockoutTypes")
+        print("LMAHI Debug: UpdateDisplay aborted - missing mainFrame:", LMAHI.mainFrame, "lockoutData:", LMAHI.lockoutData, "lockoutTypes:", LMAHI.lockoutTypes)
         return
     end
-
-    -- Clear existing collapse buttons and headers
-    for _, button in pairs(LMAHI.collapseButtons) do
-        button:Hide()
-    end
-    for _, header in pairs(LMAHI.sectionHeaders) do
-        header:Hide()
-    end
-    LMAHI.collapseButtons = {}
-    LMAHI.sectionHeaders = {}
 
     -- Create or update highlightLine
     if not LMAHI.highlightLine and LMAHI.lockoutContent then
@@ -67,6 +59,16 @@ function LMAHI.UpdateDisplay()
     else
         print("LMAHI Debug: highlightLine not created, lockoutContent is nil")
     end
+
+    -- Clear existing collapse buttons and headers
+    for _, button in pairs(LMAHI.collapseButtons) do
+        button:Hide()
+    end
+    for _, header in pairs(LMAHI.sectionHeaders) do
+        header:Hide()
+    end
+    LMAHI.collapseButtons = {}
+    LMAHI.sectionHeaders = {}
 
     -- Calculate total pages
     local charList = {}
@@ -109,6 +111,7 @@ function LMAHI.UpdateDisplay()
     -- Update character frame
     if LMAHI.charFrame then
         LMAHI.charFrame:Show()
+        print("LMAHI Debug: charFrame shown, visible:", LMAHI.charFrame:IsVisible())
         for i = 1, LMAHI.maxCharsPerPage do
             if not charLabels[i] then
                 charLabels[i] = LMAHI.charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
@@ -129,12 +132,14 @@ function LMAHI.UpdateDisplay()
                 local factionColor = LMAHI.FACTION_COLORS[faction] or { r = 0.8, g = 0.8, b = 0.8 }
                 realmLabels[i]:SetTextColor(factionColor.r, factionColor.g, factionColor.b)
                 realmLabels[i]:Show()
-                print("LMAHI Debug: Rendering character", charList[charIndex], "at index", i)
+                print("LMAHI Debug: Rendering character", charList[charIndex], "at index", i, "charLabel visible:", charLabels[i]:IsVisible(), "realmLabel visible:", realmLabels[i]:IsVisible())
             else
                 charLabels[i]:Hide()
                 realmLabels[i]:Hide()
             end
         end
+    else
+        print("LMAHI Debug: charFrame is nil")
     end
 
     -- Update lockout scroll frame
@@ -143,60 +148,59 @@ function LMAHI.UpdateDisplay()
         LMAHI.lockoutContent:SetHeight(LMAHI.CalculateContentHeight())
         LMAHI.lockoutContent:SetWidth(LMAHI.lockoutScrollFrame:GetWidth() - 30)
         LMAHI.lockoutContent:Show()
+        print("LMAHI Debug: lockoutScrollFrame shown, visible:", LMAHI.lockoutScrollFrame:IsVisible(), "lockoutContent visible:", LMAHI.lockoutContent:IsVisible())
 
         -- Hide all lockout labels and hover regions
         for _, label in pairs(LMAHI.lockoutLabels) do
             label:Hide()
         end
-        if LMAHI.hoverRegions then
-            for _, region in ipairs(LMAHI.hoverRegions) do
-                region:Hide()
-            end
+        for _, region in ipairs(LMAHI.hoverRegions) do
+            region:Hide()
         end
-        LMAHI.hoverRegions = LMAHI.hoverRegions or {}
+        LMAHI.hoverRegions = {}
 
         local currentOffset = -20
-        for _, lockoutType in ipairs(LMAHI.lockoutTypes or {}) do
+        print("LMAHI Debug: lockoutTypes count:", #LMAHI.lockoutTypes)
+        for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
+            print("LMAHI Debug: Processing lockoutType:", lockoutType)
             local isCollapsed = LMAHI_SavedData.collapsedSections[lockoutType]
             local collapseButton = CreateFrame("Button", nil, LMAHI.lockoutContent)
-            if collapseButton then
-                collapseButton:SetSize(24, 24)
-                collapseButton:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 10, currentOffset)
-                local icon = collapseButton:CreateTexture(nil, "ARTWORK")
-                icon:SetAllPoints()
-                icon:SetTexture(isCollapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
-                collapseButton.icon = icon
-                LMAHI.SetCollapseIconRotation(collapseButton, isCollapsed)
-                collapseButton:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
-                collapseButton:SetFrameLevel(LMAHI.lockoutContent:GetFrameLevel() + 3)
-                collapseButton:SetScript("OnClick", function(self)
-                    local nowCollapsed = not LMAHI_SavedData.collapsedSections[lockoutType]
-                    LMAHI_SavedData.collapsedSections[lockoutType] = nowCollapsed
-                    LMAHI.SetCollapseIconRotation(self, nowCollapsed)
-                    if GameTooltip:IsOwned(self) then
-                        local label = nowCollapsed and "Expand" or "Collapse"
-                        GameTooltip:SetText(label .. " " .. lockoutType:gsub("^%l", string.upper))
-                    end
-                    LMAHI.UpdateDisplay()
-                end)
-                collapseButton:SetScript("OnEnter", function(self)
-                    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                    local label = LMAHI_SavedData.collapsedSections[lockoutType] and "Expand" or "Collapse"
+            collapseButton:SetSize(24, 24)
+            collapseButton:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 10, currentOffset)
+            local icon = collapseButton:CreateTexture(nil, "ARTWORK")
+            icon:SetAllPoints()
+            icon:SetTexture(isCollapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
+            collapseButton.icon = icon
+            LMAHI.SetCollapseIconRotation(collapseButton, isCollapsed)
+            collapseButton:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
+            collapseButton:SetFrameLevel(LMAHI.lockoutContent:GetFrameLevel() + 3)
+            collapseButton:SetScript("OnClick", function(self)
+                local nowCollapsed = not LMAHI_SavedData.collapsedSections[lockoutType]
+                LMAHI_SavedData.collapsedSections[lockoutType] = nowCollapsed
+                LMAHI.SetCollapseIconRotation(self, nowCollapsed)
+                if GameTooltip:IsOwned(self) then
+                    local label = nowCollapsed and "Expand" or "Collapse"
                     GameTooltip:SetText(label .. " " .. lockoutType:gsub("^%l", string.upper))
-                    GameTooltip:Show()
-                end)
-                collapseButton:SetScript("OnLeave", GameTooltip_Hide)
-                collapseButton:Show()
-                LMAHI.collapseButtons[lockoutType] = collapseButton
-            else
-                print("LMAHI Error: Failed to create collapseButton for", lockoutType)
-            end
+                end
+                LMAHI.UpdateDisplay()
+            end)
+            collapseButton:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                local label = LMAHI_SavedData.collapsedSections[lockoutType] and "Expand" or "Collapse"
+                GameTooltip:SetText(label .. " " .. lockoutType:gsub("^%l", string.upper))
+                GameTooltip:Show()
+            end)
+            collapseButton:SetScript("OnLeave", GameTooltip_Hide)
+            collapseButton:Show()
+            LMAHI.collapseButtons[lockoutType] = collapseButton
+            print("LMAHI Debug: collapseButton created for", lockoutType, "visible:", collapseButton:IsVisible())
 
             local header = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
             header:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 40, currentOffset - 4)
             header:SetText(lockoutType:gsub("^%l", string.upper))
             header:Show()
             LMAHI.sectionHeaders[lockoutType] = header
+            print("LMAHI Debug: header created for", lockoutType, "visible:", header:IsVisible())
 
             currentOffset = currentOffset - 30
 
@@ -215,6 +219,7 @@ function LMAHI.UpdateDisplay()
                         return aIndex < bIndex
                     end)
                 end
+                print("LMAHI Debug: sortedLockouts count for", lockoutType, ":", #sortedLockouts)
 
                 for j, lockout in ipairs(sortedLockouts) do
                     local lockoutId = tostring(lockout.id)
@@ -224,6 +229,7 @@ function LMAHI.UpdateDisplay()
                     LMAHI.lockoutLabels[lockoutId]:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 40, currentOffset - ((j-1) * 17) - 10)
                     LMAHI.lockoutLabels[lockoutId]:SetText(lockout.name)
                     LMAHI.lockoutLabels[lockoutId]:Show()
+                    print("LMAHI Debug: lockoutLabel created for", lockout.name, "ID", lockoutId, "visible:", LMAHI.lockoutLabels[lockoutId]:IsVisible())
 
                     -- Create hover region for this row
                     local hoverRegion = CreateFrame("Frame", nil, LMAHI.lockoutContent)
@@ -255,6 +261,7 @@ function LMAHI.UpdateDisplay()
                     end)
                     hoverRegion:Show()
                     table.insert(LMAHI.hoverRegions, hoverRegion)
+                    print("LMAHI Debug: hoverRegion created for", lockout.name, "visible:", hoverRegion:IsVisible())
                 end
                 currentOffset = currentOffset - (#sortedLockouts * 20)
             end
@@ -266,7 +273,7 @@ function LMAHI.UpdateDisplay()
             local charIndex = startIndex + i - 1
             if charList[charIndex] and LMAHI_SavedData.lockouts[charList[charIndex]] then
                 local currentOffset = -20
-                for _, lockoutType in ipairs(LMAHI.lockoutTypes or {}) do
+                for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
                     currentOffset = currentOffset - 30
                     if not LMAHI_SavedData.collapsedSections[lockoutType] then
                         local sortedLockouts = {}
@@ -292,6 +299,7 @@ function LMAHI.UpdateDisplay()
                             indicator:SetTextColor(isLocked and 0.8 or 0.2, isLocked and 0.2 or 0.8, 0.2)
                             indicator:Show()
                             table.insert(lockoutIndicators, indicator)
+                            print("LMAHI Debug: indicator created for char", charList[charIndex], "lockout", lockout.name, "visible:", indicator:IsVisible())
                         end
                         currentOffset = currentOffset - (#sortedLockouts * 20)
                     end
@@ -301,7 +309,4 @@ function LMAHI.UpdateDisplay()
         end
 
         if LMAHI.highlightLine then
-            LMAHI.highlightLine:Hide()
-        end
-    end
-end
+            LMAHI.highlightLine
