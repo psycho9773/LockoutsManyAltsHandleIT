@@ -217,8 +217,9 @@ function LMAHI.UpdateDisplay()
 
                     -- Create hover region for this row
                     local hoverRegion = CreateFrame("Frame", nil, LMAHI.lockoutContent)
-                    hoverRegion:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 40, currentOffset - ((j-1) * 17) - 10)
-                    hoverRegion:SetSize(LMAHI.lockoutContent:GetWidth() - 40, 17)
+                    hoverRegion:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 0, currentOffset - ((j-1) * 17) - 10)
+                    hoverRegion:SetPoint("TOPRIGHT", LMAHI.lockoutContent, "TOPRIGHT", 0, currentOffset - ((j-1) * 17) - 10)
+                    hoverRegion:SetHeight(17)
                     hoverRegion:EnableMouse(true)
                     hoverRegion:SetScript("OnEnter", function()
                         print("LMAHI Debug: Hovering over lockout row", lockout.name)
@@ -226,6 +227,7 @@ function LMAHI.UpdateDisplay()
                             LMAHI.highlightLine:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 0, currentOffset - ((j-1) * 17) - 10)
                             LMAHI.highlightLine:SetPoint("TOPRIGHT", LMAHI.lockoutContent, "TOPRIGHT", 0, currentOffset - ((j-1) * 17) - 10)
                             LMAHI.highlightLine:Show()
+                            print("LMAHI Debug: highlightLine shown for", lockout.name)
                         else
                             print("LMAHI Debug: highlightLine is nil in OnEnter, highlighting disabled")
                         end
@@ -234,6 +236,7 @@ function LMAHI.UpdateDisplay()
                         print("LMAHI Debug: Leaving lockout row", lockout.name)
                         if LMAHI.highlightLine then
                             LMAHI.highlightLine:Hide()
+                            print("LMAHI Debug: highlightLine hidden for", lockout.name)
                         end
                     end)
                     hoverRegion:Show()
