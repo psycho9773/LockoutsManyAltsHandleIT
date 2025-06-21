@@ -500,7 +500,7 @@ function LMAHI.UpdateDisplay()
                     if not lockoutLabels[lockoutId] then
                         lockoutLabels[lockoutId] = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
                     end
-                    lockoutLabels[lockoutId]:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 40, currentOffset - ((j-1) * 20))
+                    lockoutLabels[lockoutId]:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 40, currentOffset - ((j-1) * 17))
                     lockoutLabels[lockoutId]:SetText(lockout.name)
                     lockoutLabels[lockoutId]:Show()
                 end
@@ -535,7 +535,7 @@ function LMAHI.UpdateDisplay()
                         for j, lockout in ipairs(sortedLockouts) do
                             local lockoutId = tostring(lockout.id)
                             local indicator = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-                            indicator:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 235 + ((i-1) * 97), currentOffset - ((j-1) * 20))
+                            indicator:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 235 + ((i-1) * 97), currentOffset - ((j-1) * 17))
                             if LMAHI_SavedData.lockouts[charList[charIndex]][lockoutId] then
                                 indicator:SetText("X")
                                 indicator:SetTextColor(1, 0, 0)
@@ -546,7 +546,7 @@ function LMAHI.UpdateDisplay()
                             indicator:Show()
                             table.insert(lockoutIndicators, indicator)
                         end
-                        currentOffset = currentOffset - (#(LMAHI.lockoutData[lockoutType] or {}) * 20)
+                        currentOffset = currentOffset - (#(LMAHI.lockoutData[lockoutType] or {}) * 10)
                         currentOffset = currentOffset - 10
                     else
                         currentOffset = currentOffset - 5

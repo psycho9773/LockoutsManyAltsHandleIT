@@ -119,7 +119,7 @@ customInputButton:SetScript("OnClick", function()
     end
 end)
 customInputButton:SetScript("OnEnter", function(self)
-    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:SetOwner(self, "ANCHOR_TOP")
     GameTooltip:SetText("Custom Lockout Input")
     GameTooltip:Show()
 end)
@@ -141,7 +141,7 @@ settingsButton:SetScript("OnClick", function()
     end
 end)
 settingsButton:SetScript("OnEnter", function(self)
-    GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+    GameTooltip:SetOwner(self, "ANCHOR_TOP")
     GameTooltip:SetText("Character Order Settings")
     GameTooltip:Show()
 end)
@@ -257,7 +257,7 @@ customInputContent:SetSize(460, 120)
 customInputContent:SetPoint("TOPLEFT", customInputFrame, "TOPLEFT", 10, -30)
 customInputContent:Show()
 
--- Custom input fields Utility Functions
+-- turns buttons on there side
 local function SetCollapseIconRotation(button, isCollapsed)
     local angle = isCollapsed and math.rad(90) or math.rad(270)
     C_Timer.After(0, function()
@@ -266,7 +266,7 @@ local function SetCollapseIconRotation(button, isCollapsed)
         end
     end)
 end
-
+-- custom input
 local function CalculateContentHeight()
     local totalItems = 0
     for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
@@ -584,7 +584,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
             collapseButtons[lockoutType] = collapseButton
 
             local header = lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
-            header:SetPoint("TOPLEFT", lockoutContent, "TOPLEFT", 40, currentOffset)
+            header:SetPoint("TOPLEFT", lockoutContent, "TOPLEFT", 40, currentOffset -4)
             header:SetText(lockoutType:gsub("^%l", string.upper))
             header:Show()
             sectionHeaders[lockoutType] = header
