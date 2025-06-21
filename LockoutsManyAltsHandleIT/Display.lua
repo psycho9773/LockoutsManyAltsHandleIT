@@ -169,7 +169,7 @@ function LMAHI.UpdateDisplay()
                             LMAHI.highlightLine:SetPoint("TOPRIGHT", LMAHI.lockoutContent, "TOPRIGHT", 0, currentOffset - ((j-1) * 17) - 10)
                             LMAHI.highlightLine:Show()
                         else
-                            print("LMAHI Debug: highlightLine is nil in OnEnter")
+                            print("LMAHI Debug: highlightLine is nil in OnEnter, highlighting disabled")
                         end
                     end)
                     hoverRegion:SetScript("OnLeave", function()
