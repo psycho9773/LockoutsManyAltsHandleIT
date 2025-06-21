@@ -15,7 +15,7 @@ local lockoutIndicators = {}
 function LMAHI.UpdateDisplay()
     if not LMAHI.mainFrame or not LMAHI.lockoutData or not LMAHI.lockoutTypes then return end
 
-    local startIndex = (LMAHI.currentPage - 1) * LMAHI.maxCharsPerPage + 1
+    -- Calculate total pages
     local charList = {}
     for charName, _ in pairs(LMAHI_SavedData.characters or {}) do
         table.insert(charList, charName)
@@ -28,6 +28,10 @@ function LMAHI.UpdateDisplay()
         end
         return aIndex < bIndex
     end)
+    LMAHI.maxPages = math.ceil(#charList / LMAHI.maxCharsPerPage)
+    LMAHI.currentPage = math.max(1, math.min(LMAHI.currentPage, LMAHI.maxPages))
+
+    local startIndex = (LMAHI.currentPage - 1) * LMAHI.maxCharsPerPage + 1
 
     -- Clear existing indicators
     for _, indicator in ipairs(lockoutIndicators) do
@@ -120,7 +124,7 @@ function LMAHI.UpdateDisplay()
                     if not LMAHI.lockoutLabels[lockoutId] then
                         LMAHI.lockoutLabels[lockoutId] = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
                     end
-                    LMAHI.lockoutLabels[lockoutId]:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 40, currentOffset - ((j-1) * 17) - 10) -- 10-pixel drop for lockout names
+                    LMAHI.lockoutLabels[lockoutId]:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 40, currentOffset - ((j-1) * 17) - 10)
                     LMAHI.lockoutLabels[lockoutId]:SetText(lockout.name)
                     LMAHI.lockoutLabels[lockoutId]:Show()
                 end
@@ -156,7 +160,7 @@ function LMAHI.UpdateDisplay()
                         for j, lockout in ipairs(sortedLockouts) do
                             local lockoutId = tostring(lockout.id)
                             local indicator = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-                            indicator:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 235 + ((i-1) * 97), currentOffset - ((j-1) * 17) - 10) -- 10-pixel drop for indicators
+                            indicator:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 235 + ((i-1) * 97), currentOffset - ((j-1) * 17) - 10)
                             local isLocked = LMAHI_SavedData.lockouts[charList[charIndex]][lockoutId]
                             indicator:SetText(isLocked and "x" or "o")
                             indicator:SetTextColor(isLocked and 0.8 or 0.2, isLocked and 0.2 or 0.8, 0.2)
@@ -176,7 +180,4 @@ function LMAHI.UpdateDisplay()
     if LMAHI.highlightLine then
         LMAHI.highlightLine:Hide()
     end
-
-    -- Update page navigation
-    LMAHI.maxPages = math.ceil(#charList / LMAHI.maxCharsPerPage)
 end
