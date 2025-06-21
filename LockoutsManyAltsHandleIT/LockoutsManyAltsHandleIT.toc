@@ -1,4 +1,4 @@
-## Interface: 110002
+## Interface: 110107
 ## Title: LockoutsManyAltsHandleIT
 ## Notes: An addon to handle lockouts for multiple characters
 ## Author: Psycho9773
