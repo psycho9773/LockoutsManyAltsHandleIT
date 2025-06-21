@@ -514,15 +514,14 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         -- Initialize highlightLine
         if lockoutContent then
             print("LMAHI Debug: Creating highlightLine in ADDON_LOADED")
-            highlightLine = lockoutContent:CreateTexture(nil, "OVERLAY")
+            highlightLine = lockoutContent:CreateTexture(nil, "OVERLAY", nil, 5) -- Higher sublevel for visibility
             if highlightLine then
                 highlightLine:SetTexture("Interface\\Buttons\\WHITE8X8")
                 highlightLine:SetVertexColor(0.8, 0.8, 0.8, 0.3)
                 highlightLine:SetHeight(17)
                 highlightLine:Hide()
-                highlightLine:SetFrameLevel(lockoutContent:GetFrameLevel() + 5)
                 LMAHI.highlightLine = highlightLine -- Ensure global assignment
-                print("LMAHI Debug: highlightLine created successfully")
+                print("LMAHI Debug: highlightLine created, parent:", highlightLine:GetParent():GetName())
             else
                 print("LMAHI Error: Failed to create highlightLine texture")
             end
@@ -903,7 +902,7 @@ function LMAHI.UpdateSettingsDisplay()
                     if otherChar ~= self.charName then
                         table.insert(tempList, { name = otherChar, order = LMAHI_SavedData.charOrder[otherChar] or 999 })
                     end
-                end
+                }
                 table.sort(tempList, function(a, b) return a.order < b.order end)
                 
                 local newCharOrder = {}
