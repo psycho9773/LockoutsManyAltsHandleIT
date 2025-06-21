@@ -222,12 +222,22 @@ lockoutContent:SetWidth(lockoutScrollFrame:GetWidth() - 30)
 lockoutContent:SetHeight(400) -- Initial height, updated later
 lockoutContent:Show()
 
-highlightLine = lockoutContent:CreateTexture(nil, "OVERLAY")
-highlightLine:SetTexture("Interface\\Buttons\\WHITE8X8")
-highlightLine:SetVertexColor(0.8, 0.8, 0.8, 0.3)
-highlightLine:SetHeight(17)
-highlightLine:Hide()
-highlightLine:SetFrameLevel(lockoutContent:GetFrameLevel() + 5)
+-- Initialize highlightLine with a nil check
+if lockoutContent then
+    print("LMAHI Debug: Creating highlightLine")
+    highlightLine = lockoutContent:CreateTexture(nil, "OVERLAY")
+    if highlightLine then
+        highlightLine:SetTexture("Interface\\Buttons\\WHITE8X8")
+        highlightLine:SetVertexColor(0.8, 0.8, 0.8, 0.3)
+        highlightLine:SetHeight(17)
+        highlightLine:Hide()
+        highlightLine:SetFrameLevel(lockoutContent:GetFrameLevel() + 5)
+    else
+        print("LMAHI Error: Failed to create highlightLine texture")
+    end
+else
+    print("LMAHI Error: lockoutContent is nil, cannot create highlightLine")
+end
 
 highlightFrame = CreateFrame("Frame", nil, lockoutScrollFrame)
 highlightFrame:SetAllPoints(lockoutScrollFrame)
@@ -666,9 +676,9 @@ SlashCmdList["LMAHIDEBUG"] = function()
     end
     table.sort(customList, function(a, b)
         local aIndex = LMAHI_SavedData.customLockoutOrder[tostring(a.id)] or 999
-        local bIndex = LMAHI_SavedData.customLockoutOrder[tostring(b.id)] or 1010
+        bIndex = LMAHI_SavedData.customLockoutOrder[tostring(b.id)] or 1010
         if aIndex == bIndex then
-            return a.id < b
+            return a.id < b.id
         end
         return aIndex < bIndex
     end)
