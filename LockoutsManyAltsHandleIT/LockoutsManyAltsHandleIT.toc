@@ -1,13 +1,13 @@
 ## Interface: 110107
 ## Title: LockoutsManyAltsHandleIT
-## Notes: An addon to handle lockouts for multiple characters
-## Author: Psycho9773
-## Version: 1.0.1
-## License: MIT License
+## Notes: Tracks raid, dungeon, quest, and rare lockouts across multiple characters
+## Author: Psycho
 ## SavedVariables: LMAHI_SavedData
+## Version: 1.0
+## IconTexture: 975738
 
-LICENSE
 Core.lua
 Data.lua
 Utilities.lua
 Display.lua
+
