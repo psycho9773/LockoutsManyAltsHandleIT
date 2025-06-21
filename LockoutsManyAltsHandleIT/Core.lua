@@ -657,6 +657,7 @@ local customOrderInputs = {}
 
 -- Update custom input display
 function LMAHI.UpdateCustomInputDisplay()
+    print("LMAHI Debug: Entering UpdateCustomInputDisplay")
     if not LMAHI.customInputScrollContent then return end
 
     for _, label in ipairs(customLockoutLabels) do
@@ -813,6 +814,7 @@ function LMAHI.UpdateCustomInputDisplay()
         removeButton:SetScript("OnLeave", GameTooltip_Hide)
         table.insert(removeCustomButtons, removeButton)
     end
+    print("LMAHI Debug: Exiting UpdateCustomInputDisplay, customList size:", #customList)
 end
 
 -- Update settings display
@@ -902,7 +904,7 @@ function LMAHI.UpdateSettingsDisplay()
                     if otherChar ~= self.charName then
                         table.insert(tempList, { name = otherChar, order = LMAHI_SavedData.charOrder[otherChar] or 999 })
                     end
-                }
+                end
                 table.sort(tempList, function(a, b) return a.order < b.order end)
                 
                 local newCharOrder = {}
