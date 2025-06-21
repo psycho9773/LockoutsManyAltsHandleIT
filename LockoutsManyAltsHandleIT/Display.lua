@@ -1,19 +1,39 @@
--- Display.lua
-local LMAHI = _G.LMAHI -- Use global LMAHI set by Core.lua
+local addonName, addon = ...
+local LMAHI = addon
 
--- Ensure required variables are initialized
-LMAHI.maxCharsPerPage = LMAHI.maxCharsPerPage or 10
 LMAHI.currentPage = LMAHI.currentPage or 1
-LMAHI.maxPages = LMAHI.maxPages or 1
+LMAHI.maxCharsPerPage = 10
+LMAHI.maxPages = 1
+LMAHI.lockoutLabels = LMAHI.lockoutLabels or {}
 
--- UI element tables
 local charLabels = {}
 local realmLabels = {}
 local lockoutIndicators = {}
 
--- Update display function
+LMAHI.FACTION_COLORS = {
+    Alliance = { r = 0.0, g = 0.4, b = 1.0 },
+    Horde = { r = 1.0, g = 0.0, b = 0.0 },
+    Neutral = { r = 0.8, g = 0.8, b = 0.8 },
+}
+
+function LMAHI.CalculateContentHeight()
+    local height = 20
+    for _, lockoutType in ipairs(LMAHI.lockoutTypes or {}) do
+        height = height + 30
+        if not LMAHI_SavedData.collapsedSections[lockoutType] then
+            height = height + (#(LMAHI.lockoutData[lockoutType] or {}) * 20) + 10
+        else
+            height = height + 5
+        end
+    end
+    return math.max(400, height)
+end
+
 function LMAHI.UpdateDisplay()
-    if not LMAHI.mainFrame or not LMAHI.lockoutData or not LMAHI.lockoutTypes then return end
+    if not LMAHI.mainFrame or not LMAHI.lockoutData or not LMAHI.lockoutTypes then
+        print("LMAHI Debug: UpdateDisplay aborted - missing mainFrame, lockoutData, or lockoutTypes")
+        return
+    end
 
     -- Calculate total pages
     local charList = {}
@@ -28,10 +48,12 @@ function LMAHI.UpdateDisplay()
         end
         return aIndex < bIndex
     end)
-    LMAHI.maxPages = math.ceil(#charList / LMAHI.maxCharsPerPage)
+    LMAHI.maxPages = math.ceil(#charList / LMAHI.maxCharsPerPage) or 1
     LMAHI.currentPage = math.max(1, math.min(LMAHI.currentPage, LMAHI.maxPages))
+    print("LMAHI Debug: maxPages:", LMAHI.maxPages, "currentPage:", LMAHI.currentPage, "charList count:", #charList)
 
     local startIndex = (LMAHI.currentPage - 1) * LMAHI.maxCharsPerPage + 1
+    print("LMAHI Debug: startIndex:", startIndex)
 
     -- Clear existing indicators
     for _, indicator in ipairs(lockoutIndicators) do
@@ -74,6 +96,7 @@ function LMAHI.UpdateDisplay()
                 local factionColor = LMAHI.FACTION_COLORS[faction] or { r = 0.8, g = 0.8, b = 0.8 }
                 realmLabels[i]:SetTextColor(factionColor.r, factionColor.g, factionColor.b)
                 realmLabels[i]:Show()
+                print("LMAHI Debug: Rendering character", charList[charIndex], "at index", i)
             else
                 charLabels[i]:Hide()
                 realmLabels[i]:Hide()
@@ -88,10 +111,16 @@ function LMAHI.UpdateDisplay()
         LMAHI.lockoutContent:SetWidth(LMAHI.lockoutScrollFrame:GetWidth() - 30)
         LMAHI.lockoutContent:Show()
 
-        -- Hide all lockout labels
+        -- Hide all lockout labels and hover regions
         for _, label in pairs(LMAHI.lockoutLabels) do
             label:Hide()
         end
+        if LMAHI.hoverRegions then
+            for _, region in ipairs(LMAHI.hoverRegions) do
+                region:Hide()
+            end
+        end
+        LMAHI.hoverRegions = LMAHI.hoverRegions or {}
 
         local currentOffset = -20
         for _, lockoutType in ipairs(LMAHI.lockoutTypes or {}) do
@@ -127,6 +156,24 @@ function LMAHI.UpdateDisplay()
                     LMAHI.lockoutLabels[lockoutId]:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 40, currentOffset - ((j-1) * 17) - 10)
                     LMAHI.lockoutLabels[lockoutId]:SetText(lockout.name)
                     LMAHI.lockoutLabels[lockoutId]:Show()
+
+                    -- Create hover region for this row
+                    local hoverRegion = CreateFrame("Frame", nil, LMAHI.lockoutContent)
+                    hoverRegion:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 40, currentOffset - ((j-1) * 17) - 10)
+                    hoverRegion:SetSize(LMAHI.lockoutContent:GetWidth() - 40, 17)
+                    hoverRegion:EnableMouse(true)
+                    hoverRegion:SetScript("OnEnter", function()
+                        print("LMAHI Debug: Hovering over lockout row", lockout.name)
+                        LMAHI.highlightLine:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 0, currentOffset - ((j-1) * 17) - 10)
+                        LMAHI.highlightLine:SetPoint("TOPRIGHT", LMAHI.lockoutContent, "TOPRIGHT", 0, currentOffset - ((j-1) * 17) - 10)
+                        LMAHI.highlightLine:Show()
+                    end)
+                    hoverRegion:SetScript("OnLeave", function()
+                        print("LMAHI Debug: Leaving lockout row", lockout.name)
+                        LMAHI.highlightLine:Hide()
+                    end)
+                    hoverRegion:Show()
+                    table.insert(LMAHI.hoverRegions, hoverRegion)
                 end
                 currentOffset = currentOffset - (#(LMAHI.lockoutData[lockoutType] or {}) * 20)
                 currentOffset = currentOffset - 10
