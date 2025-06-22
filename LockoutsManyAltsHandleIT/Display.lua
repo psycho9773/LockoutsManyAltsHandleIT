@@ -47,20 +47,26 @@ end
 function LMAHI.UpdateDisplay()
     print("LMAHI Debug: Entering UpdateDisplay")
     if not LMAHI.mainFrame or not LMAHI.lockoutData or not LMAHI.lockoutTypes then
-        print("LMAHI Debug: UpdateDisplay aborted - mainFrame:", LMAHI.mainFrame, "lockoutData:", LMAHI.lockoutData, "lockoutTypes:", LMAHI.lockoutTypes)
+        print("LMAHI Debug: UpdateDisplay aborted - mainFrame:", LMAHI.mainFrame and LMAHI.mainFrame:GetName(), "lockoutData:", LMAHI.lockoutData and "exists", "lockoutTypes:", LMAHI.lockoutTypes and table.concat(LMAHI.lockoutTypes, ", ") or "nil")
         return
+    end
+
+    -- Ensure mainFrame is visible
+    if not LMAHI.mainFrame:IsVisible() then
+        LMAHI.mainFrame:Show()
+        print("LMAHI Debug: mainFrame shown, visible:", LMAHI.mainFrame:IsVisible())
     end
 
     -- Create or update highlightLine
     if not LMAHI.highlightLine and LMAHI.lockoutContent then
-        LMAHI.highlightLine = LMAHI.lockoutContent:CreateTexture(nil, "OVERLAY", nil, 7) -- Fixed sublevel from 8 to 7
+        LMAHI.highlightLine = LMAHI.lockoutContent:CreateTexture(nil, "OVERLAY", nil, 7)
         LMAHI.highlightLine:SetTexture("Interface\\Buttons\\WHITE8X8")
         LMAHI.highlightLine:SetVertexColor(0.8, 0.8, 0.8, 0.3)
         LMAHI.highlightLine:SetHeight(17)
         LMAHI.highlightLine:Hide()
-        print("LMAHI Debug: highlightLine created, parent:", LMAHI.highlightLine:GetParent():GetName(), "frameLevel:", LMAHI.highlightLine:GetFrameLevel(), "visible:", LMAHI.highlightLine:IsVisible())
+        print("LMAHI Debug: highlightLine created, parent:", LMAHI.highlightLine:GetParent():GetName(), "visible:", LMAHI.highlightLine:IsVisible())
     elseif LMAHI.highlightLine then
-        print("LMAHI Debug: highlightLine exists, parent:", LMAHI.highlightLine:GetParent():GetName(), "frameLevel:", LMAHI.highlightLine:GetFrameLevel(), "visible:", LMAHI.highlightLine:IsVisible())
+        print("LMAHI Debug: highlightLine exists, parent:", LMAHI.highlightLine:GetParent():GetName(), "visible:", LMAHI.highlightLine:IsVisible())
     else
         print("LMAHI Debug: highlightLine not created, lockoutContent is nil")
     end
