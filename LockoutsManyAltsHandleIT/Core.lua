@@ -1,7 +1,6 @@
 local addonName, addon = ...
-_G.LMAHI = addon -- Expose addon namespace globally
-
--- Initialize SavedVariables
+_G.LMAHI = _G.LMAHI or {} -- Initialize LMAHI globally
+LMAHI.lockoutData = LMAHI.lockoutData or { custom = {} } -- Fallback initialization
 LMAHI_SavedData = LMAHI_SavedData or {
     characters = {},
     lockouts = {},
@@ -28,7 +27,7 @@ local collapseButtons = {}
 
 -- Throttle for UpdateDisplay
 local lastUpdateTime = 0
-local updateThrottle = 0.1 -- Throttle updates to once every 100ms
+local updateThrottle = 0.1
 
 local function ThrottledUpdateDisplay()
     local currentTime = GetTime()
@@ -38,10 +37,8 @@ local function ThrottledUpdateDisplay()
             print("LMAHI Debug: Calling ThrottledUpdateDisplay")
             LMAHI.UpdateDisplay()
         else
-            print("LMAHI Debug: UpdateDisplay is nil in ThrottledUpdateDisplay")
+            print("LMAHI Debug: UpdateDisplay is nil")
         end
-    else
-        print("LMAHI Debug: ThrottledUpdateDisplay skipped due to throttle")
     end
 end
 
@@ -62,7 +59,7 @@ mainFrame:SetScript("OnDragStop", function(self)
 end)
 mainFrame:Hide()
 mainFrame:SetScale(LMAHI_SavedData.zoomLevel or 1)
-print("LMAHI Debug: mainFrame created, name:", mainFrame:GetName())
+print("LMAHI Debug: mainFrame created, name:", mainFrame:GetName(), "visible:", mainFrame:IsVisible())
 
 mainFrame.CloseButton:SetScript("OnClick", function()
     mainFrame:Hide()
@@ -227,7 +224,7 @@ lockoutScrollFrame:SetPoint("TOPLEFT", charFrame, "TOPRIGHT", -1195, -50)
 lockoutScrollFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -35, 10)
 lockoutScrollFrame:EnableMouseWheel(true)
 lockoutScrollFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 1)
-lockoutScrollFrame:SetClipsChildren(false) -- Prevent clipping of highlightLine
+lockoutScrollFrame:SetClipsChildren(false)
 lockoutScrollFrame:Show()
 print("LMAHI Debug: lockoutScrollFrame created, name:", lockoutScrollFrame:GetName(), "visible:", lockoutScrollFrame:IsVisible())
 
@@ -242,7 +239,7 @@ end)
 lockoutContent = CreateFrame("Frame", "LMAHI_LockoutContent", lockoutScrollFrame)
 lockoutScrollFrame:SetScrollChild(lockoutContent)
 lockoutContent:SetWidth(lockoutScrollFrame:GetWidth() - 30)
-lockoutContent:SetHeight(400) -- Initial height, updated later
+lockoutContent:SetHeight(400)
 lockoutContent:Show()
 print("LMAHI Debug: lockoutContent created, name:", lockoutContent:GetName(), "visible:", lockoutContent:IsVisible())
 
@@ -356,7 +353,7 @@ addButton:SetScript("OnClick", function()
         return
     end
 
-    for _, lockout in ipairs(LMAHI.lockoutData.custom) do
+    for _, lockout in ipairs(LMAHI.lockoutData.custom or {}) do
         if lockout.id == id then
             print("LMAHI: This ID is already in use.")
             return
@@ -376,7 +373,9 @@ addButton:SetScript("OnClick", function()
     UIDropDownMenu_SetSelectedValue(resetDropdown, "weekly")
     UIDropDownMenu_SetText(resetDropdown, "Weekly")
 
-    LMAHI.NormalizeCustomLockoutOrder()
+    if LMAHI.NormalizeCustomLockoutOrder then
+        LMAHI.NormalizeCustomLockoutOrder()
+    end
     LMAHI.UpdateCustomInputDisplay()
     ThrottledUpdateDisplay()
 end)
@@ -512,8 +511,10 @@ end)
 minimapButton:SetScript("OnClick", function()
     mainFrame:SetShown(not mainFrame:IsShown())
     if mainFrame:IsShown() then
-        print("LMAHI Debug: Minimap button clicked, saving character data")
-        LMAHI.SaveCharacterData()
+        print("LMAHI Debug: Minimap button clicked")
+        if LMAHI.SaveCharacterData then
+            LMAHI.SaveCharacterData()
+        end
         ThrottledUpdateDisplay()
     end
 end)
@@ -536,23 +537,31 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         UpdateButtonPosition()
         LMAHI_SavedData.customLockouts = LMAHI_SavedData.customLockouts or {}
         LMAHI.lockoutData.custom = LMAHI_SavedData.customLockouts
-        LMAHI.InitializeLockouts()
-        print("LMAHI Debug: ADDON_LOADED, initializing frames")
+        if LMAHI.InitializeLockouts then
+            LMAHI.InitializeLockouts()
+        end
         LMAHI.currentPage = 1
         mainFrame:SetScale(LMAHI_SavedData.zoomLevel)
         settingsFrame:SetScale(LMAHI_SavedData.zoomLevel)
         customInputFrame:SetScale(LMAHI_SavedData.zoomLevel)
+        -- Force frame visibility
+        charFrame:Show()
+        lockoutScrollFrame:Show()
+        lockoutContent:Show()
+        charListScrollFrame:Show()
+        charListContent:Show()
         print("LMAHI Debug: ADDON_LOADED, lockoutTypes:", LMAHI.lockoutTypes and table.concat(LMAHI.lockoutTypes, ", ") or "nil")
         ThrottledUpdateDisplay()
     elseif event == "PLAYER_LOGIN" then
         UpdateButtonPosition()
-        print("LMAHI Debug: PLAYER_LOGIN, saving character data")
-        LMAHI.SaveCharacterData()
+        if LMAHI.SaveCharacterData then
+            print("LMAHI Debug: PLAYER_LOGIN, saving character data")
+            LMAHI.SaveCharacterData()
+        end
         ThrottledUpdateDisplay()
     end
 end)
 
-mainFrame:RegisterEvent("ADDON_LOADED")
 mainFrame:RegisterEvent("PLAYER_LOGOUT")
 mainFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 mainFrame:RegisterEvent("ENCOUNTER_END")
@@ -562,27 +571,15 @@ mainFrame:RegisterEvent("UPDATE_INSTANCE_INFO")
 mainFrame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
 mainFrame:SetScript("OnEvent", function(self, event, arg1)
     print("LMAHI Debug: MainFrame event triggered:", event, "arg1:", arg1)
-    if event == "ADDON_LOADED" and arg1 == addonName then
-        LMAHI_SavedData.minimapPos = LMAHI_SavedData.minimapPos or { angle = math.rad(45) }
-        LMAHI_SavedData.framePos = LMAHI_SavedData.framePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
-        LMAHI_SavedData.settingsFramePos = LMAHI_SavedData.settingsFramePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
-        LMAHI_SavedData.customInputFramePos = LMAHI_SavedData.customInputFramePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
-        LMAHI_SavedData.zoomLevel = LMAHI_SavedData.zoomLevel or 1
-        LMAHI_SavedData.characters = LMAHI_SavedData.characters or {}
-        LMAHI_SavedData.lockouts = LMAHI_SavedData.lockouts or {}
-        LMAHI_SavedData.charOrder = LMAHI_SavedData.charOrder or {}
-        LMAHI_SavedData.customLockoutOrder = LMAHI_SavedData.customLockoutOrder or {}
-        LMAHI_SavedData.classColors = LMAHI_SavedData.classColors or {}
-        LMAHI_SavedData.factions = LMAHI_SavedData.factions or {}
-        LMAHI_SavedData.collapsedSections = LMAHI_SavedData.collapsedSections or {}
-        LMAHI_SavedData.customLockouts = LMAHI_SavedData.customLockouts or {}
-        LMAHI.lockoutData.custom = LMAHI_SavedData.customLockouts
-    elseif event == "PLAYER_LOGOUT" then
-        print("LMAHI Debug: PLAYER_LOGOUT, checking lockouts")
-        LMAHI.CheckLockouts()
+    if event == "PLAYER_LOGOUT" then
+        if LMAHI.CheckLockouts then
+            LMAHI.CheckLockouts()
+        end
     elseif event == "PLAYER_ENTERING_WORLD" or event == "ENCOUNTER_END" or event == "QUEST_TURNED_IN" or event == "LFG_LOCK_INFO_RECEIVED" or event == "UPDATE_INSTANCE_INFO" or event == "CURRENCY_DISPLAY_UPDATE" then
-        print("LMAHI Debug: Event", event, "saving character data")
-        LMAHI.SaveCharacterData()
+        if LMAHI.SaveCharacterData then
+            print("LMAHI Debug: Event", event, "saving character data")
+            LMAHI.SaveCharacterData()
+        end
         ThrottledUpdateDisplay()
     end
 end)
@@ -592,18 +589,26 @@ SLASH_LMAHI1 = "/lmahi"
 SlashCmdList["LMAHI"] = function()
     mainFrame:SetShown(not mainFrame:IsShown())
     if mainFrame:IsShown() then
-        print("LMAHI Debug: /lmahi, saving character data")
-        LMAHI.SaveCharacterData()
+        if LMAHI.SaveCharacterData then
+            print("LMAHI Debug: /lmahi, saving character data")
+            LMAHI.SaveCharacterData()
+        end
         ThrottledUpdateDisplay()
     end
 end
 
 SLASH_LMAHIRESET1 = "/lmahireset"
 SlashCmdList["LMAHIRESET"] = function()
-    LMAHI.CleanLockouts()
-    LMAHI.InitializeLockouts()
-    print("LMAHI Debug: /lmahireset, saving character data")
-    LMAHI.SaveCharacterData()
+    if LMAHI.CleanLockouts then
+        LMAHI.CleanLockouts()
+    end
+    if LMAHI.InitializeLockouts then
+        LMAHI.InitializeLockouts()
+    end
+    if LMAHI.SaveCharacterData then
+        print("LMAHI Debug: /lmahireset, saving character data")
+        LMAHI.SaveCharacterData()
+    end
     print("LMAHI: Lockout data cleaned and reset for current character.")
     ThrottledUpdateDisplay()
 end
@@ -617,7 +622,7 @@ SlashCmdList["LMAHIDEBUG"] = function()
     end
     print("Debug: Current Character Order")
     local charList = {}
-    for charName, _ in pairs(LMAHI_SavedData.characters) do
+    for charName, _ in pairs(LMAHI_SavedData.characters or {}) do
         table.insert(charList, charName)
     end
     table.sort(charList, function(a, b)
@@ -633,7 +638,7 @@ SlashCmdList["LMAHIDEBUG"] = function()
     end
     print("Debug: Custom Lockouts")
     local customList = {}
-    for _, lockout in ipairs(LMAHI.lockoutData.custom) do
+    for _, lockout in ipairs(LMAHI.lockoutData.custom or {}) do
         table.insert(customList, lockout)
     end
     table.sort(customList, function(a, b)
@@ -651,7 +656,7 @@ SlashCmdList["LMAHIDEBUG"] = function()
     print("lockoutTypes:", LMAHI.lockoutTypes and table.concat(LMAHI.lockoutTypes, ", ") or "nil")
 end
 
--- Expose frames to addon namespace for access in other files
+-- Expose frames
 LMAHI.mainFrame = mainFrame
 LMAHI.charFrame = charFrame
 LMAHI.lockoutScrollFrame = lockoutScrollFrame
@@ -806,10 +811,14 @@ function LMAHI.UpdateCustomInputDisplay()
                             for charName, lockouts in pairs(LMAHI_SavedData.lockouts) do
                                 lockouts[tostring(self.lockoutId)] = nil
                             end
-                            LMAHI.NormalizeCustomLockoutOrder()
+                            if LMAHI.NormalizeCustomLockoutOrder then
+                                LMAHI.NormalizeCustomLockoutOrder()
+                            end
                             LMAHI.UpdateCustomInputDisplay()
                             ThrottledUpdateDisplay()
-                            LMAHI.SaveCharacterData()
+                            if LMAHI.SaveCharacterData then
+                                LMAHI.SaveCharacterData()
+                            end
                             break
                         end
                     end
@@ -981,7 +990,9 @@ function LMAHI.UpdateSettingsDisplay()
                     LMAHI_SavedData.factions[self.charName] = nil
                     LMAHI.UpdateSettingsDisplay()
                     ThrottledUpdateDisplay()
-                    LMAHI.SaveCharacterData()
+                    if LMAHI.SaveCharacterData then
+                        LMAHI.SaveCharacterData()
+                    end
                 end,
                 timeout = 0,
                 whileDead = true,
@@ -1007,5 +1018,5 @@ function LMAHI.UpdateSettingsDisplay()
     print("LMAHI Debug: Exiting UpdateSettingsDisplay, charList size:", #charList, "removeButtons:", #removeButtons)
 end
 
--- Expose UpdateDisplay to the global namespace
+-- Expose UpdateDisplay
 _G["LMAHI_UpdateDisplay"] = LMAHI.UpdateDisplay
