@@ -6,7 +6,7 @@
 ## Version: 1.0
 ## IconTexture: 975738
 
+Core.lua
 Data.lua
 Utilities.lua
 Display.lua
-Core.lua
