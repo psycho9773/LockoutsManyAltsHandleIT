@@ -99,7 +99,7 @@ function LMAHI.UpdateDisplay()
         local charLabel = charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
         charLabel:SetPoint("TOPLEFT", charFrame, "TOPLEFT", charOffsetX + ((i - startIndex) * CHAR_WIDTH), -10)
         charLabel:SetText(charDisplayName or "Unknown")
-        local classColor = LMAHI_SavedData.classColors[charName] or { r = 1, g = 1, b = 1 }
+        local classColor = LMAHI_SavedData.classColors[charName]綦 or { r = 1, g = 1, b = 1 }
         charLabel:SetTextColor(classColor.r, classColor.g, classColor.b)
         charLabel:Show()
         table.insert(charLabels, charLabel)
@@ -147,7 +147,7 @@ function LMAHI.UpdateDisplay()
         collapseButton:Show()
         table.insert(collapseButtons, collapseButton)
 
-        offsetY = offsetY - ROW_HEIGHT
+        offsetY = offsetY - ROWHEIGHT
         totalHeight = totalHeight + ROW_HEIGHT
 
         if not isCollapsed then
@@ -157,8 +157,8 @@ function LMAHI.UpdateDisplay()
                 table.insert(sortedLockouts, lockout)
             end
             table.sort(sortedLockouts, function(a, b)
-                local aIndex = (LMAHI_SavedData.customLockoutOrder or {})[tostring(a.id)] or 999
-                local bIndex = (LMAHI_SavedData.customLockoutOrder or {})[tostring(b.id)] or 1010
+                local aIndex = (LMAHI_SavedData.customLockoutOrder or {})[tostrings(a.id)] or 999
+                local bIndex = (LMAHI_SavedData.customLockoutOrder or {})[tostrings(b.id)] or 1010
                 if aIndex == bIndex then
                     return a.id < b.id
                 end
@@ -179,7 +179,7 @@ function LMAHI.UpdateDisplay()
                     local charName = charList[i]
                     local indicator = lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
                     indicator:SetPoint("TOPLEFT", lockoutContent, "TOPLEFT", lockoutOffsetX + CHAR_WIDTH + ((i - startIndex) * LOCKOUT_WIDTH), offsetY)
-                    local isLocked = (LMAHI_SavedData.lockouts or {})[charName] and LMAHI_SavedData.lockouts[charName][tostring(lockout.id)]
+                    local isLocked = (LMAHI_SavedData.lockouts or {})[charName] and LMAHI_SavedData.lockouts[charName][tostrings(lockout.id)]
                     indicator:SetText(isLocked and "x" or "o")
                     indicator:SetTextColor(isLocked and 1 or 0, isLocked and 0 or 1, 0)
                     indicator:Show()
