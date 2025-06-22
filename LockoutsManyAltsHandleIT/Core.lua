@@ -1,6 +1,18 @@
 local addonName, addon = ...
 _G.LMAHI = _G.LMAHI or {}
 
+-- Initialize LMAHI_SavedData globally
+LMAHI_SavedData = LMAHI_SavedData or {
+    characters = {},
+    lockouts = {},
+    charOrder = {},
+    classColors = {},
+    factions = {},
+    collapsedSections = {},
+    customLockoutOrder = {},
+}
+print("LMAHI Debug: Core.lua loaded, LMAHI_SavedData initialized")
+
 local mainFrame
 local charFrame
 local lockoutScrollFrame
@@ -11,20 +23,12 @@ local nextPageButton
 
 function LMAHI:OnLoad()
     print("LMAHI Debug: OnLoad called")
-    LMAHI_SavedData = LMAHI_SavedData or {
-        characters = {},
-        lockouts = {},
-        charOrder = {},
-        classColors = {},
-        factions = {},
-        collapsedSections = {},
-        customLockoutOrder = {},
-    }
     LMAHI.currentPage = LMAHI.currentPage or 1
     LMAHI.maxPages = LMAHI.maxPages or 1
 end
 
 function LMAHI:CreateMainFrame()
+    print("LMAHI Debug: Creating main frame")
     mainFrame = CreateFrame("Frame", "LMAHI_Frame", UIParent, "BasicFrameTemplateWithInset")
     mainFrame:SetSize(1208, 402)
     mainFrame:SetPoint("CENTER")
@@ -47,16 +51,19 @@ function LMAHI:CreateMainFrame()
     })
     charFrame:SetBackdropColor(0, 0, 0, 0.8)
     charFrame:Show()
+    print("LMAHI Debug: charFrame created, visible:", charFrame:IsVisible())
 
     lockoutScrollFrame = CreateFrame("ScrollFrame", "LMAHI_LockoutScrollFrame", mainFrame, "UIPanelScrollFrameTemplate")
     lockoutScrollFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 8, -64)
     lockoutScrollFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMLEFT", 200, 24)
     lockoutScrollFrame:Show()
+    print("LMAHI Debug: lockoutScrollFrame created, visible:", lockoutScrollFrame:IsVisible())
 
     lockoutContent = CreateFrame("Frame", "LMAHI_LockoutContent", lockoutScrollFrame)
     lockoutContent:SetSize(192, 314)
     lockoutScrollFrame:SetScrollChild(lockoutContent)
     lockoutContent:Show()
+    print("LMAHI Debug: lockoutContent created, visible:", lockoutContent:IsVisible())
 
     highlightFrame = CreateFrame("Frame", nil, lockoutScrollFrame)
     highlightFrame:SetAllPoints(lockoutScrollFrame)
@@ -75,13 +82,14 @@ function LMAHI:CreateMainFrame()
     -- Navigation buttons
     prevPageButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
     prevPageButton:SetSize(30, 30)
-    prevPageButton:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 8, -24)
+    prevPageButton:SetPoint("TOPLEFT", charFrame, "TOPLEFT", 5, 5)
     prevPageButton:SetText("<")
     prevPageButton:SetScript("OnClick", function()
         if LMAHI.currentPage > 1 then
             LMAHI.currentPage = LMAHI.currentPage - 1
             print("LMAHI Debug: Previous page clicked, currentPage:", LMAHI.currentPage)
             LMAHI.UpdateDisplay()
+            LMAHI.UpdateNavButtons()
         end
     end)
 
@@ -94,6 +102,7 @@ function LMAHI:CreateMainFrame()
             LMAHI.currentPage = LMAHI.currentPage + 1
             print("LMAHI Debug: Next page clicked, currentPage:", LMAHI.currentPage)
             LMAHI.UpdateDisplay()
+            LMAHI.UpdateNavButtons()
         end
     end)
 
@@ -164,8 +173,8 @@ end
 SLASH_LMAHIDEBUG1 = "/lmahidebug"
 SlashCmdList["LMAHIDEBUG"] = function()
     print("LMAHI Debug: Saved Data")
-    print("Characters:", LMAHI_SavedData.characters and table.concat(LMAHI_SavedData.characters, ", ") or "nil")
-    print("charOrder:", LMAHI_SavedData.charOrder and table.concat(LMAHI_SavedData.charOrder, ", ") or "nil")
+    print("Characters:", next(LMAHI_SavedData.characters) and table.concat({ k for k, _ in pairs(LMAHI_SavedData.characters) }, ", ") or "nil")
+    print("charOrder:", next(LMAHI_SavedData.charOrder) and table.concat({ k .. "=" .. v for k, v in pairs(LMAHI_SavedData.charOrder) }, ", ") or "nil")
     print("lockoutTypes:", LMAHI.lockoutTypes and table.concat(LMAHI.lockoutTypes, ", ") or "nil")
     for _, lockoutType in ipairs(LMAHI.lockoutTypes or {}) do
         print("lockoutData[" .. lockoutType .. "]:")
