@@ -1,6 +1,8 @@
 local addonName, addon = ...
 _G.LMAHI = _G.LMAHI or {}
 
+print("LMAHI Debug: Display.lua loaded")
+
 -- Local references to frames from Core.lua
 local mainFrame = LMAHI.mainFrame
 local charFrame = LMAHI.charFrame
@@ -18,10 +20,10 @@ local lockoutIndicators = {}
 local highlightLine
 
 -- Constants
-local CHAR_WIDTH = 100 -- Reduced to fit 10 characters
-local LOCKOUT_WIDTH = 35 -- Adjusted proportionally
+local CHAR_WIDTH = 90 -- Adjusted for 10 characters
+local LOCKOUT_WIDTH = 30 -- Adjusted proportionally
 local ROW_HEIGHT = 30
-local CHARS_PER_PAGE = 10 -- Match previous layout
+local CHARS_PER_PAGE = 10
 
 function LMAHI.UpdateDisplay()
     print("LMAHI Debug: Entering UpdateDisplay")
@@ -121,12 +123,12 @@ function LMAHI.UpdateDisplay()
     local lockoutOffsetX = 10
 
     for _, lockoutType in ipairs(LMAHI.lockoutTypes or {}) do
-        local isCollapsed = LMAHI_SavedData.collapsedSections[lockoutType] or false
+        local isCollapsed = (LMAHI_SavedData.collapsedSections or {})[lockoutType] or false
 
         -- Section header
         local header = lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
         header:SetPoint("TOPLEFT", lockoutContent, "TOPLEFT", lockoutOffsetX, offsetY)
-        header:SetText(lockoutType:gsub("^%l", string.upper))
+        header:SetText(lockoutType and lockoutType:gsub("^%l", string.upper) or "Unknown")
         header:SetTextColor(1, 0.8, 0)
         header:Show()
         table.insert(sectionHeaders, header)
@@ -134,10 +136,11 @@ function LMAHI.UpdateDisplay()
         -- Collapse button
         local collapseButton = CreateFrame("Button", nil, lockoutContent)
         collapseButton:SetSize(16, 16)
-        collapseButton:SetPoint("LEFT", header, "RIGHT", 5, 0)
+        collapseButton:SetPoint("TOPLEFT", header, "TOPRIGHT", 5, 0)
         collapseButton:SetNormalTexture(isCollapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
         collapseButton:SetPushedTexture(isCollapsed and "Interface\\Buttons\\UI-PlusButton-Down" or "Interface\\Buttons\\UI-MinusButton-Down")
         collapseButton:SetScript("OnClick", function()
+            LMAHI_SavedData.collapsedSections = LMAHI_SavedData.collapsedSections or {}
             LMAHI_SavedData.collapsedSections[lockoutType] = not isCollapsed
             LMAHI.UpdateDisplay()
         end)
@@ -148,14 +151,14 @@ function LMAHI.UpdateDisplay()
         totalHeight = totalHeight + ROW_HEIGHT
 
         if not isCollapsed then
-            local lockouts = LMAHI.lockoutData[lockoutType] or {}
+            local lockouts = (LMAHI.lockoutData or {})[lockoutType] or {}
             local sortedLockouts = {}
             for _, lockout in ipairs(lockouts) do
                 table.insert(sortedLockouts, lockout)
             end
             table.sort(sortedLockouts, function(a, b)
-                local aIndex = LMAHI_SavedData.customLockoutOrder[tostring(a.id)] or 999
-                local bIndex = LMAHI_SavedData.customLockoutOrder[tostring(b.id)] or 1010
+                local aIndex = (LMAHI_SavedData.customLockoutOrder or {})[tostring(a.id)] or 999
+                local bIndex = (LMAHI_SavedData.customLockoutOrder or {})[tostring(b.id)] or 1010
                 if aIndex == bIndex then
                     return a.id < b.id
                 end
@@ -176,7 +179,7 @@ function LMAHI.UpdateDisplay()
                     local charName = charList[i]
                     local indicator = lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
                     indicator:SetPoint("TOPLEFT", lockoutContent, "TOPLEFT", lockoutOffsetX + CHAR_WIDTH + ((i - startIndex) * LOCKOUT_WIDTH), offsetY)
-                    local isLocked = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][tostring(lockout.id)]
+                    local isLocked = (LMAHI_SavedData.lockouts or {})[charName] and LMAHI_SavedData.lockouts[charName][tostring(lockout.id)]
                     indicator:SetText(isLocked and "x" or "o")
                     indicator:SetTextColor(isLocked and 1 or 0, isLocked and 0 or 1, 0)
                     indicator:Show()
