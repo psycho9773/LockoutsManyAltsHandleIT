@@ -537,8 +537,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         LMAHI_SavedData.customLockouts = LMAHI_SavedData.customLockouts or {}
         LMAHI.lockoutData.custom = LMAHI_SavedData.customLockouts
         LMAHI.InitializeLockouts()
-        print("LMAHI Debug: ADDON_LOADED, saving character data")
-        LMAHI.SaveCharacterData()
+        print("LMAHI Debug: ADDON_LOADED, initializing frames")
         LMAHI.currentPage = 1
         mainFrame:SetScale(LMAHI_SavedData.zoomLevel)
         settingsFrame:SetScale(LMAHI_SavedData.zoomLevel)
@@ -547,6 +546,9 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         ThrottledUpdateDisplay()
     elseif event == "PLAYER_LOGIN" then
         UpdateButtonPosition()
+        print("LMAHI Debug: PLAYER_LOGIN, saving character data")
+        LMAHI.SaveCharacterData()
+        ThrottledUpdateDisplay()
     end
 end)
 
@@ -638,7 +640,7 @@ SlashCmdList["LMAHIDEBUG"] = function()
         local aIndex = LMAHI_SavedData.customLockoutOrder[tostring(a.id)] or 999
         local bIndex = LMAHI_SavedData.customLockoutOrder[tostring(b.id)] or 1010
         if aIndex == bIndex then
-            return a.id < b
+            return a.id < b.id
         end
         return aIndex < bIndex
     end)
@@ -1004,3 +1006,6 @@ function LMAHI.UpdateSettingsDisplay()
     end
     print("LMAHI Debug: Exiting UpdateSettingsDisplay, charList size:", #charList, "removeButtons:", #removeButtons)
 end
+
+-- Expose UpdateDisplay to the global namespace
+_G["LMAHI_UpdateDisplay"] = LMAHI.UpdateDisplay
