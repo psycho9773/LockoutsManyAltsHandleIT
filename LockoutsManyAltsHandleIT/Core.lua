@@ -26,6 +26,25 @@ local sectionHeaders = {}
 local lockoutLabels = {}
 local collapseButtons = {}
 
+-- Throttle for UpdateDisplay
+local lastUpdateTime = 0
+local updateThrottle = 0.1 -- Throttle updates to once every 100ms
+
+local function ThrottledUpdateDisplay()
+    local currentTime = GetTime()
+    if currentTime - lastUpdateTime >= updateThrottle then
+        lastUpdateTime = currentTime
+        if LMAHI.UpdateDisplay then
+            print("LMAHI Debug: Calling ThrottledUpdateDisplay")
+            LMAHI.UpdateDisplay()
+        else
+            print("LMAHI Debug: UpdateDisplay is nil in ThrottledUpdateDisplay")
+        end
+    else
+        print("LMAHI Debug: ThrottledUpdateDisplay skipped due to throttle")
+    end
+end
+
 -- Create main frame
 mainFrame = CreateFrame("Frame", "LMAHI_Frame", UIParent, "BasicFrameTemplateWithInset")
 tinsert(UISpecialFrames, "LMAHI_Frame")
@@ -159,11 +178,7 @@ leftArrow:SetScript("OnClick", function()
     print("LMAHI Debug: Left arrow clicked, currentPage before:", LMAHI.currentPage)
     LMAHI.currentPage = math.max(1, LMAHI.currentPage - 1)
     print("LMAHI Debug: currentPage after:", LMAHI.currentPage)
-    if LMAHI.UpdateDisplay then
-        LMAHI.UpdateDisplay()
-    else
-        print("LMAHI Debug: UpdateDisplay is nil in leftArrow OnClick")
-    end
+    ThrottledUpdateDisplay()
 end)
 leftArrow:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -175,18 +190,14 @@ leftArrow:SetScript("OnLeave", GameTooltip_Hide)
 local rightArrow = CreateFrame("Button", nil, mainFrame)
 rightArrow:SetSize(40, 50)
 rightArrow:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -7, -23)
-rightArrow:SetNormalTexture("Interface |cff99ccffCharacter|r |cffADADADOrder|r |cff99ccffSettings|r |cffADADADFor|r |cff99ccffThis|r |cffADADADAddon|r")
+rightArrow:SetNormalTexture("Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up")
 rightArrow:SetPushedTexture("Interface\\Buttons\\UI-SpellbookIcon-NextPage-Down")
 rightArrow:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
 rightArrow:SetScript("OnClick", function()
     print("LMAHI Debug: Right arrow clicked, currentPage before:", LMAHI.currentPage, "maxPages:", LMAHI.maxPages)
     LMAHI.currentPage = math.min(LMAHI.maxPages or 1, LMAHI.currentPage + 1)
     print("LMAHI Debug: currentPage after:", LMAHI.currentPage)
-    if LMAHI.UpdateDisplay then
-        LMAHI.UpdateDisplay()
-    else
-        print("LMAHI Debug: UpdateDisplay is nil in rightArrow OnClick")
-    end
+    ThrottledUpdateDisplay()
 end)
 rightArrow:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
@@ -367,11 +378,7 @@ addButton:SetScript("OnClick", function()
 
     LMAHI.NormalizeCustomLockoutOrder()
     LMAHI.UpdateCustomInputDisplay()
-    if LMAHI.UpdateDisplay then
-        LMAHI.UpdateDisplay()
-    else
-        print("LMAHI Debug: UpdateDisplay is nil in addButton OnClick")
-    end
+    ThrottledUpdateDisplay()
 end)
 
 customInputScrollFrame = CreateFrame("ScrollFrame", "LMAHI_CustomInputScrollFrame", customInputFrame, "UIPanelScrollFrameTemplate")
@@ -416,7 +423,7 @@ settingsFrame:Hide()
 settingsFrame:SetScale(LMAHI_SavedData.zoomLevel or 1)
 print("LMAHI Debug: settingsFrame created, name:", settingsFrame:GetName(), "visible:", settingsFrame:IsVisible())
 
-local settingsTitle = settingsFrame:CreateFontString(nil, "ARTWORK", "GameFontHighLightLarge")
+local settingsTitle = settingsFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
 settingsTitle:SetPoint("TOP", settingsFrame, "TOP", 0, -3)
 settingsTitle:SetText("|cff99ccffCharacter|r |cffADADADOrder|r |cff99ccffSettings|r |cffADADADFor|r |cff99ccffThis|r |cffADADADAddon|r")
 settingsTitle:SetTextColor(0.6, 0.8, 0.9)
@@ -505,12 +512,9 @@ end)
 minimapButton:SetScript("OnClick", function()
     mainFrame:SetShown(not mainFrame:IsShown())
     if mainFrame:IsShown() then
+        print("LMAHI Debug: Minimap button clicked, saving character data")
         LMAHI.SaveCharacterData()
-        if LMAHI.UpdateDisplay then
-            LMAHI.UpdateDisplay()
-        else
-            print("LMAHI Debug: UpdateDisplay is nil in minimapButton OnClick")
-        end
+        ThrottledUpdateDisplay()
     end
 end)
 minimapButton:SetScript("OnEnter", function(self)
@@ -527,22 +531,20 @@ local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:SetScript("OnEvent", function(self, event, arg1)
+    print("LMAHI Debug: Event triggered:", event, "arg1:", arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
         UpdateButtonPosition()
         LMAHI_SavedData.customLockouts = LMAHI_SavedData.customLockouts or {}
         LMAHI.lockoutData.custom = LMAHI_SavedData.customLockouts
         LMAHI.InitializeLockouts()
-        LMAHI.SaveCharacterData() -- Ensure new characters get correct order
+        print("LMAHI Debug: ADDON_LOADED, saving character data")
+        LMAHI.SaveCharacterData()
         LMAHI.currentPage = 1
         mainFrame:SetScale(LMAHI_SavedData.zoomLevel)
         settingsFrame:SetScale(LMAHI_SavedData.zoomLevel)
         customInputFrame:SetScale(LMAHI_SavedData.zoomLevel)
         print("LMAHI Debug: ADDON_LOADED, lockoutTypes:", LMAHI.lockoutTypes and table.concat(LMAHI.lockoutTypes, ", ") or "nil")
-        if LMAHI.UpdateDisplay then
-            LMAHI.UpdateDisplay()
-        else
-            print("LMAHI Debug: UpdateDisplay is nil in ADDON_LOADED")
-        end
+        ThrottledUpdateDisplay()
     elseif event == "PLAYER_LOGIN" then
         UpdateButtonPosition()
     end
@@ -557,11 +559,12 @@ mainFrame:RegisterEvent("LFG_LOCK_INFO_RECEIVED")
 mainFrame:RegisterEvent("UPDATE_INSTANCE_INFO")
 mainFrame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
 mainFrame:SetScript("OnEvent", function(self, event, arg1)
+    print("LMAHI Debug: MainFrame event triggered:", event, "arg1:", arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
         LMAHI_SavedData.minimapPos = LMAHI_SavedData.minimapPos or { angle = math.rad(45) }
         LMAHI_SavedData.framePos = LMAHI_SavedData.framePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
-        LMAHI_SavedData.settingsFramePos = LMAHI_SavedData.settingsFramePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = relativePoint, x = 0, y = 0 }
-        LMAHI_SavedData.customInputFramePos = LMAHI_SavedData.customInputFramePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = relativePoint, x = 0, y = 0 }
+        LMAHI_SavedData.settingsFramePos = LMAHI_SavedData.settingsFramePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
+        LMAHI_SavedData.customInputFramePos = LMAHI_SavedData.customInputFramePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
         LMAHI_SavedData.zoomLevel = LMAHI_SavedData.zoomLevel or 1
         LMAHI_SavedData.characters = LMAHI_SavedData.characters or {}
         LMAHI_SavedData.lockouts = LMAHI_SavedData.lockouts or {}
@@ -573,14 +576,12 @@ mainFrame:SetScript("OnEvent", function(self, event, arg1)
         LMAHI_SavedData.customLockouts = LMAHI_SavedData.customLockouts or {}
         LMAHI.lockoutData.custom = LMAHI_SavedData.customLockouts
     elseif event == "PLAYER_LOGOUT" then
+        print("LMAHI Debug: PLAYER_LOGOUT, checking lockouts")
         LMAHI.CheckLockouts()
     elseif event == "PLAYER_ENTERING_WORLD" or event == "ENCOUNTER_END" or event == "QUEST_TURNED_IN" or event == "LFG_LOCK_INFO_RECEIVED" or event == "UPDATE_INSTANCE_INFO" or event == "CURRENCY_DISPLAY_UPDATE" then
+        print("LMAHI Debug: Event", event, "saving character data")
         LMAHI.SaveCharacterData()
-        if LMAHI.UpdateDisplay then
-            LMAHI.UpdateDisplay()
-        else
-            print("LMAHI Debug: UpdateDisplay is nil in mainFrame OnEvent", event)
-        end
+        ThrottledUpdateDisplay()
     end
 end)
 
@@ -589,12 +590,9 @@ SLASH_LMAHI1 = "/lmahi"
 SlashCmdList["LMAHI"] = function()
     mainFrame:SetShown(not mainFrame:IsShown())
     if mainFrame:IsShown() then
+        print("LMAHI Debug: /lmahi, saving character data")
         LMAHI.SaveCharacterData()
-        if LMAHI.UpdateDisplay then
-            LMAHI.UpdateDisplay()
-        else
-            print("LMAHI Debug: UpdateDisplay is nil in /lmahi")
-        end
+        ThrottledUpdateDisplay()
     end
 end
 
@@ -602,13 +600,10 @@ SLASH_LMAHIRESET1 = "/lmahireset"
 SlashCmdList["LMAHIRESET"] = function()
     LMAHI.CleanLockouts()
     LMAHI.InitializeLockouts()
+    print("LMAHI Debug: /lmahireset, saving character data")
     LMAHI.SaveCharacterData()
     print("LMAHI: Lockout data cleaned and reset for current character.")
-    if LMAHI.UpdateDisplay then
-        LMAHI.UpdateDisplay()
-    else
-        print("LMAHI Debug: UpdateDisplay is nil in /lmahireset")
-    end
+    ThrottledUpdateDisplay()
 end
 
 SLASH_LMAHIDEBUG1 = "/lmahidebug"
@@ -775,11 +770,7 @@ function LMAHI.UpdateCustomInputDisplay()
                 end
                 LMAHI_SavedData.customLockoutOrder = newCustomLockoutOrder
                 LMAHI.UpdateCustomInputDisplay()
-                if LMAHI.UpdateDisplay then
-                    LMAHI.UpdateDisplay()
-                else
-                    print("LMAHI Debug: UpdateDisplay is nil in customOrderInput OnEnterPressed")
-                end
+                ThrottledUpdateDisplay()
             else
                 self:SetText(tostring(LMAHI_SavedData.customLockoutOrder[tostring(self.lockoutId)] or i))
             end
@@ -815,11 +806,7 @@ function LMAHI.UpdateCustomInputDisplay()
                             end
                             LMAHI.NormalizeCustomLockoutOrder()
                             LMAHI.UpdateCustomInputDisplay()
-                            if LMAHI.UpdateDisplay then
-                                LMAHI.UpdateDisplay()
-                            else
-                                print("LMAHI Debug: UpdateDisplay is nil in removeButton OnClick")
-                            end
+                            ThrottledUpdateDisplay()
                             LMAHI.SaveCharacterData()
                             break
                         end
@@ -851,6 +838,7 @@ end
 
 -- Update settings display
 function LMAHI.UpdateSettingsDisplay()
+    print("LMAHI Debug: Entering UpdateSettingsDisplay")
     if not LMAHI.charListContent then
         print("LMAHI Debug: charListContent is nil")
         return
@@ -958,11 +946,7 @@ function LMAHI.UpdateSettingsDisplay()
                 end
                 LMAHI_SavedData.charOrder = newCharOrder
                 LMAHI.UpdateSettingsDisplay()
-                if LMAHI.UpdateDisplay then
-                    LMAHI.UpdateDisplay()
-                else
-                    print("LMAHI Debug: UpdateDisplay is nil in charOrderInput OnEnterPressed")
-                end
+                ThrottledUpdateDisplay()
             else
                 self:SetText(tostring(LMAHI_SavedData.charOrder[self.charName] or i))
             end
@@ -980,22 +964,21 @@ function LMAHI.UpdateSettingsDisplay()
         print("LMAHI Debug: Created removeButton for character", charName)
 
         removeButton:SetScript("OnClick", function(self)
+            local x, y = self:GetCenter()
+            local offsetX = 180
+            local offsetY = 98
             StaticPopupDialogs["LMAHI_CONFIRM_REMOVE_CHAR_" .. charName] = {
                 text = string.format("Do you want to remove\n%s\nfrom the character list?", charName),
                 button1 = "Yes",
                 button2 = "No",
                 OnAccept = function()
-                    LMAHI_SavedData.characters[charName] = nil
-                    LMAHI_SavedData.lockouts[charName] = nil
-                    LMAHI_SavedData.charOrder[charName] = nil
-                    LMAHI_SavedData.classColors[charName] = nil
-                    LMAHI_SavedData.factions[charName] = nil
+                    LMAHI_SavedData.characters[self.charName] = nil
+                    LMAHI_SavedData.lockouts[self.charName] = nil
+                    LMAHI_SavedData.charOrder[self.charName] = nil
+                    LMAHI_SavedData.classColors[self.charName] = nil
+                    LMAHI_SavedData.factions[self.charName] = nil
                     LMAHI.UpdateSettingsDisplay()
-                    if LMAHI.UpdateDisplay then
-                        LMAHI.UpdateDisplay()
-                    else
-                        print("LMAHI Debug: UpdateDisplay is nil in removeButton OnClick")
-                    end
+                    ThrottledUpdateDisplay()
                     LMAHI.SaveCharacterData()
                 end,
                 timeout = 0,
@@ -1003,6 +986,11 @@ function LMAHI.UpdateSettingsDisplay()
                 hideOnEscape = true,
             }
             StaticPopup_Show("LMAHI_CONFIRM_REMOVE_CHAR_" .. charName)
+            local dialog = StaticPopup_FindVisible("LMAHI_CONFIRM_REMOVE_CHAR_" .. charName)
+            if dialog then
+                dialog:ClearAllPoints()
+                dialog:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x + offsetX, y + offsetY)
+            end
         end)
 
         removeButton:SetScript("OnEnter", function(self)
