@@ -20,7 +20,7 @@ local highlightLine
 -- Constants
 local CHAR_WIDTH = 150
 local LOCKOUT_WIDTH = 50
-local ROW_HEIGHT = 20
+local ROW_HEIGHT = 30 -- Increased to accommodate realm names below
 local CHARS_PER_PAGE = 15
 
 function LMAHI.UpdateDisplay()
@@ -93,15 +93,17 @@ function LMAHI.UpdateDisplay()
         charLabel:Show()
         table.insert(charLabels, charLabel)
 
-        -- Realm label
+        -- Realm label (below character name)
         local realmLabel = charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-        realmLabel:SetPoint("LEFT", charLabel, "RIGHT", 5, 0)
-        realmLabel:SetText("- " .. (realmName or "Unknown"))
+        realmLabel:SetPoint("TOPLEFT", charLabel, "BOTTOMLEFT", 0, -5)
+        realmLabel:SetText(realmName or "Unknown")
         local faction = LMAHI_SavedData.factions[charName] or "Alliance"
         local factionColor = LMAHI.FACTION_COLORS[faction] or { r = 0.8, g = 0.8, b = 0.8 }
         realmLabel:SetTextColor(factionColor.r, factionColor.g, factionColor.b)
         realmLabel:Show()
         table.insert(realmLabels, realmLabel)
+
+        print("LMAHI Debug: Added charLabel:", charDisplayName, "realmLabel:", realmName, "at y:", charOffsetY - ((i - startIndex) * ROW_HEIGHT))
     end
 
     -- Display lockouts
@@ -182,10 +184,14 @@ function LMAHI.UpdateDisplay()
     lockoutContent:SetHeight(totalHeight)
     lockoutScrollFrame:SetScrollChild(lockoutContent)
 
-    -- Highlight line
+    -- Highlight line (use Frame instead of Texture)
     if not highlightLine then
-        highlightLine = highlightFrame:CreateTexture(nil, "ARTWORK")
-        highlightLine:SetColorTexture(1, 1, 0, 0.3)
+        highlightLine = CreateFrame("Frame", nil, highlightFrame, "BackdropTemplate")
+        highlightLine:SetBackdrop({
+            bgFile = "Interface\\Buttons\\WHITE8X8",
+            edgeSize = 0,
+        })
+        highlightLine:SetBackdropColor(1, 1, 0, 0.3)
         highlightLine:SetHeight(ROW_HEIGHT)
         highlightLine:SetFrameLevel(highlightFrame:GetFrameLevel() + 7)
         highlightLine:Hide()
