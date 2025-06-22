@@ -29,6 +29,11 @@ end
 
 function LMAHI:CreateMainFrame()
     print("LMAHI Debug: Creating main frame")
+    -- Ensure only one mainFrame exists
+    if _G["LMAHI_Frame"] then
+        _G["LMAHI_Frame"]:Hide()
+        _G["LMAHI_Frame"] = nil
+    end
     mainFrame = CreateFrame("Frame", "LMAHI_Frame", UIParent, "BasicFrameTemplateWithInset")
     mainFrame:SetSize(1208, 402)
     mainFrame:SetPoint("CENTER")
