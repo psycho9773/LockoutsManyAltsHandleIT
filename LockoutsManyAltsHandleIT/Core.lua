@@ -238,8 +238,7 @@ lockoutScrollFrame:SetScript("OnMouseWheel", function(self, delta)
     local current = self:GetVerticalScroll()
     local maxScroll = self:GetVerticalScrollRange()
     local scrollAmount = 30
-    local newScroll = math.max(0, math.min(current - delta * scrollAmount, maxScroll))
-    self:SetVerticalScroll(newScroll)
+    self:SetVerticalScroll(math.max(0, math.min(current - delta * scrollAmount, maxScroll)))
 end)
 
 lockoutContent = CreateFrame("Frame", "LMAHI_LockoutContent", lockoutScrollFrame)
@@ -249,10 +248,9 @@ lockoutContent:SetHeight(LMAHI.CalculateContentHeight or 314) -- Dynamic height,
 lockoutContent:Show()
 print("LMAHI Debug: lockoutContent created, name:", lockoutContent:GetName(), "visible:", lockoutContent:IsVisible(), "size:", lockoutContent:GetWidth(), lockoutContent:GetHeight())
 
-highlightFrame = CreateFrame("Frame", nil, lockoutScrollFrame, "BackdropTemplate") -- Added BackdropTemplate
-highlightFrame:SetAllPoints(lockoutScrollFrame)
+highlightFrame = CreateFrame("Frame", nil, mainFrame, "BackdropTemplate") -- Parent to mainFrame
+highlightFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 2)
 highlightFrame:EnableMouse(false)
-highlightFrame:SetFrameLevel(lockoutScrollFrame:GetFrameLevel() + 2)
 print("LMAHI Debug: highlightFrame created, name:", highlightFrame:GetName(), "visible:", highlightFrame:IsVisible())
 
 -- Custom input frame
@@ -403,8 +401,7 @@ customInputScrollFrame:SetScript("OnMouseWheel", function(self, delta)
     local current = self:GetVerticalScroll()
     local maxScroll = self:GetVerticalScrollRange()
     local scrollAmount = 30
-    local newScroll = math.max(0, math.min(current - delta * scrollAmount, maxScroll))
-    self:SetVerticalScroll(newScroll)
+    self:SetVerticalScroll(math.max(0, math.min(current - delta * scrollAmount, maxScroll)))
 end)
 
 -- Settings frame
@@ -449,8 +446,7 @@ charListScrollFrame:SetScript("OnMouseWheel", function(self, delta)
     local current = self:GetVerticalScroll()
     local maxScroll = self:GetVerticalScrollRange()
     local scrollAmount = 30
-    local newScroll = math.max(0, math.min(current - delta * scrollAmount, maxScroll))
-    self:SetVerticalScroll(newScroll)
+    self:SetVerticalScroll(math.max(0, math.min(current - delta * scrollAmount, maxScroll)))
 end)
 
 -- Minimap button
@@ -568,7 +564,7 @@ mainFrame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
         LMAHI_SavedData.minimapPos = LMAHI_SavedData.minimapPos or { angle = math.rad(45) }
         LMAHI_SavedData.framePos = LMAHI_SavedData.framePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
-        LMAHI_SavedData.settingsFramePos = LMAHI_SavedData.settingsFramePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
+        LMAHI_SavedData.settingsFramePos = LMAHI_SavedData.settingsFramePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = relativePoint, x = 0, y = 0 }
         LMAHI_SavedData.customInputFramePos = LMAHI_SavedData.customInputFramePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
         LMAHI_SavedData.zoomLevel = LMAHI_SavedData.zoomLevel or 1
         LMAHI_SavedData.characters = LMAHI_SavedData.characters or {}
@@ -641,7 +637,7 @@ SlashCmdList["LMAHIDEBUG"] = function()
     end
     table.sort(customList, function(a, b)
         local aIndex = LMAHI_SavedData.customLockoutOrder[tostring(a.id)] or 999
-        local bIndex = LMAHI_SavedData.customLockoutOrder[tostring(b.id)] or 1010
+        bIndex = LMAHI_SavedData.customLockoutOrder[tostring(b.id)] or 1010
         if aIndex == bIndex then
             return a.id < b.id
         end
@@ -835,7 +831,9 @@ function LMAHI.UpdateCustomInputDisplay()
             GameTooltip:Show()
         end)
 
-        removeButton:SetScript("OnLeave", GameTooltip_Hide)
+        removeButton:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
         table.insert(removeCustomButtons, removeButton)
     end
     print("LMAHI Debug: Exiting UpdateCustomInputDisplay, customList size:", #customList, "removeCustomButtons:", #removeCustomButtons)
@@ -1004,7 +1002,9 @@ function LMAHI.UpdateSettingsDisplay()
             GameTooltip:Show()
         end)
 
-        removeButton:SetScript("OnLeave", GameTooltip_Hide)
+        removeButton:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
         table.insert(removeButtons, removeButton)
     end
     print("LMAHI Debug: Exiting UpdateSettingsDisplay, charList size:", #charList, "removeButtons:", #removeButtons)
