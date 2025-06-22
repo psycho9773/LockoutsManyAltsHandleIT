@@ -8,15 +8,31 @@ LMAHI.FACTION_COLORS = {
 }
 
 function LMAHI.SaveCharacterData()
-    print("LMAHI Debug: SaveCharacterData called (stub)")
-    -- Placeholder: Implement character data saving logic
+    print("LMAHI Debug: SaveCharacterData called")
     local playerName = UnitName("player") .. "-" .. GetRealmName()
     LMAHI_SavedData.characters = LMAHI_SavedData.characters or {}
     LMAHI_SavedData.lockouts = LMAHI_SavedData.lockouts or {}
-    LMAHI_SavedData.characters[playerName] = true
-    LMAHI_SavedData.lockouts[playerName] = LMAHI_SavedData.lockouts[playerName] or {}
+    LMAHI_SavedData.charOrder = LMAHI_SavedData.charOrder or {}
     LMAHI_SavedData.classColors = LMAHI_SavedData.classColors or {}
     LMAHI_SavedData.factions = LMAHI_SavedData.factions or {}
+
+    -- Add character
+    LMAHI_SavedData.characters[playerName] = true
+    LMAHI_SavedData.lockouts[playerName] = LMAHI_SavedData.lockouts[playerName] or {}
+
+    -- Assign unique charOrder index
+    if not LMAHI_SavedData.charOrder[playerName] then
+        local maxIndex = 0
+        for _, index in pairs(LMAHI_SavedData.charOrder) do
+            if tonumber(index) then
+                maxIndex = math.max(maxIndex, index)
+            end
+        end
+        LMAHI_SavedData.charOrder[playerName] = maxIndex + 1
+        print("LMAHI Debug: Assigned charOrder for", playerName, ":", maxIndex + 1)
+    end
+
+    -- Set class and faction
     local _, class = UnitClass("player")
     local faction = UnitFactionGroup("player")
     LMAHI_SavedData.classColors[playerName] = RAID_CLASS_COLORS[class] or { r = 1, g = 1, b = 1 }
@@ -42,7 +58,7 @@ function LMAHI.CheckLockouts()
     for i = 1, GetNumSavedInstances() do
         local name, id, reset, difficulty, lockedState, _, _, _, _, _, _, instanceID = GetSavedInstanceInfo(i)
         if lockedState then
-            local lockoutType = difficulty == 1 and "dungeon" or "raid" -- Simplified: 1 = dungeon, others = raid
+            local lockoutType = difficulty == 1 and "dungeon" or "raid"
             LMAHI.lockoutData[lockoutType] = LMAHI.lockoutData[lockoutType] or {}
             local exists = false
             for _, lockout in ipairs(LMAHI.lockoutData[lockoutType]) do
@@ -70,8 +86,7 @@ function LMAHI.CleanLockouts()
 end
 
 function LMAHI.NormalizeCustomLockoutOrder()
-    print("LMAHI Debug: NormalizeCustomLockoutOrder called (stub)")
-    -- Placeholder: Implement order normalization logic
+    print("LMAHI Debug: NormalizeCustomLockoutOrder called")
     local customList = LMAHI.lockoutData.custom or {}
     local newOrder = {}
     for i, lockout in ipairs(customList) do
