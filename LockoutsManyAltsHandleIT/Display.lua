@@ -19,7 +19,7 @@ LMAHI.FACTION_COLORS = {
     Neutral = { r = 0.8, g = 0.8, b = 0.8 },
 }
 
-local CHAR_WIDTH = 97 -- Adjusted to fit 10 characters (1208px width - 200px lockout frame)
+local CHAR_WIDTH = 97 -- Adjusted for 10 characters (1208px - 200px lockout frame)
 local CHAR_HEIGHT = 30
 local LOCKOUT_HEIGHT = 20
 local SECTION_HEADER_HEIGHT = 30
@@ -52,7 +52,7 @@ end
 
 function LMAHI.UpdateDisplay()
     print("LMAHI Debug: Entering UpdateDisplay")
-    if not LMAHI.mainFrame or not LMAHI.charFrame or not LMAHI.lockoutContent then
+    if not LMAHI.mainFrame or not LMAHI.charFrame or not LMAHI.lockoutContent or not LMAHI.highlightFrame then
         print("LMAHI Debug: Required frames are nil, exiting UpdateDisplay")
         return
     end
@@ -122,6 +122,7 @@ function LMAHI.UpdateDisplay()
         charLabel:SetTextColor(classColor.r, classColor.g, classColor.b)
         charLabel:Show()
         table.insert(charLabels, charLabel)
+        print("LMAHI Debug: Created charLabel for", charDisplayName, "at xOffset:", xOffset + 10)
 
         local realmLabel = LMAHI.charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
         realmLabel:SetPoint("TOPLEFT", charLabel, "BOTTOMLEFT", 0, -2)
@@ -131,12 +132,25 @@ function LMAHI.UpdateDisplay()
         realmLabel:SetTextColor(factionColor.r, factionColor.g, factionColor.b)
         realmLabel:Show()
         table.insert(realmLabels, realmLabel)
+        print("LMAHI Debug: Created realmLabel for", realmName, "at xOffset:", xOffset + 10)
     end
 
     -- Set lockout content height
     local contentHeight = LMAHI.CalculateContentHeight()
     LMAHI.lockoutContent:SetHeight(contentHeight)
     print("LMAHI Debug: Lockout content height set to:", contentHeight)
+
+    -- Initialize highlight frame backdrop
+    LMAHI.highlightFrame:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = nil,
+        tile = false,
+        tileSize = 0,
+        edgeSize = 0,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 },
+    })
+    LMAHI.highlightFrame:SetBackdropColor(0, 0, 0, 0) -- Transparent when not active
+    print("LMAHI Debug: highlightFrame backdrop initialized")
 
     -- Display lockout sections
     local yOffset = -10
@@ -149,6 +163,7 @@ function LMAHI.UpdateDisplay()
         sectionHeader:SetText(lockoutType:gsub("^%l", string.upper))
         sectionHeader:Show()
         table.insert(LMAHI.sectionHeaders, sectionHeader)
+        print("LMAHI Debug: Created sectionHeader for", lockoutType, "at yOffset:", yOffset)
 
         -- Collapse button
         local collapseButton = CreateFrame("Button", nil, LMAHI.lockoutContent)
@@ -158,6 +173,7 @@ function LMAHI.UpdateDisplay()
         collapseButton.icon = collapseButton:GetNormalTexture()
         collapseButton:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
         collapseButton.lockoutType = lockoutType
+        collapseButton:SetFrameLevel(LMAHI.lockoutContent:GetFrameLevel() + 1)
         collapseButton:SetScript("OnClick", function(self)
             LMAHI_SavedData.collapsedSections[self.lockoutType] = not LMAHI_SavedData.collapsedSections[self.lockoutType]
             LMAHI.SetCollapseIconRotation(self, LMAHI_SavedData.collapsedSections[self.lockoutType])
@@ -166,6 +182,7 @@ function LMAHI.UpdateDisplay()
         end)
         collapseButton:Show()
         table.insert(LMAHI.collapseButtons, collapseButton)
+        print("LMAHI Debug: Created collapseButton for", lockoutType)
 
         yOffset = yOffset - SECTION_HEADER_HEIGHT
 
@@ -197,51 +214,46 @@ function LMAHI.UpdateDisplay()
                 lockoutLabel:SetText(lockoutName)
                 lockoutLabel:Show()
                 table.insert(LMAHI.lockoutLabels, lockoutLabel)
+                print("LMAHI Debug: Created lockoutLabel for", lockoutName, "at yOffset:", yOffset)
 
                 -- Hover region
                 local hoverRegion = CreateFrame("Button", nil, LMAHI.lockoutContent)
                 hoverRegion:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 0, yOffset - 2)
-                hoverRegion:SetSize(200, LOCKOUT_HEIGHT + 4)
+                hoverRegion:SetSize(1208, LOCKOUT_HEIGHT + 4) -- Full row width
+                hoverRegion:SetFrameLevel(LMAHI.lockoutContent:GetFrameLevel() + 2)
+                hoverRegion:EnableMouse(true)
                 hoverRegion:SetScript("OnEnter", function(self)
-                    if LMAHI.highlightFrame then
-                        LMAHI.highlightFrame:ClearAllPoints()
-                        LMAHI.highlightFrame:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
-                        LMAHI.highlightFrame:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, 0)
-                        LMAHI.highlightFrame:SetBackdrop({
-                            bgFile = "Interface\\Buttons\\WHITE8X8",
-                            edgeFile = nil,
-                            tile = false,
-                            tileSize = 0,
-                            edgeSize = 0,
-                            insets = { left = 0, right = 0, top = 0, bottom = 0 },
-                        })
-                        LMAHI.highlightFrame:SetBackdropColor(0.2, 0.2, 0.2, 0.5)
-                        LMAHI.highlightFrame:Show()
-                        print("LMAHI Debug: Hover region entered for lockout", lockoutName)
-                    end
+                    LMAHI.highlightFrame:ClearAllPoints()
+                    LMAHI.highlightFrame:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
+                    LMAHI.highlightFrame:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, 0)
+                    LMAHI.highlightFrame:SetBackdropColor(0.2, 0.2, 0.2, 0.7)
+                    LMAHI.highlightFrame:SetFrameLevel(LMAHI.lockoutContent:GetFrameLevel() + 3)
+                    LMAHI.highlightFrame:Show()
+                    print("LMAHI Debug: Hover region entered for lockout", lockoutName, "highlightFrame visible:", LMAHI.highlightFrame:IsVisible())
                 end)
                 hoverRegion:SetScript("OnLeave", function()
-                    if LMAHI.highlightFrame then
-                        LMAHI.highlightFrame:Hide()
-                        print("LMAHI Debug: Hover region left for lockout", lockoutName)
-                    end
+                    LMAHI.highlightFrame:SetBackdropColor(0, 0, 0, 0)
+                    LMAHI.highlightFrame:Hide()
+                    print("LMAHI Debug: Hover region left for lockout", lockoutName)
                 end)
                 hoverRegion:Show()
                 table.insert(LMAHI.hoverRegions, hoverRegion)
+                print("LMAHI Debug: Created hoverRegion for", lockoutName, "size:", hoverRegion:GetWidth(), hoverRegion:GetHeight())
 
                 -- Lockout indicators
                 for i = startIndex, endIndex do
                     local charName = charList[i]
                     local charIndex = i - startIndex + 1
-                    local xOffset = 200 + (charIndex - 1) * CHAR_WIDTH + 10
+                    local xOffset = 200 + (charIndex - 1) * CHAR_WIDTH + 45 -- Aligned under names
 
                     local indicator = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
                     indicator:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", xOffset, yOffset)
-                    local isLocked = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][lockoutId] or false
+                    local isLocked = (LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][lockoutId]) or false
                     indicator:SetText(isLocked and "x" or "o")
                     indicator:SetTextColor(isLocked and 1.0 or 0.0, isLocked and 0.0 or 1.0, 0.0, 1.0)
                     indicator:Show()
                     table.insert(lockoutIndicators, indicator)
+                    print("LMAHI Debug: Created indicator for char", charName, "lockout", lockoutName, "lockoutId", lockoutId, "isLocked:", isLocked, "at xOffset:", xOffset, "yOffset:", yOffset)
                 end
 
                 yOffset = yOffset - LOCKOUT_HEIGHT
@@ -252,5 +264,5 @@ function LMAHI.UpdateDisplay()
         end
     end
 
-    print("LMAHI Debug: Exiting UpdateDisplay, charLabels:", #charLabels, "lockoutLabels:", #LMAHI.lockoutLabels, "indicators:", #lockoutIndicators)
+    print("LMAHI Debug: Exiting UpdateDisplay, charLabels:", #charLabels, "lockoutLabels:", #LMAHI.lockoutLabels, "indicators:", #lockoutIndicators, "hoverRegions:", #LMAHI.hoverRegions)
 end
