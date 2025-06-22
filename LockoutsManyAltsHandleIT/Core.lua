@@ -48,7 +48,7 @@ end
 -- Create main frame
 mainFrame = CreateFrame("Frame", "LMAHI_Frame", UIParent, "BasicFrameTemplateWithInset")
 tinsert(UISpecialFrames, "LMAHI_Frame")
-mainFrame:SetSize(1208, 402) -- Adjusted to match desired layout
+mainFrame:SetSize(1208, 402) -- Matches desired layout
 mainFrame:SetPoint(LMAHI_SavedData.framePos.point, UIParent, LMAHI_SavedData.framePos.relativePoint, LMAHI_SavedData.framePos.x, LMAHI_SavedData.framePos.y)
 mainFrame:SetFrameStrata("HIGH")
 mainFrame:EnableMouse(true)
@@ -62,7 +62,7 @@ mainFrame:SetScript("OnDragStop", function(self)
 end)
 mainFrame:Hide()
 mainFrame:SetScale(LMAHI_SavedData.zoomLevel or 1)
-print("LMAHI Debug: mainFrame created, name:", mainFrame:GetName(), "visible:", mainFrame:IsVisible())
+print("LMAHI Debug: mainFrame created, name:", mainFrame:GetName(), "visible:", mainFrame:IsVisible(), "size:", mainFrame:GetWidth(), mainFrame:GetHeight())
 
 mainFrame.CloseButton:SetScript("OnClick", function()
     mainFrame:Hide()
@@ -212,27 +212,27 @@ rightArrow:SetScript("OnLeave", GameTooltip_Hide)
 -- Character frame
 charFrame = CreateFrame("Frame", "LMAHI_CharFrame", mainFrame, "BackdropTemplate")
 charFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 200, -24)
-charFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMLEFT", 1208, 378)
+charFrame:SetSize(1008, 50) -- 1208 - 200 = 1008px wide, 50px high for names + realms
 charFrame:SetBackdrop({
     bgFile = "Interface\\Buttons\\WHITE8X8",
     edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
     tile = true, tileSize = 32, edgeSize = 32,
     insets = { left = 11, right = 12, top = 12, bottom = 11 }
 })
-charFrame:SetBackdropColor(0, 0, 0, 1)
+charFrame:SetBackdropColor(0, 0, 0, 0.8) -- Slightly less opaque
 charFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 3)
 charFrame:Show()
-print("LMAHI Debug: charFrame created, name:", charFrame:GetName(), "visible:", charFrame:IsVisible())
+print("LMAHI Debug: charFrame created, name:", charFrame:GetName(), "visible:", charFrame:IsVisible(), "size:", charFrame:GetWidth(), charFrame:GetHeight())
 
 -- Lockout scroll frame
 lockoutScrollFrame = CreateFrame("ScrollFrame", "LMAHI_LockoutScrollFrame", mainFrame, "UIPanelScrollFrameTemplate")
 lockoutScrollFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 8, -64)
-lockoutScrollFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMLEFT", 200, 24)
+lockoutScrollFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMLEFT", 200, 24) -- 200px wide, fits main frame height
 lockoutScrollFrame:EnableMouseWheel(true)
 lockoutScrollFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 1)
-lockoutScrollFrame:SetClipsChildren(false)
+lockoutScrollFrame:SetClipsChildren(true) -- Enable clipping to prevent overflow
 lockoutScrollFrame:Show()
-print("LMAHI Debug: lockoutScrollFrame created, name:", lockoutScrollFrame:GetName(), "visible:", lockoutScrollFrame:IsVisible())
+print("LMAHI Debug: lockoutScrollFrame created, name:", lockoutScrollFrame:GetName(), "visible:", lockoutScrollFrame:IsVisible(), "size:", lockoutScrollFrame:GetWidth(), lockoutScrollFrame:GetHeight())
 
 lockoutScrollFrame:SetScript("OnMouseWheel", function(self, delta)
     local current = self:GetVerticalScroll()
@@ -244,12 +244,12 @@ end)
 
 lockoutContent = CreateFrame("Frame", "LMAHI_LockoutContent", lockoutScrollFrame)
 lockoutScrollFrame:SetScrollChild(lockoutContent)
-lockoutContent:SetWidth(lockoutScrollFrame:GetWidth() - 30)
-lockoutContent:SetHeight(400)
+lockoutContent:SetWidth(170) -- 200px - 30px for scrollbar
+lockoutContent:SetHeight(LMAHI.CalculateContentHeight or 314) -- Dynamic height, min 314px
 lockoutContent:Show()
-print("LMAHI Debug: lockoutContent created, name:", lockoutContent:GetName(), "visible:", lockoutContent:IsVisible())
+print("LMAHI Debug: lockoutContent created, name:", lockoutContent:GetName(), "visible:", lockoutContent:IsVisible(), "size:", lockoutContent:GetWidth(), lockoutContent:GetHeight())
 
-highlightFrame = CreateFrame("Frame", nil, lockoutScrollFrame)
+highlightFrame = CreateFrame("Frame", nil, lockoutScrollFrame, "BackdropTemplate") -- Added BackdropTemplate
 highlightFrame:SetAllPoints(lockoutScrollFrame)
 highlightFrame:EnableMouse(false)
 highlightFrame:SetFrameLevel(lockoutScrollFrame:GetFrameLevel() + 2)
