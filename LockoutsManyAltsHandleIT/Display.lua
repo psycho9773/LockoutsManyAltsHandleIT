@@ -20,8 +20,8 @@ local lockoutIndicators = {}
 local highlightLine
 
 -- Constants
-local CHAR_WIDTH = 90 -- Adjusted for 10 characters
-local LOCKOUT_WIDTH = 30 -- Adjusted proportionally
+local CHAR_WIDTH = 90 -- Matches desired layout
+local LOCKOUT_WIDTH = 30 -- Adjusted for alignment
 local ROW_HEIGHT = 30
 local CHARS_PER_PAGE = 10
 
