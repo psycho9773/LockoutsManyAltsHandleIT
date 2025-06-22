@@ -10,11 +10,58 @@ LMAHI.FACTION_COLORS = {
 function LMAHI.SaveCharacterData()
     print("LMAHI Debug: SaveCharacterData called (stub)")
     -- Placeholder: Implement character data saving logic
+    local playerName = UnitName("player") .. "-" .. GetRealmName()
+    LMAHI_SavedData.characters = LMAHI_SavedData.characters or {}
+    LMAHI_SavedData.lockouts = LMAHI_SavedData.lockouts or {}
+    LMAHI_SavedData.characters[playerName] = true
+    LMAHI_SavedData.lockouts[playerName] = LMAHI_SavedData.lockouts[playerName] or {}
+    LMAHI_SavedData.classColors = LMAHI_SavedData.classColors or {}
+    LMAHI_SavedData.factions = LMAHI_SavedData.factions or {}
+    local _, class = UnitClass("player")
+    local faction = UnitFactionGroup("player")
+    LMAHI_SavedData.classColors[playerName] = RAID_CLASS_COLORS[class] or { r = 1, g = 1, b = 1 }
+    LMAHI_SavedData.factions[playerName] = faction or "Neutral"
 end
 
 function LMAHI.CheckLockouts()
-    print("LMAHI Debug: CheckLockouts called (stub)")
-    -- Placeholder: Implement lockout checking logic
+    print("LMAHI Debug: CheckLockouts called")
+    local playerName = UnitName("player") .. "-" .. GetRealmName()
+    LMAHI_SavedData.lockouts = LMAHI_SavedData.lockouts or {}
+    LMAHI_SavedData.lockouts[playerName] = LMAHI_SavedData.lockouts[playerName] or {}
+
+    -- Clear existing raid and dungeon lockouts
+    for lockoutType, lockouts in pairs(LMAHI.lockoutData or {}) do
+        if lockoutType == "raid" or lockoutType == "dungeon" then
+            for _, lockout in ipairs(lockouts) do
+                LMAHI_SavedData.lockouts[playerName][tostring(lockout.id)] = false
+            end
+        end
+    end
+
+    -- Update lockouts from GetSavedInstanceInfo
+    for i = 1, GetNumSavedInstances() do
+        local name, id, reset, difficulty, lockedState, _, _, _, _, _, _, instanceID = GetSavedInstanceInfo(i)
+        if lockedState then
+            local lockoutType = difficulty == 1 and "dungeon" or "raid" -- Simplified: 1 = dungeon, others = raid
+            LMAHI.lockoutData[lockoutType] = LMAHI.lockoutData[lockoutType] or {}
+            local exists = false
+            for _, lockout in ipairs(LMAHI.lockoutData[lockoutType]) do
+                if lockout.id == instanceID then
+                    exists = true
+                    break
+                end
+            end
+            if not exists then
+                table.insert(LMAHI.lockoutData[lockoutType], { id = instanceID, name = name, reset = reset > 0 and (lockoutType == "raid" and "weekly" or "daily") or "none" })
+            end
+            LMAHI_SavedData.lockouts[playerName][tostring(instanceID)] = true
+        end
+    end
+
+    -- Preserve custom lockouts
+    for _, lockout in ipairs(LMAHI.lockoutData.custom or {}) do
+        LMAHI_SavedData.lockouts[playerName][tostring(lockout.id)] = LMAHI_SavedData.lockouts[playerName][tostring(lockout.id)] or false
+    end
 end
 
 function LMAHI.CleanLockouts()
@@ -25,4 +72,10 @@ end
 function LMAHI.NormalizeCustomLockoutOrder()
     print("LMAHI Debug: NormalizeCustomLockoutOrder called (stub)")
     -- Placeholder: Implement order normalization logic
+    local customList = LMAHI.lockoutData.custom or {}
+    local newOrder = {}
+    for i, lockout in ipairs(customList) do
+        newOrder[tostring(lockout.id)] = i
+    end
+    LMAHI_SavedData.customLockoutOrder = newOrder
 end
