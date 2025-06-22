@@ -18,10 +18,10 @@ local lockoutIndicators = {}
 local highlightLine
 
 -- Constants
-local CHAR_WIDTH = 150
-local LOCKOUT_WIDTH = 50
+local CHAR_WIDTH = 100 -- Reduced to fit 10 characters
+local LOCKOUT_WIDTH = 35 -- Adjusted proportionally
 local ROW_HEIGHT = 30
-local CHARS_PER_PAGE = 12 -- Reduced to fit horizontal layout
+local CHARS_PER_PAGE = 10 -- Match previous layout
 
 function LMAHI.UpdateDisplay()
     print("LMAHI Debug: Entering UpdateDisplay")
@@ -85,6 +85,7 @@ function LMAHI.UpdateDisplay()
     local startIndex = (LMAHI.currentPage - 1) * CHARS_PER_PAGE + 1
     local endIndex = math.min(startIndex + CHARS_PER_PAGE - 1, #charList)
     LMAHI.maxPages = math.ceil(#charList / CHARS_PER_PAGE)
+    print("LMAHI Debug: Pagination - currentPage:", LMAHI.currentPage, "startIndex:", startIndex, "endIndex:", endIndex, "maxPages:", LMAHI.maxPages)
 
     -- Display characters horizontally
     local charOffsetX = 10
