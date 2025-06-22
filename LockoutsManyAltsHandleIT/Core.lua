@@ -173,15 +173,28 @@ end
 SLASH_LMAHIDEBUG1 = "/lmahidebug"
 SlashCmdList["LMAHIDEBUG"] = function()
     print("LMAHI Debug: Saved Data")
-    print("Characters:", next(LMAHI_SavedData.characters) and table.concat({ k for k, _ in pairs(LMAHI_SavedData.characters) }, ", ") or "nil")
-    print("charOrder:", next(LMAHI_SavedData.charOrder) and table.concat({ k .. "=" .. v for k, v in pairs(LMAHI_SavedData.charOrder) }, ", ") or "nil")
+    -- List characters
+    local charList = {}
+    for k, _ in pairs(LMAHI_SavedData.characters or {}) do
+        table.insert(charList, k)
+    end
+    print("Characters:", #charList > 0 and table.concat(charList, ", ") or "nil")
+    -- List charOrder
+    local orderList = {}
+    for k, v in pairs(LMAHI_SavedData.charOrder or {}) do
+        table.insert(orderList, k .. "=" .. v)
+    end
+    print("charOrder:", #orderList > 0 and table.concat(orderList, ", ") or "nil")
+    -- List lockoutTypes
     print("lockoutTypes:", LMAHI.lockoutTypes and table.concat(LMAHI.lockoutTypes, ", ") or "nil")
+    -- List lockoutData
     for _, lockoutType in ipairs(LMAHI.lockoutTypes or {}) do
         print("lockoutData[" .. lockoutType .. "]:")
         for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
             print("  ", lockout.name, "id:", lockout.id)
         end
     end
+    -- List lockouts
     for charName, lockouts in pairs(LMAHI_SavedData.lockouts or {}) do
         print("lockouts[" .. charName .. "]:")
         for id, locked in pairs(lockouts) do
