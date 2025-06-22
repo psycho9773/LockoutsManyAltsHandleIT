@@ -20,8 +20,8 @@ local highlightLine
 -- Constants
 local CHAR_WIDTH = 150
 local LOCKOUT_WIDTH = 50
-local ROW_HEIGHT = 30 -- Increased to accommodate realm names below
-local CHARS_PER_PAGE = 15
+local ROW_HEIGHT = 30
+local CHARS_PER_PAGE = 12 -- Reduced to fit horizontal layout
 
 function LMAHI.UpdateDisplay()
     print("LMAHI Debug: Entering UpdateDisplay")
@@ -63,9 +63,17 @@ function LMAHI.UpdateDisplay()
     for charName, _ in pairs(LMAHI_SavedData.characters or {}) do
         table.insert(charList, charName)
     end
+
+    -- Debug charOrder values
+    print("LMAHI Debug: charOrder values:")
+    for _, charName in ipairs(charList) do
+        print("  ", charName, ":", LMAHI_SavedData.charOrder[charName] or "nil")
+    end
+
+    -- Sort characters safely
     table.sort(charList, function(a, b)
-        local aIndex = LMAHI_SavedData.charOrder[a] or 999
-        local bIndex = LMAHI_SavedData.charOrder[b] or 1010
+        local aIndex = tonumber(LMAHI_SavedData.charOrder[a]) or math.huge
+        local bIndex = tonumber(LMAHI_SavedData.charOrder[b]) or math.huge
         if aIndex == bIndex then
             return a < b
         end
@@ -78,15 +86,15 @@ function LMAHI.UpdateDisplay()
     local endIndex = math.min(startIndex + CHARS_PER_PAGE - 1, #charList)
     LMAHI.maxPages = math.ceil(#charList / CHARS_PER_PAGE)
 
-    -- Display characters
-    local charOffsetY = -30
+    -- Display characters horizontally
+    local charOffsetX = 10
     for i = startIndex, endIndex do
         local charName = charList[i]
         local charDisplayName, realmName = strsplit("-", charName)
 
         -- Character label
         local charLabel = charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-        charLabel:SetPoint("TOPLEFT", charFrame, "TOPLEFT", 10, charOffsetY - ((i - startIndex) * ROW_HEIGHT))
+        charLabel:SetPoint("TOPLEFT", charFrame, "TOPLEFT", charOffsetX + ((i - startIndex) * CHAR_WIDTH), -10)
         charLabel:SetText(charDisplayName or "Unknown")
         local classColor = LMAHI_SavedData.classColors[charName] or { r = 1, g = 1, b = 1 }
         charLabel:SetTextColor(classColor.r, classColor.g, classColor.b)
@@ -103,7 +111,7 @@ function LMAHI.UpdateDisplay()
         realmLabel:Show()
         table.insert(realmLabels, realmLabel)
 
-        print("LMAHI Debug: Added charLabel:", charDisplayName, "realmLabel:", realmName, "at y:", charOffsetY - ((i - startIndex) * ROW_HEIGHT))
+        print("LMAHI Debug: Added charLabel:", charDisplayName, "realmLabel:", realmName, "at x:", charOffsetX + ((i - startIndex) * CHAR_WIDTH))
     end
 
     -- Display lockouts
@@ -184,7 +192,7 @@ function LMAHI.UpdateDisplay()
     lockoutContent:SetHeight(totalHeight)
     lockoutScrollFrame:SetScrollChild(lockoutContent)
 
-    -- Highlight line (use Frame instead of Texture)
+    -- Highlight line
     if not highlightLine then
         highlightLine = CreateFrame("Frame", nil, highlightFrame, "BackdropTemplate")
         highlightLine:SetBackdrop({
