@@ -38,6 +38,8 @@ LMAHI.lockoutData = {
     rares = {
         { id = 69928, name = "Zaqali Elders" },
         { id = 73166, name = "Aurostor the Hibernator" },
+        { id = 84884, name = "The Junk-Wall" },
+        { id = 84895, name = "Slugger the Smart" },
     },
     currencies = {
         { id = 2245, name = "Flightstones" },
@@ -98,6 +100,7 @@ function LMAHI.InitializeLockouts()
         rares = {
             { id = 69928, name = "Zaqali Elders" },
             { id = 73166, name = "Aurostor the Hibernator" },
+            { id = 84884, name = "The Junk-Wall" },
         },
         currencies = {
             { id = 2245, name = "Flightstones" },
