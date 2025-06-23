@@ -35,13 +35,8 @@ local function ThrottledUpdateDisplay()
     if currentTime - lastUpdateTime >= updateThrottle then
         lastUpdateTime = currentTime
         if LMAHI.UpdateDisplay then
-            print("LMAHI Debug: Calling ThrottledUpdateDisplay")
             LMAHI.UpdateDisplay()
-        else
-            print("LMAHI Debug: UpdateDisplay is nil in ThrottledUpdateDisplay")
         end
-    else
-        print("LMAHI Debug: ThrottledUpdateDisplay skipped due to throttle")
     end
 end
 
@@ -62,8 +57,6 @@ mainFrame:SetScript("OnDragStop", function(self)
 end)
 mainFrame:Hide()
 mainFrame:SetScale(LMAHI_SavedData.zoomLevel or 1)
-print("LMAHI Debug: mainFrame created, name:", mainFrame:GetName(), "visible:", mainFrame:IsVisible(), "size:", mainFrame:GetWidth(), mainFrame:GetHeight(), "frameLevel:", mainFrame:GetFrameLevel())
-
 mainFrame.CloseButton:SetScript("OnClick", function()
     mainFrame:Hide()
     settingsFrame:Hide()
@@ -88,7 +81,6 @@ local function ApplyZoom(level)
     mainFrame:SetScale(LMAHI_SavedData.zoomLevel)
     settingsFrame:SetScale(LMAHI_SavedData.zoomLevel)
     customInputFrame:SetScale(LMAHI_SavedData.zoomLevel)
-    print("LMAHI Debug: Zoom applied, level:", LMAHI_SavedData.zoomLevel)
 end
 
 local zoomInButton = CreateFrame("Button", nil, mainFrame, "BackdropTemplate")
@@ -123,7 +115,7 @@ zoomOutButton:SetScript("OnEnter", function(self)
 end)
 zoomOutButton:SetScript("OnLeave", GameTooltip_Hide)
 
--- Custom input and settings buttons
+-- Custom lockout input button
 local customInputButton = CreateFrame("Button", nil, mainFrame)
 customInputButton:SetSize(27, 32)
 customInputButton:SetPoint("TOPLEFT", zoomInButton, "TOPRIGHT", 35, -35)
@@ -138,7 +130,6 @@ customInputButton:SetScript("OnClick", function()
     if customInputFrame:IsShown() then
         LMAHI.UpdateCustomInputDisplay()
     end
-    print("LMAHI Debug: Custom input button clicked, frame visible:", customInputFrame:IsVisible())
 end)
 customInputButton:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -147,6 +138,7 @@ customInputButton:SetScript("OnEnter", function(self)
 end)
 customInputButton:SetScript("OnLeave", GameTooltip_Hide)
 
+-- character order settings button
 local settingsButton = CreateFrame("Button", nil, mainFrame)
 settingsButton:SetSize(27, 32)
 settingsButton:SetPoint("TOPLEFT", customInputButton, "TOPRIGHT", 15, 0)
@@ -161,7 +153,6 @@ settingsButton:SetScript("OnClick", function()
     if settingsFrame:IsShown() then
         LMAHI.UpdateSettingsDisplay()
     end
-    print("LMAHI Debug: Settings button clicked, frame visible:", settingsFrame:IsVisible())
 end)
 settingsButton:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -170,17 +161,15 @@ settingsButton:SetScript("OnEnter", function(self)
 end)
 settingsButton:SetScript("OnLeave", GameTooltip_Hide)
 
--- Navigation arrows
+-- Paging arrows
 local leftArrow = CreateFrame("Button", nil, mainFrame)
-leftArrow:SetSize(40, 50)
-leftArrow:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 167, -23)
+leftArrow:SetSize(35, 50)
+leftArrow:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 171, -23)
 leftArrow:SetNormalTexture("Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up")
 leftArrow:SetPushedTexture("Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Down")
 leftArrow:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
 leftArrow:SetScript("OnClick", function()
-    print("LMAHI Debug: Left arrow clicked, currentPage before:", LMAHI.currentPage)
     LMAHI.currentPage = math.max(1, LMAHI.currentPage - 1)
-    print("LMAHI Debug: currentPage after:", LMAHI.currentPage)
     ThrottledUpdateDisplay()
 end)
 leftArrow:SetScript("OnEnter", function(self)
@@ -191,15 +180,13 @@ end)
 leftArrow:SetScript("OnLeave", GameTooltip_Hide)
 
 local rightArrow = CreateFrame("Button", nil, mainFrame)
-rightArrow:SetSize(40, 50)
-rightArrow:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -7, -23)
+rightArrow:SetSize(35, 50)
+rightArrow:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -2, -23)
 rightArrow:SetNormalTexture("Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up")
 rightArrow:SetPushedTexture("Interface\\Buttons\\UI-SpellbookIcon-NextPage-Down")
 rightArrow:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
 rightArrow:SetScript("OnClick", function()
-    print("LMAHI Debug: Right arrow clicked, currentPage before:", LMAHI.currentPage, "maxPages:", LMAHI.maxPages)
     LMAHI.currentPage = math.min(LMAHI.maxPages or 1, LMAHI.currentPage + 1)
-    print("LMAHI Debug: currentPage after:", LMAHI.currentPage)
     ThrottledUpdateDisplay()
 end)
 rightArrow:SetScript("OnEnter", function(self)
@@ -209,40 +196,38 @@ rightArrow:SetScript("OnEnter", function(self)
 end)
 rightArrow:SetScript("OnLeave", GameTooltip_Hide)
 
--- Character frame
+-- Character Paged frame
 charFrame = CreateFrame("Frame", "LMAHI_CharFrame", mainFrame, "BackdropTemplate")
-charFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 200, -30)
-charFrame:SetSize(1008, 50)
+charFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 204, -28)
+charFrame:SetSize(969, 40)
 charFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 5)
 charFrame:SetBackdrop({
     bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
     edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
     tile = true,
-    tileSize = 16,
-    edgeSize = 16,
-    insets = { left = 4, right = 4, top = 4, bottom = 4 },
+    tileSize = 10,
+    edgeSize = 21,
+    insets = { left = 2, right = 2, top = 2, bottom = 2 },
 })
 charFrame:SetBackdropColor(0, 0, 0, 0.8)
-charFrame:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)
+charFrame:SetBackdropBorderColor(0.6, 0.6, 0.6, 1)
 charFrame:Show()
-print("LMAHI Debug: charFrame created, name:", charFrame:GetName(), "visible:", charFrame:IsVisible(), "size:", charFrame:GetWidth(), charFrame:GetHeight(), "frameLevel:", charFrame:GetFrameLevel())
+
 
 -- Lockout scroll frame
 lockoutScrollFrame = CreateFrame("ScrollFrame", "LMAHI_LockoutScrollFrame", mainFrame, "UIPanelScrollFrameTemplate")
-lockoutScrollFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 8, -64)
-lockoutScrollFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -8, 24)
+lockoutScrollFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 15, -74)
+lockoutScrollFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -30, 10)
 lockoutScrollFrame:EnableMouseWheel(true)
 lockoutScrollFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 1)
 lockoutScrollFrame:SetClipsChildren(false)
 lockoutScrollFrame:Show()
-print("LMAHI Debug: lockoutScrollFrame created, name:", lockoutScrollFrame:GetName(), "visible:", lockoutScrollFrame:IsVisible(), "size:", lockoutScrollFrame:GetWidth(), lockoutScrollFrame:GetHeight(), "frameLevel:", lockoutScrollFrame:GetFrameLevel())
 
 lockoutScrollFrame:SetScript("OnMouseWheel", function(self, delta)
     local current = self:GetVerticalScroll()
     local maxScroll = self:GetVerticalScrollRange()
     local scrollAmount = 30
     self:SetVerticalScroll(math.max(0, math.min(current - delta * scrollAmount, maxScroll)))
-    print("LMAHI Debug: lockoutScrollFrame scrolled, current:", current, "delta:", delta, "maxScroll:", maxScroll)
 end)
 
 lockoutContent = CreateFrame("Frame", "LMAHI_LockoutContent", lockoutScrollFrame)
@@ -251,7 +236,6 @@ lockoutContent:SetWidth(1192) -- 1208 - 16 (insets)
 lockoutContent:SetHeight(314) -- Will be updated in Display.lua
 lockoutContent:SetFrameLevel(mainFrame:GetFrameLevel() + 2)
 lockoutContent:Show()
-print("LMAHI Debug: lockoutContent created, name:", lockoutContent:GetName(), "visible:", lockoutContent:IsVisible(), "size:", lockoutContent:GetWidth(), lockoutContent:GetHeight(), "frameLevel:", lockoutContent:GetFrameLevel())
 
 highlightFrame = CreateFrame("Frame", nil, mainFrame, "BackdropTemplate")
 highlightFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 3)
@@ -275,7 +259,6 @@ customInputFrame:SetScript("OnDragStop", function(self)
 end)
 customInputFrame:Hide()
 customInputFrame:SetScale(LMAHI_SavedData.zoomLevel or 1)
-print("LMAHI Debug: customInputFrame created, name:", customInputFrame:GetName(), "visible:", customInputFrame:IsVisible())
 
 local customInputTitle = customInputFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
 customInputTitle:SetPoint("TOP", customInputFrame, "TOP", 0, -3)
@@ -385,7 +368,6 @@ addButton:SetScript("OnClick", function()
     LMAHI.NormalizeCustomLockoutOrder()
     LMAHI.UpdateCustomInputDisplay()
     ThrottledUpdateDisplay()
-    print("LMAHI Debug: Custom lockout added, name:", name, "id:", id, "reset:", reset)
 end)
 
 customInputScrollFrame = CreateFrame("ScrollFrame", "LMAHI_CustomInputScrollFrame", customInputFrame, "UIPanelScrollFrameTemplate")
@@ -394,13 +376,11 @@ customInputScrollFrame:SetPoint("TOPLEFT", customInputContent, "BOTTOMLEFT", 2, 
 customInputScrollFrame:EnableMouseWheel(true)
 customInputScrollFrame:SetFrameLevel(customInputFrame:GetFrameLevel() + 2)
 customInputScrollFrame:Show()
-print("LMAHI Debug: customInputScrollFrame created, name:", customInputScrollFrame:GetName(), "visible:", customInputScrollFrame:IsVisible())
 
 customInputScrollContent = CreateFrame("Frame", nil, customInputScrollFrame)
 customInputScrollFrame:SetScrollChild(customInputScrollContent)
 customInputScrollContent:SetSize(440, 400)
 customInputScrollContent:Show()
-print("LMAHI Debug: customInputScrollContent created, name:", customInputScrollContent:GetName(), "visible:", customInputScrollContent:IsVisible())
 
 customInputScrollFrame:SetScript("OnMouseWheel", function(self, delta)
     local current = self:GetVerticalScroll()
@@ -427,7 +407,6 @@ settingsFrame:SetScript("OnDragStop", function(self)
 end)
 settingsFrame:Hide()
 settingsFrame:SetScale(LMAHI_SavedData.zoomLevel or 1)
-print("LMAHI Debug: settingsFrame created, name:", settingsFrame:GetName(), "visible:", settingsFrame:IsVisible())
 
 local settingsTitle = settingsFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
 settingsTitle:SetPoint("TOP", settingsFrame, "TOP", 0, -3)
@@ -439,13 +418,11 @@ charListScrollFrame:SetSize(380, 340)
 charListScrollFrame:SetPoint("TOP", settingsFrame, "TOP", 0, -30)
 charListScrollFrame:SetFrameLevel(settingsFrame:GetFrameLevel() + 2)
 charListScrollFrame:Show()
-print("LMAHI Debug: charListScrollFrame created, name:", charListScrollFrame:GetName(), "visible:", charListScrollFrame:IsVisible())
 
 charListContent = CreateFrame("Frame", nil, charListScrollFrame)
 charListScrollFrame:SetScrollChild(charListContent)
 charListContent:SetSize(240, 400)
 charListContent:Show()
-print("LMAHI Debug: charListContent created, name:", charListContent:GetName(), "visible:", charListContent:IsVisible())
 
 charListScrollFrame:SetScript("OnMouseWheel", function(self, delta)
     local current = self:GetVerticalScroll()
@@ -485,7 +462,6 @@ local function UpdateButtonPosition()
     local x = math.cos(angle) * radius
     local y = math.sin(angle) * radius
     minimapButton:SetPoint("CENTER", Minimap, "CENTER", x, y)
-    print("LMAHI Debug: Minimap button positioned at angle:", angle)
 end
 
 minimapButton:SetScript("OnDragStart", function(self)
@@ -518,7 +494,6 @@ end)
 minimapButton:SetScript("OnClick", function()
     mainFrame:SetShown(not mainFrame:IsShown())
     if mainFrame:IsShown() then
-        print("LMAHI Debug: Minimap button clicked, saving character data")
         LMAHI.SaveCharacterData()
         ThrottledUpdateDisplay()
     end
@@ -537,23 +512,19 @@ local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:SetScript("OnEvent", function(self, event, arg1)
-    print("LMAHI Debug: Event triggered:", event, "arg1:", arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
         UpdateButtonPosition()
         LMAHI_SavedData.customLockouts = LMAHI_SavedData.customLockouts or {}
         LMAHI.lockoutData.custom = LMAHI_SavedData.customLockouts
         LMAHI.InitializeLockouts()
-        print("LMAHI Debug: ADDON_LOADED, saving character data")
         LMAHI.SaveCharacterData()
         LMAHI.currentPage = 1
         mainFrame:SetScale(LMAHI_SavedData.zoomLevel)
         settingsFrame:SetScale(LMAHI_SavedData.zoomLevel)
         customInputFrame:SetScale(LMAHI_SavedData.zoomLevel)
-        print("LMAHI Debug: ADDON_LOADED, lockoutTypes:", LMAHI.lockoutTypes and table.concat(LMAHI.lockoutTypes, ", ") or "nil")
         ThrottledUpdateDisplay()
     elseif event == "PLAYER_LOGIN" then
         UpdateButtonPosition()
-        print("LMAHI Debug: PLAYER_LOGIN, ensuring UI initialization")
         LMAHI.SaveCharacterData()
         ThrottledUpdateDisplay()
     end
@@ -568,7 +539,6 @@ mainFrame:RegisterEvent("LFG_LOCK_INFO_RECEIVED")
 mainFrame:RegisterEvent("UPDATE_INSTANCE_INFO")
 mainFrame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
 mainFrame:SetScript("OnEvent", function(self, event, arg1)
-    print("LMAHI Debug: MainFrame event triggered:", event, "arg1:", arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
         LMAHI_SavedData.minimapPos = LMAHI_SavedData.minimapPos or { angle = math.rad(45) }
         LMAHI_SavedData.framePos = LMAHI_SavedData.framePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
@@ -585,10 +555,8 @@ mainFrame:SetScript("OnEvent", function(self, event, arg1)
         LMAHI_SavedData.customLockouts = LMAHI_SavedData.customLockouts or {}
         LMAHI.lockoutData.custom = LMAHI_SavedData.customLockouts
     elseif event == "PLAYER_LOGOUT" then
-        print("LMAHI Debug: PLAYER_LOGOUT, checking lockouts")
         LMAHI.CheckLockouts()
     elseif event == "PLAYER_ENTERING_WORLD" or event == "ENCOUNTER_END" or event == "QUEST_TURNED_IN" or event == "LFG_LOCK_INFO_RECEIVED" or event == "UPDATE_INSTANCE_INFO" or event == "CURRENCY_DISPLAY_UPDATE" then
-        print("LMAHI Debug: Event", event, "saving character data")
         LMAHI.SaveCharacterData()
         ThrottledUpdateDisplay()
     end
@@ -696,9 +664,7 @@ local customOrderInputs = {}
 
 -- Update custom input display
 function LMAHI.UpdateCustomInputDisplay()
-    print("LMAHI Debug: Entering UpdateCustomInputDisplay")
     if not LMAHI.customInputScrollContent then
-        print("LMAHI Debug: customInputScrollContent is nil")
         return
     end
 
@@ -801,7 +767,6 @@ function LMAHI.UpdateCustomInputDisplay()
         removeButton:SetText("Remove")
         removeButton.lockoutId = lockout.id
         removeButton:Show()
-        print("LMAHI Debug: Created removeButton for custom lockout", lockout.name, "ID", lockout.id)
 
         removeButton:SetScript("OnClick", function(self)
             local x, y = self:GetCenter()
@@ -851,14 +816,11 @@ function LMAHI.UpdateCustomInputDisplay()
         end)
         table.insert(removeCustomButtons, removeButton)
     end
-    print("LMAHI Debug: Exiting UpdateCustomInputDisplay, customList size:", #customList, "removeCustomButtons:", #removeCustomButtons)
 end
 
 -- Update settings display
 function LMAHI.UpdateSettingsDisplay()
-    print("LMAHI Debug: Entering UpdateSettingsDisplay")
     if not LMAHI.charListContent then
-        print("LMAHI Debug: charListContent is nil")
         return
     end
 
@@ -979,7 +941,6 @@ function LMAHI.UpdateSettingsDisplay()
         removeButton:SetText("Remove")
         removeButton.charName = charName
         removeButton:Show()
-        print("LMAHI Debug: Created removeButton for character", charName)
 
         removeButton:SetScript("OnClick", function(self)
             local x, y = self:GetCenter()
@@ -1022,14 +983,12 @@ function LMAHI.UpdateSettingsDisplay()
         end)
         table.insert(removeButtons, removeButton)
     end
-    print("LMAHI Debug: Exiting UpdateSettingsDisplay, charList size:", #charList, "removeButtons:", #removeButtons)
 end
 
 -- Placeholder functions (defined in Data.lua or Utilities.lua)
 function LMAHI.InitializeLockouts()
     LMAHI.lockoutTypes = LMAHI.lockoutTypes or { "raid", "dungeon", "worldboss", "custom" }
     LMAHI.lockoutData = LMAHI.lockoutData or { raid = {}, dungeon = {}, worldboss = {}, custom = LMAHI_SavedData.customLockouts or {} }
-    print("LMAHI Debug: InitializeLockouts called, lockoutTypes:", LMAHI.lockoutTypes and table.concat(LMAHI.lockoutTypes, ", ") or "nil")
 end
 
 function LMAHI.SaveCharacterData()
@@ -1041,17 +1000,16 @@ function LMAHI.SaveCharacterData()
     LMAHI_SavedData.classColors[charName] = { r = classColor.r, g = classColor.g, b = classColor.b }
     local faction = UnitFactionGroup("player")
     LMAHI_SavedData.factions[charName] = faction
-    print("LMAHI Debug: SaveCharacterData called for", charName)
 end
 
 function LMAHI.CheckLockouts()
-    print("LMAHI Debug: CheckLockouts placeholder called")
+
 end
 
 function LMAHI.CleanLockouts()
-    print("LMAHI Debug: CleanLockouts placeholder called")
+
 end
 
 function LMAHI.NormalizeCustomLockoutOrder()
-    print("LMAHI Debug: NormalizeCustomLockoutOrder placeholder called")
+
 end
