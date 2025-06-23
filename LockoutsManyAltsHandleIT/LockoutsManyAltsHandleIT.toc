@@ -5,6 +5,7 @@
 ## SavedVariables: LMAHI_SavedData
 ## Version: 1.0
 ## IconTexture: 975738
+## License: MIT License
 
 Core.lua
 Data.lua
