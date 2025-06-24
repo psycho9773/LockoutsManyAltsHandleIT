@@ -8,6 +8,6 @@
 ## License: MIT License
 
 Core.lua
-Utilities.lua
 Data.lua
+Utilities.lua
 Display.lua
