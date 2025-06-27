@@ -4,7 +4,7 @@ if not _G.LMAHI then
     _G.LMAHI = addon
 end
 
-function LMAHI.SaveCharacterData()
+LMAHI.SaveCharacterData = function()
     local charName = UnitName("player") .. "-" .. GetRealmName()
     local _, class, _, _, _, _, faction = GetPlayerInfoByGUID(UnitGUID("player"))
     local playerFaction = UnitFactionGroup("player") or "Neutral"
@@ -49,9 +49,23 @@ function LMAHI.SaveCharacterData()
     end
 end
 
-function LMAHI.CheckLockouts()
+LMAHI.CheckLockouts = function(event, questId)
     local charName = UnitName("player") .. "-" .. GetRealmName()
     LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
+    
+    -- Handle QUEST_TURNED_IN for both quests and rares
+    if event == "QUEST_TURNED_IN" and questId then
+        for _, lockoutType in ipairs({"quests", "rares"}) do
+            for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
+                if lockout.id and lockout.id == questId then
+                    local lockoutId = tostring(questId)
+                    LMAHI_SavedData.lockouts[charName][lockoutId] = true
+                 
+                    break
+                end
+            end
+        end
+    end
     
     -- Check saved instances
     local numSaved = GetNumSavedInstances()
@@ -73,14 +87,15 @@ function LMAHI.CheckLockouts()
         end
     end
     
-    -- Check quests
-    local completedQuests = C_QuestLog.GetAllCompletedQuestIDs()
-    for _, questId in ipairs(completedQuests or {}) do
-        local lockoutId = tostring(questId)
-        if LMAHI_SavedData.lockouts[charName][lockoutId] == nil then
-            for _, lockout in ipairs(LMAHI.lockoutData.quests or {}) do
-                if lockout.id == questId then
+    -- Check both quests and rares for completions
+    local completedQuests = C_QuestLog.GetAllCompletedQuestIDs() or {}
+    for _, qId in ipairs(completedQuests) do
+        for _, lockoutType in ipairs({"quests", "rares"}) do
+            for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
+                if lockout.id and lockout.id == qId then
+                    local lockoutId = tostring(qId)
                     LMAHI_SavedData.lockouts[charName][lockoutId] = true
+                  
                     break
                 end
             end
@@ -89,21 +104,25 @@ function LMAHI.CheckLockouts()
     
     -- Check currencies
     for _, currency in ipairs(LMAHI.lockoutData.currencies or {}) do
-        local lockoutId = tostring(currency.id)
-        local info = C_CurrencyInfo.GetCurrencyInfo(currency.id)
-        if info and info.quantity >= currency.max then
-            LMAHI_SavedData.lockouts[charName][lockoutId] = true
+        if currency.id then
+            local lockoutId = tostring(currency.id)
+            local info = C_CurrencyInfo.GetCurrencyInfo(currency.id)
+            if info and info.quantity >= (currency.max or math.huge) then
+                LMAHI_SavedData.lockouts[charName][lockoutId] = true
+            end
         end
     end
     
     -- Check custom lockouts
     for _, lockout in ipairs(LMAHI.lockoutData.custom or {}) do
-        local lockoutId = tostring(lockout.id)
-        LMAHI_SavedData.lockouts[charName][lockoutId] = LMAHI_SavedData.lockouts[charName][lockoutId] or false
+        if lockout.id then
+            local lockoutId = tostring(lockout.id)
+            LMAHI_SavedData.lockouts[charName][lockoutId] = LMAHI_SavedData.lockouts[charName][lockoutId] or false
+        end
     end
 end
 
-function LMAHI.InitializeLockouts()
+LMAHI.InitializeLockouts = function()
     LMAHI_SavedData.lockouts = LMAHI_SavedData.lockouts or {}
     LMAHI_SavedData.characters = LMAHI_SavedData.characters or {}
     
@@ -111,17 +130,18 @@ function LMAHI.InitializeLockouts()
         LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
         for _, lockoutType in ipairs(LMAHI.lockoutTypes or {}) do
             for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
-                local lockoutId = tostring(lockout.id)
-                if lockout.id <= 0 then
-                else
-                    LMAHI_SavedData.lockouts[charName][lockoutId] = LMAHI_SavedData.lockouts[charName][lockoutId] or false
+                if lockout.id then
+                    local lockoutId = tostring(lockout.id)
+                    if LMAHI_SavedData.lockouts[charName][lockoutId] == nil then
+                        LMAHI_SavedData.lockouts[charName][lockoutId] = false
+                    end
                 end
             end
         end
     end
 end
 
-function LMAHI.CleanLockouts()
+LMAHI.CleanLockouts = function()
     LMAHI_SavedData.lockouts = LMAHI_SavedData.lockouts or {}
     LMAHI_SavedData.characters = LMAHI_SavedData.characters or {}
     
@@ -136,7 +156,7 @@ function LMAHI.CleanLockouts()
             local isValid = false
             for _, lockoutType in ipairs(LMAHI.lockoutTypes or {}) do
                 for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
-                    if tostring(lockout.id) == lockoutId then
+                    if lockout.id and tostring(lockout.id) == lockoutId then
                         isValid = true
                         break
                     end
@@ -150,10 +170,12 @@ function LMAHI.CleanLockouts()
     end
 end
 
-function LMAHI.NormalizeCustomLockoutOrder()
+LMAHI.NormalizeCustomLockoutOrder = function()
     local customList = {}
     for _, lockout in ipairs(LMAHI.lockoutData.custom or {}) do
-        table.insert(customList, lockout)
+        if lockout.id then
+            table.insert(customList, lockout)
+        end
     end
     
     local newOrder = {}
@@ -171,7 +193,7 @@ function LMAHI.NormalizeCustomLockoutOrder()
     LMAHI_SavedData.customLockoutOrder = newOrder
 end
 
-function LMAHI.CheckResetTimers()
+LMAHI.CheckResetTimers = function()
     local currentTime = time()
     local dailyReset = C_DateAndTime.GetSecondsUntilDailyReset()
     local weeklyReset = C_DateAndTime.GetSecondsUntilWeeklyReset()
@@ -179,9 +201,16 @@ function LMAHI.CheckResetTimers()
     local nextDailyReset = currentTime + dailyReset
     local nextWeeklyReset = currentTime + weeklyReset
     
-    if LMAHI_SavedData.lastDailyReset == 0 or LMAHI_SavedData.lastDailyReset < currentTime then
+    -- Only reset if past the recorded reset time and not already reset
+    if LMAHI_SavedData.lastDailyReset < currentTime and LMAHI_SavedData.lastDailyReset ~= nextDailyReset then
         for charName, lockouts in pairs(LMAHI_SavedData.lockouts or {}) do
             for _, lockout in ipairs(LMAHI.lockoutData.quests or {}) do
+                if lockout.reset == "daily" then
+                    local lockoutId = tostring(lockout.id)
+                    lockouts[lockoutId] = false
+                end
+            end
+            for _, lockout in ipairs(LMAHI.lockoutData.rares or {}) do
                 if lockout.reset == "daily" then
                     local lockoutId = tostring(lockout.id)
                     lockouts[lockoutId] = false
@@ -195,9 +224,10 @@ function LMAHI.CheckResetTimers()
             end
         end
         LMAHI_SavedData.lastDailyReset = nextDailyReset
+        print("LMAHI Debug: Daily reset performed at " .. date("%Y-%m-%d %H:%M:%S", currentTime))
     end
     
-    if LMAHI_SavedData.lastWeeklyReset == 0 or LMAHI_SavedData.lastWeeklyReset < currentTime then
+    if LMAHI_SavedData.lastWeeklyReset < currentTime and LMAHI_SavedData.lastWeeklyReset ~= nextWeeklyReset then
         for charName, lockouts in pairs(LMAHI_SavedData.lockouts or {}) do
             for _, lockout in ipairs(LMAHI.lockoutData.raids or {}) do
                 local lockoutId = tostring(lockout.id)
@@ -208,6 +238,12 @@ function LMAHI.CheckResetTimers()
                 lockouts[lockoutId] = false
             end
             for _, lockout in ipairs(LMAHI.lockoutData.quests or {}) do
+                if lockout.reset == "weekly" then
+                    local lockoutId = tostring(lockout.id)
+                    lockouts[lockoutId] = false
+                end
+            end
+            for _, lockout in ipairs(LMAHI.lockoutData.rares or {}) do
                 if lockout.reset == "weekly" then
                     local lockoutId = tostring(lockout.id)
                     lockouts[lockoutId] = false
@@ -225,5 +261,6 @@ function LMAHI.CheckResetTimers()
             end
         end
         LMAHI_SavedData.lastWeeklyReset = nextWeeklyReset
+        print("LMAHI Debug: Weekly reset performed at " .. date("%Y-%m-%d %H:%M:%S", currentTime))
     end
 end
