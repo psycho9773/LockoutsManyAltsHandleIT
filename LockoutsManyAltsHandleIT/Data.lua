@@ -4,7 +4,7 @@ if not _G.LMAHI then
     _G.LMAHI = addon
 end
 
-function LMAHI.InitializeData()
+LMAHI.InitializeData = function()
     LMAHI.lockoutTypes = {
         "custom",
         "raids",
@@ -19,7 +19,7 @@ function LMAHI.InitializeData()
         LMAHI.lockoutData[lockoutType] = LMAHI.lockoutData[lockoutType] or {}
     end
 
-    -- Hardcoded lockouts (example data)
+    -- Raids
     LMAHI.lockoutData.raids = {
         { id = 1273, name = "Nerub-ar Palace", reset = "weekly" },
         { id = 2003, name = "Liberation of Undermine", reset = "weekly" },
@@ -28,6 +28,8 @@ function LMAHI.InitializeData()
         { id = 1234, name = "Vault of the Incarnates", reset = "weekly" },
         { id = 5678, name = "Aberrus, the Shadowed Crucible", reset = "weekly" },
     }
+
+    -- Dungeons
     LMAHI.lockoutData.dungeons = {
         { id = 1001, name = "The Rookery", reset = "daily" },
         { id = 1002, name = "The Stonevault", reset = "daily" },
@@ -40,14 +42,18 @@ function LMAHI.InitializeData()
         { id = 1009, name = "Operation: Floodgate", reset = "daily" },
         { id = 1010, name = "Eco-Dome Al’dani", reset = "daily" },
     }
+
+    -- Quests
     LMAHI.lockoutData.quests = {
         { id = 83347, name = "Urge to Surge", reset = "weekly" },
         { id = 83346, name = "Reduce, Reuse, Resell", reset = "weekly" },
         { id = 83345, name = "Many Jobs, Handle It!", reset = "weekly" },
     }
+
+    -- Rares
     LMAHI.lockoutData.rares = {
         { id = 84877, name = "Ephemeral Agent Lathyd", reset = "weekly" },
-        { id = 84895, name = "Slugger the Smart", reset = "weekly" },
+        { id = 84895, name = "Slugger the Smartfiltered", reset = "weekly" },
         { id = 84907, name = "Chief Foreman Gutso", reset = "weekly" },
         { id = 90491, name = "Scrapchewer", reset = "weekly" },
         { id = 84884, name = "The Junk-Wall", reset = "weekly" },
@@ -66,42 +72,21 @@ function LMAHI.InitializeData()
         { id = 84921, name = "Thwack", reset = "daily" },
         { id = 84922, name = "S.A.L.", reset = "daily" },
         { id = 84918, name = "Ratspit", reset = "daily" },
+
     }
+
+    -- Currencies
     LMAHI.lockoutData.currencies = {
-        { id = 3056, name = "Resonating Crystal", reset = "weekly" },
-        { id = 3008, name = "Valorstones", reset = "weekly" },
+        { id = 1166, name = "Timewarped Badge", max = 500, reset = "weekly" },
+        { id = 1828, name = "Valorstones", max = 2000, reset = "weekly" },
+        { id = 3008, name = "Resonance Crystals", max = 1000, reset = "weekly" },
     }
+
+    -- Custom lockouts (populated from saved data)
     LMAHI.lockoutData.custom = LMAHI_SavedData.customLockouts or {}
 
-    -- Initialize reset timers
-    local weeklyReset, dailyReset = LMAHI.GetServerResetTimes()
-    LMAHI_SavedData.lastWeeklyReset = LMAHI_SavedData.lastWeeklyReset or weeklyReset
-    LMAHI_SavedData.lastDailyReset = LMAHI_SavedData.lastDailyReset or dailyReset
-
-    -- Validate custom lockouts
-    LMAHI.ValidateCustomLockouts()
-end
-
-function LMAHI.GetServerResetTimes()
-    -- Placeholder: Approximate reset times (requires server-specific data)
-    local serverTime = GetServerTime()
-    local weeklyReset = serverTime - (serverTime % (7 * 24 * 3600)) + (2 * 24 * 3600) -- Tuesday reset
-    local dailyReset = serverTime - (serverTime % (24 * 3600)) + (10 * 3600) -- 10 AM daily
-    return weeklyReset, dailyReset
-end
-
-function LMAHI.ValidateCustomLockouts()
-    local seenIds = {}
-    local validLockouts = {}
-    for _, lockout in ipairs(LMAHI.lockoutData.custom or {}) do
-        if lockout.id and lockout.name and lockout.reset and not seenIds[lockout.id] then
-            if lockout.reset == "weekly" or lockout.reset == "daily" or lockout.reset == "none" then
-                table.insert(validLockouts, lockout)
-                seenIds[lockout.id] = true
-            end
-        end
+    -- Initialize lockouts for all characters
+    if LMAHI.InitializeLockouts then
+        LMAHI.InitializeLockouts()
     end
-    LMAHI.lockoutData.custom = validLockouts
-    LMAHI_SavedData.customLockouts = validLockouts
-    LMAHI.NormalizeCustomLockoutOrder()
 end
