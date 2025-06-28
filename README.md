@@ -5,8 +5,8 @@ A World of Warcraft Retail addon to manage and view lockouts across multiple cha
 ## 🔧 Features
 
 - Display all custom, raid, dungeon, quest, or rare lockouts across all of your alternate characters.
-- 10 character per page paging up to 100 characters (max is 64) currently
-- Moveable, scrollable, zoomable with setttings saved acrossed all characters
+- 10 characters per page paging up to 100 characters (max is 64) currently
+- Moveable, scrollable, zoomable with settings saved acrossed all characters
 - Simple, clean interface with no dependencies
 - Persistent saved variables for lockouts
 
