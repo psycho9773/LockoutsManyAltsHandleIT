@@ -35,7 +35,8 @@ Manual install only for now. Future plans may include CurseForge support.
 
 ![Last updated](https://img.shields.io/github/last-commit/psycho9773/LockoutsManyAltsHandleIT)
 
-## ❗ License
+## 🧾 License
 
-© 2025 psycho9773. All Rights Reserved.  
-This addon may not be copied, modified, redistributed, or republished without express written permission from the author.
+This project is licensed under the [MIT License](LICENSE).  
+Feel free to use, modify, and share — just keep the original credits intact.
+
