@@ -34,3 +34,8 @@ Manual install only for now. Future plans may include CurseForge support.
 ![WoW Version](https://img.shields.io/badge/WoW-Retail-blue)
 
 ![Last updated](https://img.shields.io/github/last-commit/psycho9773/LockoutsManyAltsHandleIT)
+
+## ❗ License
+
+© 2025 psycho9773. All Rights Reserved.  
+This addon may not be copied, modified, redistributed, or republished without express written permission from the author.
