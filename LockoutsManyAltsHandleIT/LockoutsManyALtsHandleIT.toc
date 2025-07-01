@@ -1,6 +1,6 @@
 ## Interface: 110107
 ## Title: LockoutsManyAltsHandleIT
-## Notes: Tracks raid, dungeon, quest, and rare lockouts across multiple characters
+## Notes: Tracks raid, dungeon, quest, and rare lockouts across multiple characters.
 ## Author: Psycho
 ## SavedVariables: LMAHI_SavedData
 ## Version: 1.0
