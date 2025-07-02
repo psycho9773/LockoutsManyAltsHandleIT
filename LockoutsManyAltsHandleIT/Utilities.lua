@@ -28,8 +28,8 @@ LMAHI.SaveCharacterData = function()
     
     -- Store faction colors
 
-    local factionColor = playerFaction == "Horde" and { r = 1, g = 0, b = 0 }
-        or playerFaction == "Alliance" and { r = 0, g = 0, b = 1 }
+    local factionColor = playerFaction == "Horde" and { r = 0.95, g = 0.2, b = 0.2 }
+        or playerFaction == "Alliance" and { r = 0.2, g = 0.4, b = 1.0 }
         or { r = 0.8, g = 0.8, b = 0.8 }
     LMAHI_SavedData.factionColors[charName] = { r = factionColor.r, g = factionColor.g, b = factionColor.b }
     
