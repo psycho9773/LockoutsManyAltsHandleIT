@@ -279,3 +279,28 @@ LMAHI.CheckResetTimers = function()
         print("LMAHI Debug: Weekly reset performed at " .. date("%Y-%m-%d %H:%M:%S", currentTime))
     end
 end
+
+Utilities = Utilities or {}
+
+-- Run garbage collection after 10s, then every 60s
+Utilities.StartGarbageCollector = function(initialDelay, repeatInterval)
+    initialDelay = initialDelay or 10       -- seconds before first run
+    repeatInterval = repeatInterval or 300   -- seconds between runs
+
+    local frame = CreateFrame("Frame")
+    local elapsed = 0
+    local started = false
+
+    frame:SetScript("OnUpdate", function(_, delta)
+        elapsed = elapsed + delta
+
+        if not started and elapsed >= initialDelay then
+            collectgarbage("collect")
+            elapsed = 0
+            started = true
+        elseif started and elapsed >= repeatInterval then
+            collectgarbage("collect")
+            elapsed = 0
+        end
+    end)
+end
