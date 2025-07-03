@@ -64,6 +64,94 @@ local function ThrottledUpdateDisplay()
     end
 end
 
+-- SavedVariables structure
+
+LMAHI_SavedData = LMAHI_SavedData or {}
+LMAHI_SavedData.minimapPos = LMAHI_SavedData.minimapPos or { angle = math.rad(45) }
+
+-- Minimap button
+
+local radius = 105
+local minimapButton = CreateFrame("Button", "LMAHI_MinimapButton", Minimap)
+minimapButton:SetSize(28, 28)
+minimapButton:SetFrameLevel(Minimap:GetFrameLevel() + 5)
+minimapButton:RegisterForDrag("RightButton")
+minimapButton:SetClampedToScreen(true)
+-- Icon
+local texture = minimapButton:CreateTexture(nil, "BACKGROUND")
+texture:SetTexture("975738")
+texture:SetAllPoints()
+minimapButton.texture = texture
+-- Optional mask
+local mask = minimapButton:CreateMaskTexture()
+mask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+mask:SetAllPoints()
+texture:AddMaskTexture(mask)
+-- Ring border
+local border = minimapButton:CreateTexture(nil, "OVERLAY")
+border:SetTexture("Interface\\Common\\GoldRing")
+border:SetSize(30, 30)
+border:SetPoint("CENTER", minimapButton, "CENTER")
+-- Position logic (uses angle)
+local function UpdateButtonPosition()
+    local angle = LMAHI_SavedData.minimapPos.angle or math.rad(45)
+    local x = math.cos(angle) * radius
+    local y = math.sin(angle) * radius
+    minimapButton:SetPoint("CENTER", Minimap, "CENTER", x, y)
+end
+-- Event-based safe placement
+local eventFrame = CreateFrame("Frame")
+eventFrame:RegisterEvent("ADDON_LOADED")
+eventFrame:RegisterEvent("PLAYER_LOGIN")
+eventFrame:SetScript("OnEvent", function(_, event, addon)
+    if event == "ADDON_LOADED" and addon == "LockoutsManyAltsHandleIT" then
+        UpdateButtonPosition()
+    elseif event == "PLAYER_LOGIN" then
+        UpdateButtonPosition()
+    end
+end)
+-- Drag behavior (locked to circle)
+minimapButton:SetScript("OnDragStart", function(self)
+    self.dragging = true
+end)
+
+minimapButton:SetScript("OnDragStop", function(self)
+    self.dragging = false
+    self:StopMovingOrSizing()
+end)
+
+minimapButton:SetScript("OnUpdate", function(self)
+    if self.dragging then
+        local mx, my = Minimap:GetCenter()
+        local px, py = GetCursorPosition()
+        local scale = Minimap:GetEffectiveScale()
+        local dx = (px / scale - mx)
+        local dy = (py / scale - my)
+        local angle = math.atan2(dy, dx)
+        LMAHI_SavedData.minimapPos.angle = angle
+        UpdateButtonPosition()
+    end
+end)
+minimapButton:SetScript("OnClick", function()
+    if mainFrame then
+        mainFrame:SetShown(not mainFrame:IsShown())
+        if mainFrame:IsShown() and LMAHI and LMAHI.SaveCharacterData then
+            LMAHI.SaveCharacterData()
+            if LMAHI.CheckLockouts then LMAHI.CheckLockouts() end
+            ThrottledUpdateDisplay()
+        end
+    end
+end)
+--  Map Tooltip
+minimapButton:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+    GameTooltip:SetText("|cff99ccffLockouts|r|cffADADADMany|r|cff99ccffAlts|r|cffADADADHandle|r|cff99ccffIT|r")
+    GameTooltip:AddLine("|cff00ff00Left click|r to open")
+    GameTooltip:AddLine("|cffFF9933Right click|r to drag")
+    GameTooltip:Show()
+end)
+minimapButton:SetScript("OnLeave", GameTooltip_Hide)
+
 -- Create main frame
 
 mainFrame = CreateFrame("Frame", "LMAHI_Frame", UIParent, "BasicFrameTemplateWithInset")
@@ -923,115 +1011,11 @@ removeButton:SetScript("OnClick", function(self)
  end
 end
 
--- SavedVariables structure
-LMAHI_SavedData = LMAHI_SavedData or {}
-LMAHI_SavedData.minimapPos = LMAHI_SavedData.minimapPos or { angle = math.rad(45) }
-
--- Minimap button
-local radius = 105
-local minimapButton = CreateFrame("Button", "LMAHI_MinimapButton", Minimap)
-minimapButton:SetSize(28, 28)
-minimapButton:SetFrameLevel(Minimap:GetFrameLevel() + 5)
-minimapButton:RegisterForDrag("RightButton")
-minimapButton:SetClampedToScreen(true)
--- Icon
-local texture = minimapButton:CreateTexture(nil, "BACKGROUND")
-texture:SetTexture("975738")
-texture:SetAllPoints()
-minimapButton.texture = texture
--- Optional mask
-local mask = minimapButton:CreateMaskTexture()
-mask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
-mask:SetAllPoints()
-texture:AddMaskTexture(mask)
--- Ring border
-local border = minimapButton:CreateTexture(nil, "OVERLAY")
-border:SetTexture("Interface\\Common\\GoldRing")
-border:SetSize(30, 30)
-border:SetPoint("CENTER", minimapButton, "CENTER")
--- Position logic (uses angle)
-local function UpdateButtonPosition()
-    local angle = LMAHI_SavedData.minimapPos.angle or math.rad(45)
-    local x = math.cos(angle) * radius
-    local y = math.sin(angle) * radius
-    minimapButton:SetPoint("CENTER", Minimap, "CENTER", x, y)
-end
--- Event-based safe placement
-local eventFrame = CreateFrame("Frame")
-eventFrame:RegisterEvent("ADDON_LOADED")
-eventFrame:RegisterEvent("PLAYER_LOGIN")
-eventFrame:SetScript("OnEvent", function(_, event, addon)
-    if event == "ADDON_LOADED" and addon == "LockoutsManyAltsHandleIT" then
-        UpdateButtonPosition()
-    elseif event == "PLAYER_LOGIN" then
-        UpdateButtonPosition()
-    end
-end)
--- Drag behavior (locked to circle)
-minimapButton:SetScript("OnDragStart", function(self)
-    self.dragging = true
-end)
-
-minimapButton:SetScript("OnDragStop", function(self)
-    self.dragging = false
-    self:StopMovingOrSizing()
-end)
-
-minimapButton:SetScript("OnUpdate", function(self)
-    if self.dragging then
-        local mx, my = Minimap:GetCenter()
-        local px, py = GetCursorPosition()
-        local scale = Minimap:GetEffectiveScale()
-        local dx = (px / scale - mx)
-        local dy = (py / scale - my)
-        local angle = math.atan2(dy, dx)
-        LMAHI_SavedData.minimapPos.angle = angle
-        UpdateButtonPosition()
-    end
-end)
-minimapButton:SetScript("OnClick", function()
-    if mainFrame then
-        mainFrame:SetShown(not mainFrame:IsShown())
-        if mainFrame:IsShown() and LMAHI and LMAHI.SaveCharacterData then
-            LMAHI.SaveCharacterData()
-            if LMAHI.CheckLockouts then LMAHI.CheckLockouts() end
-            ThrottledUpdateDisplay()
-        end
-    end
-end)
---  Map Tooltip
-minimapButton:SetScript("OnEnter", function(self)
-    GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-    GameTooltip:SetText("|cff99ccffLockouts|r|cffADADADMany|r|cff99ccffAlts|r|cffADADADHandle|r|cff99ccffIT|r")
-    GameTooltip:AddLine("|cff00ff00Left click|r to open")
-    GameTooltip:AddLine("|cffFF9933Right click|r to drag")
-    GameTooltip:Show()
-end)
-minimapButton:SetScript("OnLeave", GameTooltip_Hide)
 
 
 
--- Memory used frame
 
-local memFrame = CreateFrame("Frame", "LMAHIMemoryFrame", UIParent)
-memFrame:SetParent(mainFrame)
-memFrame:SetSize(175, 15)
-memFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 280, - 4)
 
-memFrame.bg = memFrame:CreateTexture(nil, "BACKGROUND")
-memFrame.bg:SetAllPoints()
-memFrame.bg:SetColorTexture(0, 0, 0, 0.1)
-
-memFrame.text = memFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-memFrame.text:SetPoint("CENTER", memFrame, "CENTER")
-memFrame.text:SetTextColor(1, 1, 1)
--- Auto-update memory every 1 sec
-C_Timer.NewTicker(1, function()
-    UpdateAddOnMemoryUsage()
-    local mem = GetAddOnMemoryUsage(addonName)
-    local mb = mem / 1024
-    memFrame.text:SetText(string.format("LMAHI Mem: %.2f MB", mb))
-end)
 
 
 -- Event handling
@@ -1092,8 +1076,7 @@ mainFrame:RegisterEvent("ENCOUNTER_END")
 mainFrame:RegisterEvent("QUEST_TURNED_IN")
 mainFrame:RegisterEvent("LFG_LOCK_INFO_RECEIVED")
 mainFrame:RegisterEvent("UPDATE_INSTANCE_INFO")
-mainFrame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
-mainFrame:RegisterEvent("QUEST_LOG_UPDATE")
+--mainFrame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
 mainFrame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
         LMAHI_SavedData.minimapPos = LMAHI_SavedData.minimapPos or { angle = math.rad(45) }
@@ -1139,7 +1122,7 @@ mainFrame:SetScript("OnEvent", function(self, event, arg1)
         if LMAHI.SaveCharacterData then
             LMAHI.SaveCharacterData()
         end
-    elseif event == "PLAYER_ENTERING_WORLD" or event == "ENCOUNTER_END" or event == "QUEST_TURNED_IN" or event == "LFG_LOCK_INFO_RECEIVED" or event == "UPDATE_INSTANCE_INFO" or event == "CURRENCY_DISPLAY_UPDATE" or event == "QUEST_LOG_UPDATE" then
+    elseif event == "PLAYER_ENTERING_WORLD" or event == "ENCOUNTER_END" or event == "QUEST_TURNED_IN" or event == "LFG_LOCK_INFO_RECEIVED" or event == "UPDATE_INSTANCE_INFO" or event == "CURRENCY_DISPLAY_UPDATE" then
         if LMAHI.SaveCharacterData then
             LMAHI.SaveCharacterData()
         end
@@ -1218,6 +1201,164 @@ SlashCmdList["LMAHIMEM"] = function()
     local memKB = GetAddOnMemoryUsage("LockoutsManyAltsHandleIT")
     local memMB = memKB / 1024
     print(string.format("LockoutsManyAltsHandleIT Memory Usage: %.2f MB", memMB))
+end
+
+
+-- Memory used frame -- set parent when done
+-- Memory Usage Tracker (always visible)
+
+local memFrame = CreateFrame("Frame", "LMAHIMemoryFrame", UIParent)
+memFrame:SetFrameStrata("DIALOG")
+memFrame:SetSize(175, 15)
+memFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 75, -4) -- not anchored to mainFrame
+
+-- Background
+memFrame.bg = memFrame:CreateTexture(nil, "BACKGROUND")
+memFrame.bg:SetAllPoints()
+memFrame.bg:SetColorTexture(0, 0, 0, 0.25) -- slightly more visible
+
+-- Text Display
+memFrame.text = memFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+memFrame.text:SetPoint("LEFT", memFrame, "LEFT")
+memFrame.text:SetTextColor(1, 1, 1)
+
+-- Update memory usage every second
+C_Timer.NewTicker(1, function()
+    UpdateAddOnMemoryUsage()
+    local mem = GetAddOnMemoryUsage(addonName)
+    local mb = mem / 1024
+    memFrame.text:SetText(string.format("LMAHI Mem: %.2f MB", mb))
+end)
+
+-- CPU Tracker Frame
+
+-- Spike log storage
+LMAHI_SpikeLog = {}
+
+-- Chat output toggle
+local LMAHI_ChatOutputEnabled = true
+
+local cpuFrame = CreateFrame("Frame", "LMAHICPUFrame", UIParent)
+cpuFrame:SetFrameStrata("DIALOG")
+cpuFrame:SetSize(225, 15)
+cpuFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 75, -19)
+
+cpuFrame.bg = cpuFrame:CreateTexture(nil, "BACKGROUND")
+cpuFrame.bg:SetAllPoints()
+cpuFrame.bg:SetColorTexture(0, 0, 0, 0.25)
+
+cpuFrame.text = cpuFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+cpuFrame.text:SetPoint("LEFT", cpuFrame, "LEFT")
+
+-- Event buffer (last 5 relevant events)
+local eventBuffer = {}
+local function pushEvent(eventName)
+    table.insert(eventBuffer, 1, eventName)
+    if #eventBuffer > 5 then
+        table.remove(eventBuffer)
+    end
+end
+
+-- Delayed event monitor with live logging
+local eventMonitor = CreateFrame("Frame")
+local trackedEvents = {
+    "ADDON_LOADED",
+    "PLAYER_LOGOUT",
+    "PLAYER_ENTERING_WORLD",
+    "ENCOUNTER_END",
+    "QUEST_TURNED_IN",
+    "LFG_LOCK_INFO_RECEIVED",
+    --"UPDATE_INSTANCE_INFO",
+    --"CURRENCY_DISPLAY_UPDATE",
+    "PLAYER_LOGIN",
+}
+
+-- Register events after 10s delay to avoid startup spam
+C_Timer.After(10, function()
+    for _, event in ipairs(trackedEvents) do
+        eventMonitor:RegisterEvent(event)
+    end
+
+    eventMonitor:SetScript("OnEvent", function(_, event, ...)
+        if LMAHI_ChatOutputEnabled then
+            print("🔔 Event fired:", event)
+        end
+        pushEvent(event)
+    end)
+
+    if LMAHI_ChatOutputEnabled then
+        print("🕒 LMAHI Event Tracking: Activated after 10s delay")
+    end
+end)
+
+-- CPU usage tracker
+local lastCPU = 0
+C_Timer.NewTicker(1, function()
+    UpdateAddOnCPUUsage()
+    local currentCPU = GetAddOnCPUUsage(addonName) or 0
+    local delta = currentCPU - lastCPU
+    lastCPU = currentCPU
+
+    local framerate = GetFramerate() or 60
+    local frameTime = 1000 / framerate
+    local percent = (delta / frameTime) * 100
+
+    -- Color text
+    if percent > 10 then
+        cpuFrame.text:SetTextColor(1, 0.2, 0.2)
+    else
+        cpuFrame.text:SetTextColor(1, 1, 1)
+    end
+
+    cpuFrame.text:SetText(string.format("LMAHI CPU: %.2f ms/s (%.1f%%)", delta, percent))
+
+    -- Log high usage
+    if percent > 15 then
+        local zone = GetZoneText() or "Unknown Zone"
+        local timeStamp = date("%H:%M:%S")
+        local isVisible = LMAHI and LMAHI.mainFrame and LMAHI.mainFrame:IsVisible()
+        local eventList = table.concat(eventBuffer, ", ")
+
+        local entry = string.format("⚠️ %s - %.1f%% in %s (UI: %s) | Events: %s",
+            timeStamp, percent, zone, tostring(isVisible), eventList)
+
+        if LMAHI_ChatOutputEnabled then
+            print(entry)
+        end
+        table.insert(LMAHI_SpikeLog, entry)
+    end
+end)
+
+-- Slash command to control output and view logs
+SLASH_LMAHILOG1 = "/lmahilog"
+SlashCmdList["LMAHILOG"] = function(msg)
+    msg = msg:lower()
+
+    if msg == "" or msg == "log" then
+        if #LMAHI_SpikeLog == 0 then
+            if LMAHI_ChatOutputEnabled then
+                print("📭 No CPU spikes logged this session.")
+            end
+        else
+            if LMAHI_ChatOutputEnabled then
+                print("🔍 LMAHI CPU Spike Log:")
+                for i, entry in ipairs(LMAHI_SpikeLog) do
+                    print(i .. ". " .. entry)
+                end
+            end
+        end
+
+    elseif msg == "hide" then
+        LMAHI_ChatOutputEnabled = false
+        print("🫥 LMAHI chat output hidden")
+
+    elseif msg == "show" then
+        LMAHI_ChatOutputEnabled = true
+        print("📡 LMAHI chat output shown")
+
+    else
+        print("ℹ️ Unknown subcommand. Try `/lmahilog log`, `/lmahilog show`, or `/lmahilog hide`")
+    end
 end
 
 -- Expose frames to namespace
