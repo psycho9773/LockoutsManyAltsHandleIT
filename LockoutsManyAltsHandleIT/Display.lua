@@ -108,13 +108,23 @@ local function ReleaseHoverRegion(region)
     region:Hide()
     region:ClearAllPoints()
     region:SetSize(0, 0)
-    region:SetFrameLevel(0)
     region:SetNormalTexture("")
     region:SetHighlightTexture("")
     region:EnableMouse(false)
     region:SetScript("OnEnter", nil)
     region:SetScript("OnLeave", nil)
     hoverRegionPool[region] = true
+end
+
+-- Function to update paging button states
+local function UpdatePagingButtons()
+    local leftArrow = LMAHI.leftArrow -- Use stored reference
+    local rightArrow = LMAHI.rightArrow
+    if leftArrow and rightArrow then
+        leftArrow:SetEnabled(LMAHI.canPagePrevious)
+        rightArrow:SetEnabled(LMAHI.canPageNext)
+    else
+    end
 end
 
 function LMAHI.UpdateDisplay()
@@ -126,23 +136,46 @@ function LMAHI.UpdateDisplay()
     LMAHI.lastUpdateTime = currentTime
 
     if not LMAHI.mainFrame or not LMAHI.lockoutScrollFrame or not LMAHI.lockoutContent or not LMAHI.charFrame or not LMAHI.highlightFrame then
-        print("UpdateDisplay: Missing required frames")
         return
     end
+
+-- Create highlight frame for current character if not exists
+if not LMAHI.currentCharHighlight and LMAHI.charFrame then
+    LMAHI.currentCharHighlight = CreateFrame("Frame", nil, LMAHI.charFrame, "BackdropTemplate")
+    LMAHI.currentCharHighlight:SetFrameLevel(LMAHI.charFrame:GetFrameLevel() + 1)
+
+    if LMAHI.currentCharHighlight.SetBackdrop then
+        LMAHI.currentCharHighlight:SetBackdrop({
+            bgFile = "Interface\\Buttons\\WHITE8X8", --  Solid fill background
+            edgeFile = "Interface\\Buttons\\WHITE8X8", --  Thin border texture
+            edgeSize = 1.5,
+            insets = { left = 1, right = 1, top = 1, bottom = 1 },
+        })
+        LMAHI.currentCharHighlight:SetBackdropColor(0, 0, 0, 0.01) --  fill color (RGBA)
+        LMAHI.currentCharHighlight:SetBackdropBorderColor(0.6, 0.8, 1, 0.7) --  border color (RGBA)
+        LMAHI.currentCharHighlight:Hide()
+    end
+end
+
 
     -- Ensure currentPage is valid
     if not LMAHI.currentPage or LMAHI.currentPage < 1 then
         LMAHI.currentPage = 1
-        print("UpdateDisplay: Reset currentPage to 1")
     end
 
-    -- Reset highlight frame
+    -- Reset highlight frames
     LMAHI.highlightFrame:Hide()
     LMAHI.highlightFrame:ClearAllPoints()
     LMAHI.highlightFrame:SetSize(0, 0)
     LMAHI.highlightFrame:SetBackdrop(nil)
     LMAHI.highlightFrame:SetBackdropColor(0, 0, 0, 0)
     LMAHI.highlightFrame:SetFrameLevel(LMAHI.lockoutContent:GetFrameLevel() + 1)
+
+    if LMAHI.currentCharHighlight then
+        LMAHI.currentCharHighlight:Hide()
+        LMAHI.currentCharHighlight:ClearAllPoints()
+        LMAHI.currentCharHighlight:SetSize(0, 0)
+    end
 
     -- Release dynamic elements
     for _, label in ipairs(LMAHI.lockoutLabels) do
@@ -164,12 +197,14 @@ function LMAHI.UpdateDisplay()
     LMAHI.collapseButtons = {}
     LMAHI.hoverRegions = {}
 
-    -- Clear all children from charFrame
+    -- Clear all children from charFrame except currentCharHighlight
     for _, child in ipairs({LMAHI.charFrame:GetChildren()}) do
-        child:Hide()
-        child:ClearAllPoints()
-        if child:IsObjectType("FontString") then
-            child:SetText("")
+        if child ~= LMAHI.currentCharHighlight then
+            child:Hide()
+            child:ClearAllPoints()
+            if child:IsObjectType("FontString") then
+                child:SetText("")
+            end
         end
     end
 
@@ -179,7 +214,6 @@ function LMAHI.UpdateDisplay()
         if charName and type(charName) == "string" then
             table.insert(charList, charName)
         else
-            print("UpdateDisplay: Invalid charName in LMAHI_SavedData.characters")
         end
     end
     if #charList == 0 then
@@ -187,10 +221,13 @@ function LMAHI.UpdateDisplay()
         emptyLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 10, -10)
         emptyLabel:SetText("No characters found. Log in to each alt to register.")
         emptyLabel:SetTextColor(1, 1, 1, 1) -- White for empty message
+        emptyLabel:Show()
         table.insert(LMAHI.lockoutLabels, emptyLabel)
-        print("UpdateDisplay: No characters found")
         LMAHI.lockoutContent:SetHeight(30)
         LMAHI.lockoutScrollFrame:UpdateScrollChildRect()
+        LMAHI.canPagePrevious = false
+        LMAHI.canPageNext = false
+        UpdatePagingButtons()
         return
     end
 
@@ -214,8 +251,16 @@ function LMAHI.UpdateDisplay()
         table.insert(displayChars, charList[i])
     end
 
-    -- Debug pagination
-    print("Page: " .. LMAHI.currentPage .. "/" .. LMAHI.maxPages .. ", Characters: " .. table.concat(displayChars, ", ") .. ", CanPage: Prev=" .. tostring(LMAHI.canPagePrevious) .. ", Next=" .. tostring(LMAHI.canPageNext))
+
+    -- Get current character
+    local currentChar = UnitName("player") .. "-" .. GetRealmName()
+    local currentCharIndex = nil
+    for i, charName in ipairs(charList) do
+        if charName == currentChar then
+            currentCharIndex = i
+            break
+        end
+    end
 
     -- Update character and realm labels (no pooling, fresh creation)
     LMAHI.cachedCharLabels = {}
@@ -225,7 +270,7 @@ function LMAHI.UpdateDisplay()
         local realmName = charName:match("-(.+)$") or "Unknown"
 
         local charLabel = LMAHI.charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-        charLabel:SetPoint("TOPLEFT", LMAHI.charFrame, "TOPLEFT", 12 + (i-1) * 94, -8)
+        charLabel:SetPoint("TOPLEFT", LMAHI.charFrame, "TOPLEFT", 8 + (i-1) * 96, -8)
         charLabel:SetText(playerName)
         local classColor = LMAHI_SavedData.classColors[charName] or { r = 1, g = 1, b = 1 }
         charLabel:SetTextColor(classColor.r, classColor.g, classColor.b)
@@ -242,15 +287,20 @@ function LMAHI.UpdateDisplay()
         table.insert(LMAHI.lockoutLabels, realmLabel)
         LMAHI.cachedCharLabels[i + #displayChars] = realmLabel
 
+        -- Highlight current character
+        if currentCharIndex and currentCharIndex == startIndex + i - 1 and LMAHI.currentCharHighlight then
+            LMAHI.currentCharHighlight:SetPoint("TOPLEFT", charLabel, "TOPLEFT", -5, 5)
+            LMAHI.currentCharHighlight:SetSize(94 + 6, 20 + 13) -- Slightly larger than character column
+            LMAHI.currentCharHighlight:Show()
+        end
+
         charLabelCount = charLabelCount + 2
-        print("Character " .. i .. ": " .. playerName .. "-" .. realmName .. " at x=" .. (12 + (i-1) * 94) .. ", y=-8, visible=" .. tostring(charLabel:IsVisible()))
     end
-    print("Rendered " .. charLabelCount .. " character/realm labels")
 
     LMAHI.cachedCharList = charList
     LMAHI.lastDisplayChars = displayChars
 
-    -- Initialize highlight frame backdrop
+    -- Initialize highlight frame backdrop (for lockout rows)
     LMAHI.highlightFrame:SetBackdrop({
         bgFile = "Interface\\Buttons\\WHITE8X8",
         edgeFile = nil,
@@ -282,11 +332,9 @@ function LMAHI.UpdateDisplay()
         table.insert(LMAHI.lockoutLabels, noTypesLabel)
         offsetY = offsetY - 20
         headerCount = 1
-        print("No lockout types, header at x=10, y=" .. offsetY .. ", visible=true")
     else
         for lockoutTypeIndex, lockoutType in ipairs(LMAHI.lockoutTypes) do
             if not lockoutType then
-                print("UpdateDisplay: Invalid lockoutType at index " .. lockoutTypeIndex)
                 break
             end
             local isCollapsed = LMAHI_SavedData.collapsedSections[lockoutType]
@@ -319,7 +367,6 @@ function LMAHI.UpdateDisplay()
             table.insert(LMAHI.lockoutLabels, sectionHeader)
             LMAHI.cachedSectionHeaders[lockoutType] = sectionHeader
             headerCount = headerCount + 1
-            print("Header " .. lockoutType .. " at x=27, y=" .. (offsetY - 1) .. ", visible=" .. tostring(sectionHeader:IsVisible()))
 
             offsetY = offsetY - 15
 
@@ -366,7 +413,7 @@ function LMAHI.UpdateDisplay()
                                 LMAHI.highlightFrame:ClearAllPoints()
                                 LMAHI.highlightFrame:SetPoint("TOPLEFT", self, "TOPLEFT", 8, 0)
                                 LMAHI.highlightFrame:SetSize(1155, 10)
-                                LMAHI.highlightFrame:SetBackdropColor(0.2, 0.2, 0.2, 0.15)
+                                LMAHI.highlightFrame:SetBackdropColor(0.3, 0.3, 0.3, .3)
                                 LMAHI.highlightFrame:Show()
                             end)
                             hoverRegion:SetScript("OnLeave", function()
@@ -378,7 +425,7 @@ function LMAHI.UpdateDisplay()
                             for i, charName in ipairs(displayChars) do
                                 local indicator = AcquireCheckButton(LMAHI.lockoutContent)
                                 indicator:SetSize(16, 16)
-                                indicator:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 230 + (i-1) * 94 + (94 - 16) / -10, offsetY + 2)
+                                indicator:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 230 + (i-1) * 96 + (94 - 16) / - 6, offsetY + 2)
                                 local isLocked = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] or false
                                 indicator:GetNormalTexture():SetVertexColor(isLocked and 0.8 or 0.2, isLocked and 0.2 or 0.8, 0.2, 1)
                                 indicator:GetCheckedTexture():SetVertexColor(isLocked and 0.8 or 0.2, isLocked and 0.2 or 0.8, 0.2, 1)
@@ -406,13 +453,14 @@ function LMAHI.UpdateDisplay()
             offsetY = offsetY - 10
         end
     end
-    print("Rendered " .. headerCount .. " section headers")
 
     LMAHI.lockoutContent:SetHeight(math.abs(offsetY) + 20)
     LMAHI.lockoutScrollFrame:UpdateScrollChildRect()
 
+    -- Update paging button states
+    UpdatePagingButtons()
+
     local endTime = debugprofilestop()
-    print("UpdateDisplay took " .. (endTime - startTime) .. " ms")
 end
 
 -- Reset caches on UI open to prevent corruption
@@ -421,11 +469,54 @@ function LMAHI:ResetCaches()
     LMAHI.cachedCharLabels = {}
     LMAHI.cachedSectionHeaders = {}
     LMAHI.lastDisplayChars = {}
-    print("UpdateDisplay: Caches reset")
 end
 
--- Call ResetCaches when UI is shown
-LMAHI.mainFrame:HookScript("OnShow", function()
+-- Update highlight on login or character switch
+local function HandleLogin()
     LMAHI:ResetCaches()
+
+    -- Get sorted character list
+    local charList = {}
+    for charName, _ in pairs(LMAHI_SavedData.characters or {}) do
+        if charName and type(charName) == "string" then
+            table.insert(charList, charName)
+        else
+        end
+    end
+
+    if #charList > 0 then
+        table.sort(charList, function(a, b)
+            local aIndex = LMAHI_SavedData.charOrder[a] or 999
+            local bIndex = LMAHI_SavedData.charOrder[b] or 1000
+            return aIndex < bIndex or (aIndex == bIndex and a < b)
+        end)
+
+        -- Find current character's page
+        local currentChar = UnitName("player") .. "-" .. GetRealmName()
+        local currentCharIndex = nil
+        for i, charName in ipairs(charList) do
+            if charName == currentChar then
+                currentCharIndex = i
+                break
+            end
+        end
+
+        if currentCharIndex then
+            local charsPerPage = LMAHI.maxCharsPerPage or 10
+            LMAHI.currentPage = math.max(1, math.ceil(currentCharIndex / charsPerPage))
+        else
+            LMAHI.currentPage = 1
+        end
+    else
+        LMAHI.currentPage = 1
+    end
+
     LMAHI.UpdateDisplay()
+end
+
+LMAHI.eventFrame = LMAHI.eventFrame or CreateFrame("Frame")
+LMAHI.eventFrame:RegisterEvent("PLAYER_LOGIN")
+LMAHI.eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+LMAHI.eventFrame:SetScript("OnEvent", function(self, event)
+    HandleLogin()
 end)
