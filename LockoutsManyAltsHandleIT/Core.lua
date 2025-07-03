@@ -35,6 +35,8 @@ LMAHI.FACTION_COLORS = {
     Neutral = { r = 0.8, g = 0.8, b = 0.8 },
 }
 
+
+
 -- Frame variables
 
 local mainFrame, charFrame, lockoutScrollFrame, lockoutContent, settingsFrame, customInputFrame
@@ -141,7 +143,7 @@ zoomOutButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
 -- Custom lockout input button
 local customInputButton = CreateFrame("Button", nil, mainFrame)
 customInputButton:SetSize(27, 32)
-customInputButton:SetPoint("TOPLEFT", zoomInButton, "TOPRIGHT", 35, -35)
+customInputButton:SetPoint("TOPLEFT", zoomInButton, "TOPRIGHT", 30, -35)
 customInputButton:SetNormalTexture("Interface\\Buttons\\UI-GuildButton-PublicNote-Up")
 customInputButton:SetPushedTexture("Interface\\Buttons\\UI-GuildButton-PublicNote-Disabled")
 customInputButton:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
@@ -164,7 +166,7 @@ customInputButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
 -- Character order settings button
 local settingsButton = CreateFrame("Button", nil, mainFrame)
 settingsButton:SetSize(27, 32)
-settingsButton:SetPoint("TOPLEFT", customInputButton, "TOPRIGHT", 15, 0)
+settingsButton:SetPoint("TOPLEFT", customInputButton, "TOPRIGHT", 14, 0)
 settingsButton:SetNormalTexture("Interface\\FriendsFrame\\UI-Toast-ChatInviteIcon")
 settingsButton:SetPushedTexture("Interface\\FriendsFrame\\UI-Toast-ChatInviteIcon")
 settingsButton:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
@@ -187,7 +189,7 @@ settingsButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
 -- Paging arrows
 local leftArrow = CreateFrame("Button", nil, mainFrame)
 leftArrow:SetSize(35, 50)
-leftArrow:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 171, -23)
+leftArrow:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 163, -23)
 leftArrow:SetNormalTexture("Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up")
 leftArrow:SetPushedTexture("Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Down")
 leftArrow:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
@@ -219,11 +221,15 @@ rightArrow:SetScript("OnEnter", function(self)
 end)
 rightArrow:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+-- Store buttons in LMAHI namespace
+LMAHI.leftArrow = leftArrow
+LMAHI.rightArrow = rightArrow
+
 -- Character Paged frame
 
 charFrame = CreateFrame("Frame", "LMAHI_CharFrame", mainFrame, "BackdropTemplate")
-charFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 204, -28)
-charFrame:SetSize(969, 40)
+charFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 195, -28)
+charFrame:SetSize(980, 40)
 charFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 5)
 charFrame:SetBackdrop({
     bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -398,7 +404,7 @@ nameLabel:Show()
 local nameInput = CreateFrame("EditBox", nil, customInputContent, "InputBoxTemplate")
 nameInput:SetSize(180, 20)
 nameInput:SetPoint("TOPLEFT", customInputContent, "TOPLEFT", 20, -29)
-nameInput:SetMaxLetters(26)
+nameInput:SetMaxLetters(30)
 nameInput:SetAutoFocus(false)
 nameInput:Show()
 
@@ -858,50 +864,63 @@ LMAHI.UpdateSettingsDisplay = function()
         table.insert(removeButtons, removeButton)
         removeButton:Show()
 
-        removeButton:SetScript("OnClick", function(self)
-            local dialogKey = "LMAHI_CONFIRM_REMOVE_CHAR_" .. self.charName
-            StaticPopupDialogs[dialogKey] = {
-                text = "Do you REALLY want to remove " .. self.charName .. " from the character list?",
-                button1 = "Yes",
-                button2 = "No",
-                OnAccept = function()
-                    LMAHI_SavedData.characters[self.charName] = nil
-                    LMAHI_SavedData.lockouts[self.charName] = nil
-                    LMAHI_SavedData.classColors[self.charName] = nil
-                    LMAHI_SavedData.factions[self.charName] = nil
-                    LMAHI_SavedData.charOrder[self.charName] = nil
+removeButton:SetScript("OnClick", function(self)
+    local dialogKey = "LMAHI_CONFIRM_REMOVE_CHAR_" .. self.charName
 
-                    -- Normalize charOrder to remove gaps
-                    local newCharList = {}
-                    for char in pairs(LMAHI_SavedData.characters or {}) do
-                        table.insert(newCharList, char)
-                    end
-                    table.sort(newCharList, function(a, b)
-                        local aIndex = LMAHI_SavedData.charOrder[a] or 999
-                        local bIndex = LMAHI_SavedData.charOrder[b] or 1000
-                        return aIndex == bIndex and a < b or aIndex < bIndex
-                    end)
-                    local newCharOrder = {}
-                    for i, char in ipairs(newCharList) do
-                        newCharOrder[char] = i
-                    end
-                    LMAHI_SavedData.charOrder = newCharOrder
+    -- Add color formatting for name and realm
+    local name, realm = strsplit("-", self.charName or "Unknown-Unknown")
+    local classColor = LMAHI_SavedData.classColors[self.charName] or { r = 1, g = 1, b = 1 }
+    local factionColor = LMAHI.FACTION_COLORS[LMAHI_SavedData.factions[self.charName] or "Neutral"] or { r = 0.8, g = 0.8, b = 0.8 }
 
-                    LMAHI.UpdateSettingsDisplay()
-                    ThrottledUpdateDisplay()
-                end,
-                timeout = 0,
-                whileDead = true,
-                hideOnEscape = true,
-            }
+    local nameHex = string.format("%02x%02x%02x", classColor.r * 255, classColor.g * 255, classColor.b * 255)
+    local realmHex = string.format("%02x%02x%02x", factionColor.r * 255, factionColor.g * 255, factionColor.b * 255)
 
-            local popup = StaticPopup_Show(dialogKey)
-            if popup then
-                popup:ClearAllPoints()
-                popup:SetPoint("RIGHT", self, "RIGHT", 40, 55)
+    local coloredName = "|cff" .. nameHex .. name .. "|r"
+    local coloredRealm = "|cff" .. realmHex .. realm .. "|r"
+    local coloredFullName = coloredName .. "|cff999999  -  |r" .. coloredRealm
+
+    StaticPopupDialogs[dialogKey] = {
+        text = "Do you REALLY want to remove\n" .. coloredFullName .. "\nfrom the character list?",
+        button1 = "Yes",
+        button2 = "No",
+        OnAccept = function()
+            LMAHI_SavedData.characters[self.charName] = nil
+            LMAHI_SavedData.lockouts[self.charName] = nil
+            LMAHI_SavedData.classColors[self.charName] = nil
+            LMAHI_SavedData.factions[self.charName] = nil
+            LMAHI_SavedData.charOrder[self.charName] = nil
+
+            -- Normalize charOrder to remove gaps
+            local newCharList = {}
+            for char in pairs(LMAHI_SavedData.characters or {}) do
+                table.insert(newCharList, char)
             end
-        end)
+            table.sort(newCharList, function(a, b)
+                local aIndex = LMAHI_SavedData.charOrder[a] or 999
+                local bIndex = LMAHI_SavedData.charOrder[b] or 1000
+                return aIndex == bIndex and a < b or aIndex < bIndex
+            end)
+            local newCharOrder = {}
+            for i, char in ipairs(newCharList) do
+                newCharOrder[char] = i
+            end
+            LMAHI_SavedData.charOrder = newCharOrder
+
+            LMAHI.UpdateSettingsDisplay()
+            ThrottledUpdateDisplay()
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+    }
+
+    local popup = StaticPopup_Show(dialogKey)
+    if popup then
+        popup:ClearAllPoints()
+        popup:SetPoint("RIGHT", self, "RIGHT", 40, 55)
     end
+  end)
+ end
 end
 
 -- SavedVariables structure
@@ -1114,6 +1133,8 @@ mainFrame:SetScript("OnEvent", function(self, event, arg1)
             LMAHI.CheckLockouts()
         end
         mainFrame:Hide()
+
+        Utilities.StartGarbageCollector() -- 🔧 Add the garbage collector here, after setup
     elseif event == "PLAYER_LOGOUT" then
         if LMAHI.SaveCharacterData then
             LMAHI.SaveCharacterData()
@@ -1130,6 +1151,7 @@ mainFrame:SetScript("OnEvent", function(self, event, arg1)
         end
     end
 end)
+
 
 -- Slash commands
 
