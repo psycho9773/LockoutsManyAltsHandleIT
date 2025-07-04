@@ -282,7 +282,8 @@ end
 
 Utilities = Utilities or {}
 
--- Run garbage collection after 10s, then every 60s
+-- Run garbage collection after 10s, then every 300s
+
 Utilities.StartGarbageCollector = function(initialDelay, repeatInterval)
     initialDelay = initialDelay or 10       -- seconds before first run
     repeatInterval = repeatInterval or 300   -- seconds between runs
@@ -303,4 +304,30 @@ Utilities.StartGarbageCollector = function(initialDelay, repeatInterval)
             elapsed = 0
         end
     end)
+end
+
+
+-- Slash commands
+
+SLASH_LMAHI1 = "/lmahi"
+SlashCmdList["LMAHI"] = function()
+    mainFrame:SetShown(not mainFrame:IsShown())
+    if mainFrame:IsShown() then
+        if LMAHI.SaveCharacterData then
+            LMAHI.SaveCharacterData()
+        end
+        if LMAHI.CheckLockouts then
+            LMAHI.CheckLockouts()
+        end
+        ThrottledUpdateDisplay()
+    end
+end
+
+
+SLASH_LMAHIMEM1 = "/lmahimem"
+SlashCmdList["LMAHIMEM"] = function()
+    UpdateAddOnMemoryUsage()
+    local memKB = GetAddOnMemoryUsage("LockoutsManyAltsHandleIT")
+    local memMB = memKB / 1024
+    print(string.format("LockoutsManyAltsHandleIT Memory Usage: %.2f MB", memMB))
 end
