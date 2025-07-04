@@ -156,14 +156,16 @@ function LMAHI.CheckLockouts(event, arg1)
     -- Check quest lockouts
     for _, lockout in ipairs(LMAHI.lockoutData.quests) do
         local lockoutId = tostring(lockout.id)
-        local isLocked = IsQuestFlaggedCompleted(lockout.id)
+        local isLocked = C_QuestLog.IsQuestFlaggedCompleted(lockout.id)
+
         LMAHI_SavedData.lockouts[charName][lockoutId] = isLocked
     end
 
     -- Check rare lockouts
     for _, lockout in ipairs(LMAHI.lockoutData.rares) do
         local lockoutId = tostring(lockout.id)
-        local isLocked = IsQuestFlaggedCompleted(lockout.id)
+        local isLocked = C_QuestLog.IsQuestFlaggedCompleted(lockout.id)
+
         LMAHI_SavedData.lockouts[charName][lockoutId] = isLocked
     end
 
@@ -178,7 +180,8 @@ function LMAHI.CheckLockouts(event, arg1)
     -- Check custom lockouts (only for current character)
     for _, lockout in ipairs(LMAHI.lockoutData.custom) do
         local lockoutId = tostring(lockout.id)
-        local isLocked = IsQuestFlaggedCompleted(lockout.id)
+        local isLocked = C_QuestLog.IsQuestFlaggedCompleted(lockout.id)
+
         LMAHI_SavedData.lockouts[charName][lockoutId] = isLocked
     end
 end
