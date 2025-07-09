@@ -1,4 +1,4 @@
--- Core.lua
+--- Core.lua
 
 -- Keep ALL HEADERS HEX and everything else r, g, b for colors of text
 
@@ -1181,6 +1181,7 @@ LMAHI.sectionHeaders = sectionHeaders
 LMAHI.lockoutLabels = lockoutLabels
 LMAHI.collapseButtons = collapseButtons
 
+--[[
 -- Memory Usage Tracker (always visible)
 
 local memFrame = CreateFrame("Frame", "LMAHIMemoryFrame", UIParent)
@@ -1239,18 +1240,26 @@ C_Timer.NewTicker(1, function()
     cpuFrame.text:SetText(string.format("LMAHI CPU: %.2f ms/s (%.1f%%)", delta, percent))
 end)
 
+]]    -- BLOCKED OFF TO STOP RUNNING
+
 -- Main frame hookup
 LMAHI.mainFrame = mainFrame
 
 -- Sleep state tracking
-_G.LMAHI_Sleeping = true
-
 function LMAHI_Enable()
     if LMAHI.mainFrame then
         LMAHI.mainFrame:Show()
     end
     _G.LMAHI_Sleeping = false
-    print(" LMAHI activated")
+    print("LMAHI activated")
+    LMAHI:ResetCaches() -- Reset caches to prevent stale data
+    if LMAHI.SaveCharacterData then
+        LMAHI.SaveCharacterData()
+    end
+    if LMAHI.CheckLockouts then
+        LMAHI.CheckLockouts()
+    end
+    LMAHI.UpdateDisplay() -- Force immediate update
 end
 
 function LMAHI_Disable()
