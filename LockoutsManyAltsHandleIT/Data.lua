@@ -1,4 +1,4 @@
--- Data.lua
+--- Data.lua
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -63,6 +63,7 @@ LMAHI.InitializeData = function()
         { id = 90489, name = "Giovante", reset = "weekly" },
         { id = 90490, name = "Voltstrike the Charged", reset = "weekly" },
         { id = 90492, name = "Darkfuse Precipitant", reset = "weekly" },
+        { id = 87007, name = "Gallagio Garbage", reset = "daily" },
         { id = 84927, name = "Candy Stickemup", reset = "daily" },
         { id = 84928, name = "Grimewick", reset = "daily" },
         { id = 84919, name = "Tally Doublespeak", reset = "daily" },
