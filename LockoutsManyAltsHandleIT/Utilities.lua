@@ -84,7 +84,7 @@ LMAHI.CheckLockouts = function(event, questId)
         end
     end
     
-
+--[[
     -- Check world bosses
 
     local numWorldBosses = GetNumSavedWorldBosses()
@@ -95,6 +95,9 @@ LMAHI.CheckLockouts = function(event, questId)
             LMAHI_SavedData.lockouts[charName][lockoutId] = true
         end
     end
+
+]]    -- Blocked for later implementation some where maybe added to top of rare section
+
     
     -- Check both quests and rares for completions
 
