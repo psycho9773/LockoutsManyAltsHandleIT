@@ -438,13 +438,16 @@ end
                                 indicator:SetScript("OnLeave", function()
                                     GameTooltip:Hide()
                                 end)
-                                indicator:SetScript("OnClick", function()
+                    
+                              -- BUTTON PRESS TEST FOR RESET CHECKING
+
+                              indicator:SetScript("OnClick", function()
                                     LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
-                                    LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = not isLocked
-                                    LMAHI.UpdateDisplay()
-                                end)
+                                    LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = not isLocked 
+                                    LMAHI.UpdateDisplay()  
+                                end)    
                                 table.insert(LMAHI.lockoutLabels, indicator)
-                            end
+                            end   
                             offsetY = offsetY - 18
                         end
                     end
