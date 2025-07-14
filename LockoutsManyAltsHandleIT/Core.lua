@@ -1,4 +1,4 @@
---- Core.lua
+-- Core.lua
 
 -- Keep ALL HEADERS HEX and everything else r, g, b for colors of text
 
@@ -550,7 +550,7 @@ tipLabel:SetPoint("TOPLEFT", customInputContent, "TOPLEFT", 35, -55)
 tipLabel:SetTextColor(0.9, 0.9, 0.9, 0.9)
 tipLabel:SetSpacing(3)
 local lines = {
-    "Type in the Name and ID. (quest,rare etc.) , select a reset type",
+    "Type in the Name (quest,rare etc.) and ID., select a reset type",
     "and then press the Add Custom Lockout button below.",
     "Reorganize the Custom Lockout order by typing a number",
     "in the edit box below and then press Enter.",
