@@ -49,20 +49,21 @@ LMAHI.InitializeData = function()
         { id = 86775, name = "Urge to Surge", reset = "weekly" },
         { id = 85879, name = "Reduce, Reuse, Resell", reset = "weekly" },
         { id = 85869, name = "Many Jobs, Handle It!", reset = "weekly" },
+        { id = 85088, name = "The Main Event - The Gobfather", reset = "weekly" },
     }
 
     -- Rares
     LMAHI.lockoutData.rares = {
-        { id = 84877, name = "Ephemeral Agent Lathyd", reset = "weekly" },
-        { id = 84895, name = "Slugger the Smart", reset = "weekly" },
-        { id = 84907, name = "Chief Foreman Gutso", reset = "weekly" },
-        { id = 90491, name = "Scrapchewer", reset = "weekly" },
-        { id = 84884, name = "The Junk-Wall", reset = "weekly" },
-        { id = 84911, name = "Flyboy Snooty", reset = "weekly" },
         { id = 90488, name = "M.A.G.N.O.", reset = "weekly" },
         { id = 90489, name = "Giovante", reset = "weekly" },
         { id = 90490, name = "Voltstrike the Charged", reset = "weekly" },
+        { id = 90491, name = "Scrapchewer", reset = "weekly" },
         { id = 90492, name = "Darkfuse Precipitant", reset = "weekly" },
+        { id = 84877, name = "Ephemeral Agent Lathyd", reset = "weekly" },
+        { id = 84895, name = "Slugger the Smart", reset = "weekly" },
+        { id = 84907, name = "Chief Foreman Gutso", reset = "weekly" },
+        { id = 84884, name = "The Junk-Wall", reset = "weekly" },
+        { id = 84911, name = "Flyboy Snooty", reset = "weekly" },
         { id = 87007, name = "Gallagio Garbage", reset = "daily" },
         { id = 84927, name = "Candy Stickemup", reset = "daily" },
         { id = 84928, name = "Grimewick", reset = "daily" },
