@@ -1,4 +1,4 @@
---- Display.lua
+-- Display.lua
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -312,153 +312,202 @@ end
     LMAHI.highlightFrame:SetBackdropColor(0, 0, 0, 0)
 
     -- Lockout sections
-    local offsetY = -30
-    local headerCount = 0
-    for _, header in pairs(LMAHI.cachedSectionHeaders) do
-        if header:IsObjectType("FontString") then
-            header:Hide()
-            header:ClearAllPoints()
-            header:SetText("")
-        end
+
+-- Lockout sections
+
+local offsetY = -30
+local headerCount = 0
+
+-- Helper function to check if an element is within the visible scroll frame area
+local function IsElementInView(element, scrollFrame)
+    if not element:IsVisible() then return false end
+    local elementTop = element:GetTop()
+    local elementBottom = element:GetBottom()
+    local scrollFrameTop = scrollFrame:GetTop() + 5
+    local scrollFrameBottom = scrollFrame:GetBottom() - 5
+    return elementBottom and elementTop and scrollFrameBottom and scrollFrameTop and
+           elementBottom >= scrollFrameBottom and elementTop <= scrollFrameTop
+end
+
+for _, header in pairs(LMAHI.cachedSectionHeaders) do
+    if header:IsObjectType("FontString") then
+        header:Hide()
+        header:ClearAllPoints()
+        header:SetText("")
     end
-    LMAHI.cachedSectionHeaders = {}
+end
+LMAHI.cachedSectionHeaders = {}
 
-    if not LMAHI.lockoutTypes or #LMAHI.lockoutTypes == 0 then
-        local noTypesLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-        noTypesLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 10, offsetY)
-        noTypesLabel:SetText("No lockout types defined.")
-        noTypesLabel:SetTextColor(1, 1, 1, 1) -- White for no types message
-        noTypesLabel:Show()
-        table.insert(LMAHI.lockoutLabels, noTypesLabel)
-        offsetY = offsetY - 20
-        headerCount = 1
-    else
-        for lockoutTypeIndex, lockoutType in ipairs(LMAHI.lockoutTypes) do
-            if not lockoutType then
-                break
-            end
-            local isCollapsed = LMAHI_SavedData.collapsedSections[lockoutType]
-            local collapseButton = AcquireButton(LMAHI.lockoutContent)
-            collapseButton:SetSize(20, 20)
-            collapseButton:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 5, offsetY)
-            collapseButton:SetNormalTexture(isCollapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
-            collapseButton:Show()
+if not LMAHI.lockoutTypes or #LMAHI.lockoutTypes == 0 then
+    local noTypesLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    noTypesLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 10, offsetY)
+    noTypesLabel:SetText("No lockout types defined.")
+    noTypesLabel:SetTextColor(1, 1, 1, 1)
+    noTypesLabel:Show()
+    table.insert(LMAHI.lockoutLabels, noTypesLabel)
+    offsetY = offsetY - 20
+    headerCount = 1
+else
+    for lockoutTypeIndex, lockoutType in ipairs(LMAHI.lockoutTypes) do
+        if not lockoutType then break end
 
-            collapseButton:SetScript("OnEnter", function(self)
-                local collapsedNow = LMAHI_SavedData.collapsedSections[lockoutType]
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT", -35, 5)
-                GameTooltip:SetText(collapsedNow and "Expand" or "Collapse", 0.9, 0.7, 0.1)
-                GameTooltip:Show()
-            end)
-            collapseButton:SetScript("OnLeave", function()
-                GameTooltip:Hide()
-            end)
-            collapseButton:SetScript("OnClick", function()
-                LMAHI_SavedData.collapsedSections[lockoutType] = not LMAHI_SavedData.collapsedSections[lockoutType]
-                LMAHI.UpdateDisplay()
-            end)
-            table.insert(LMAHI.collapseButtons, collapseButton)
+        local isCollapsed = LMAHI_SavedData.collapsedSections[lockoutType]
 
-            local sectionHeader = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
-            sectionHeader:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 27, offsetY - 1)
-            sectionHeader:SetText(lockoutType:gsub("^%l", string.upper))
-            sectionHeader:SetTextColor(1, 1, 1, 1) -- White for section headers
-            sectionHeader:Show()
-            table.insert(LMAHI.lockoutLabels, sectionHeader)
-            LMAHI.cachedSectionHeaders[lockoutType] = sectionHeader
-            headerCount = headerCount + 1
+        local collapseButton = AcquireButton(LMAHI.lockoutContent)
+        collapseButton:SetSize(20, 20)
+        collapseButton:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 5, offsetY)
+        collapseButton:SetNormalTexture(isCollapsed and "Interface\\Buttons\\UI-PlusButton-Up"
+                                        or "Interface\\Buttons\\UI-MinusButton-Up")
+        collapseButton:Show()
 
-            offsetY = offsetY - 15
+        collapseButton:SetScript("OnEnter", function(self)
+            if not IsElementInView(self, LMAHI.lockoutScrollFrame) then return end
+            local collapsedNow = LMAHI_SavedData.collapsedSections[lockoutType]
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT", -35, 5)
+            GameTooltip:SetText(collapsedNow and "Expand" or "Collapse", 0.9, 0.7, 0.1)
+            GameTooltip:Show()
+        end)
+        collapseButton:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+        collapseButton:SetScript("OnClick", function()
+            LMAHI_SavedData.collapsedSections[lockoutType] = not LMAHI_SavedData.collapsedSections[lockoutType]
+            LMAHI.UpdateDisplay()
+        end)
 
-            if not isCollapsed then
-                local lockouts = LMAHI.lockoutData[lockoutType] or {}
-                if lockoutType == "custom" then
-                    local sortedLockouts = {}
-                    for _, lockout in ipairs(lockouts) do
-                        table.insert(sortedLockouts, lockout)
-                    end
-                    table.sort(sortedLockouts, function(a, b)
-                        local aIndex = LMAHI_SavedData.customLockoutOrder[tostring(a.id)] or 999
-                        local bIndex = LMAHI_SavedData.customLockoutOrder[tostring(b.id)] or 1000
-                        return aIndex < bIndex or (aIndex == bIndex and a.id < b.id)
-                    end)
-                    lockouts = sortedLockouts
+        table.insert(LMAHI.collapseButtons, collapseButton)
+
+        local sectionHeader = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
+        sectionHeader:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 27, offsetY - 1)
+        sectionHeader:SetText(lockoutType:gsub("^%l", string.upper))
+        sectionHeader:SetTextColor(1, 1, 1, 1)
+        sectionHeader:Show()
+        table.insert(LMAHI.lockoutLabels, sectionHeader)
+        LMAHI.cachedSectionHeaders[lockoutType] = sectionHeader
+
+        headerCount = headerCount + 1
+        offsetY = offsetY - 15
+        if not isCollapsed then
+            local lockouts = LMAHI.lockoutData[lockoutType] or {}
+
+            if lockoutType == "custom" then
+                local sortedLockouts = {}
+                for _, lockout in ipairs(lockouts) do
+                    table.insert(sortedLockouts, lockout)
                 end
-                if #lockouts == 0 then
-                    local noLockoutLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-                    noLockoutLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 15, offsetY)
-                    noLockoutLabel:SetText("No " .. lockoutType .. " found")
-                    noLockoutLabel:SetTextColor(1, 1, 1, 1) -- White for no lockouts message
-                    noLockoutLabel:Show()
-                    table.insert(LMAHI.lockoutLabels, noLockoutLabel)
-                    offsetY = offsetY - 14
-                else
-                    offsetY = offsetY - 10
-                    for lockoutIndex, lockout in ipairs(lockouts) do
-                        if lockout.name and lockout.id and lockout.id > 0 then
-                            local lockoutLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-                            lockoutLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 15, offsetY)
-                            lockoutLabel:SetText(lockout.name)
-                            lockoutLabel:SetTextColor(0.9, 0.7, 0.1) -- Gold for all lockout ID names
-                            lockoutLabel:Show()
-                            table.insert(LMAHI.lockoutLabels, lockoutLabel)
+                table.sort(sortedLockouts, function(a, b)
+                    local aIndex = LMAHI_SavedData.customLockoutOrder[tostring(a.id)] or 999
+                    local bIndex = LMAHI_SavedData.customLockoutOrder[tostring(b.id)] or 1000
+                    return aIndex < bIndex or (aIndex == bIndex and a.id < b.id)
+                end)
+                lockouts = sortedLockouts
+            end
 
-                            local hoverRegion = AcquireHoverRegion(LMAHI.lockoutContent)
-                            hoverRegion:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 0, offsetY)
-                            hoverRegion:SetSize(1155, 10)
-                            hoverRegion:SetFrameLevel(LMAHI.lockoutContent:GetFrameLevel() - 1)
-                            hoverRegion:EnableMouse(true)
-                            hoverRegion:Show()
-                            hoverRegion:SetScript("OnEnter", function(self)
-                                LMAHI.highlightFrame:ClearAllPoints()
-                                LMAHI.highlightFrame:SetPoint("TOPLEFT", self, "TOPLEFT", 8, 0)
-                                LMAHI.highlightFrame:SetSize(1155, 10)
-                                LMAHI.highlightFrame:SetBackdropColor(0.3, 0.3, 0.3, .3)
-                                LMAHI.highlightFrame:Show()
+            if #lockouts == 0 then
+                local noLockoutLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+                noLockoutLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 15, offsetY)
+                noLockoutLabel:SetText("No " .. lockoutType .. " found")
+                noLockoutLabel:SetTextColor(1, 1, 1, 1)
+                noLockoutLabel:Show()
+                table.insert(LMAHI.lockoutLabels, noLockoutLabel)
+                offsetY = offsetY - 14
+            else
+                offsetY = offsetY - 10
+                for lockoutIndex, lockout in ipairs(lockouts) do
+                    if lockout.name and lockout.id and lockout.id > 0 then
+                        local lockoutLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+                        lockoutLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 15, offsetY)
+                        lockoutLabel:SetWidth(145)
+                        lockoutLabel:SetText(lockout.name)
+                        lockoutLabel:SetTextColor(0.9, 0.7, 0.1)
+                        lockoutLabel:SetWordWrap(false)
+                        lockoutLabel:SetMaxLines(1)
+                        lockoutLabel:SetJustifyH("LEFT")
+                        lockoutLabel:Show()
+
+                        lockoutLabel:SetScript("OnEnter", function()
+                            if not IsElementInView(lockoutLabel, LMAHI.lockoutScrollFrame) then return end
+                            GameTooltip:SetOwner(lockoutLabel, "ANCHOR_TOPLEFT", -5, -24)
+                            GameTooltip:SetText(lockout.name)
+                            GameTooltip:Show()
+                        end)
+
+                        lockoutLabel:SetScript("OnLeave", function()
+                            GameTooltip:Hide()
+                        end)
+
+                        table.insert(LMAHI.lockoutLabels, lockoutLabel)
+
+                        local hoverRegion = AcquireHoverRegion(LMAHI.lockoutContent)
+                        hoverRegion:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 0, offsetY)
+                        hoverRegion:SetSize(1155, 10)
+                        hoverRegion:SetFrameLevel(LMAHI.lockoutContent:GetFrameLevel() - 1)
+                        hoverRegion:EnableMouse(true)
+                        hoverRegion:Show()
+                        hoverRegion:SetScript("OnEnter", function(self)
+                            if not IsElementInView(self, LMAHI.lockoutScrollFrame) then return end
+                            LMAHI.highlightFrame:ClearAllPoints()
+                            LMAHI.highlightFrame:SetPoint("TOPLEFT", self, "TOPLEFT", 8, 0)
+                            LMAHI.highlightFrame:SetSize(1155, 10)
+                            LMAHI.highlightFrame:SetBackdropColor(0.3, 0.3, 0.3, .3)
+                            LMAHI.highlightFrame:Show()
+                        end)
+                        hoverRegion:SetScript("OnLeave", function()
+                            LMAHI.highlightFrame:Hide()
+                            LMAHI.highlightFrame:SetBackdropColor(0, 0, 0, 0)
+                        end)
+                        table.insert(LMAHI.hoverRegions, hoverRegion)
+                        for i, charName in ipairs(displayChars) do
+                            local indicator = AcquireCheckButton(LMAHI.lockoutContent)
+                            indicator:SetSize(16, 16)
+                            indicator:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT",
+                                230 + (i-1) * 96 + (94 - 16) / -6, offsetY + 2)
+
+                            local isLocked = LMAHI_SavedData.lockouts[charName]
+                                and LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] or false
+
+                            indicator:GetNormalTexture():SetVertexColor(isLocked and 0.8 or 0.2,
+                                                                       isLocked and 0.2 or 0.8,
+                                                                       0.2, 1)
+                            indicator:GetCheckedTexture():SetVertexColor(isLocked and 0.8 or 0.2,
+                                                                        isLocked and 0.2 or 0.8,
+                                                                        0.2, 1)
+                            indicator:SetChecked(isLocked)
+
+                            indicator:SetScript("OnEnter", function()
+                                if not IsElementInView(indicator, LMAHI.lockoutScrollFrame) then return end
+                                GameTooltip:SetOwner(indicator, "ANCHOR_TOP")
+                                GameTooltip:AddLine(isLocked and "Locked" or "Available",
+                                                    isLocked and 1 or 0,
+                                                    isLocked and 0 or 1,
+                                                    0)
+                                GameTooltip:Show()
                             end)
-                            hoverRegion:SetScript("OnLeave", function()
-                                LMAHI.highlightFrame:Hide()
-                                LMAHI.highlightFrame:SetBackdropColor(0, 0, 0, 0)
+                            indicator:SetScript("OnLeave", function()
+                                GameTooltip:Hide()
                             end)
-                            table.insert(LMAHI.hoverRegions, hoverRegion)
 
-                            for i, charName in ipairs(displayChars) do
-                                local indicator = AcquireCheckButton(LMAHI.lockoutContent)
-                                indicator:SetSize(16, 16)
-                                indicator:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 230 + (i-1) * 96 + (94 - 16) / - 6, offsetY + 2)
-                                local isLocked = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] or false
-                                indicator:GetNormalTexture():SetVertexColor(isLocked and 0.8 or 0.2, isLocked and 0.2 or 0.8, 0.2, 1)
-                                indicator:GetCheckedTexture():SetVertexColor(isLocked and 0.8 or 0.2, isLocked and 0.2 or 0.8, 0.2, 1)
-                                indicator:SetChecked(isLocked)
-                                indicator:SetScript("OnEnter", function()
-                                    GameTooltip:SetOwner(indicator, "ANCHOR_TOP")
-                                    GameTooltip:AddLine(isLocked and "Locked" or "Available", isLocked and 1 or 0, isLocked and 0 or 1, 0)
-                                    GameTooltip:Show()
-                                end)
-                                indicator:SetScript("OnLeave", function()
-                                    GameTooltip:Hide()
-                                end)
-                    
-                              -- BUTTON PRESS TEST FOR RESET CHECKING
+                            indicator:SetScript("OnClick", function()
+                                LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
+                                LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = not isLocked
+                                LMAHI.UpdateDisplay()
+                            end)
 
-                              indicator:SetScript("OnClick", function()
-                                    LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
-                                    LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = not isLocked 
-                                    LMAHI.UpdateDisplay()  
-                                end)    
-                                table.insert(LMAHI.lockoutLabels, indicator)
-                            end   
-                            offsetY = offsetY - 18
+                            table.insert(LMAHI.lockoutLabels, indicator)
                         end
+
+                        offsetY = offsetY - 18
                     end
                 end
             end
-            offsetY = offsetY - 10
         end
+        offsetY = offsetY - 10
     end
+end
 
-    LMAHI.lockoutContent:SetHeight(math.abs(offsetY) + 20)
-    LMAHI.lockoutScrollFrame:UpdateScrollChildRect()
+LMAHI.lockoutContent:SetHeight(math.abs(offsetY) + 20)
+LMAHI.lockoutScrollFrame:UpdateScrollChildRect()
+
 
     -- Update paging button states
     UpdatePagingButtons()
