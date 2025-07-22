@@ -1,4 +1,4 @@
---- Data.lua
+-- Data.lua
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -100,36 +100,21 @@ function LMAHI.SaveCharacterData()
     local _, class = UnitClass("player")
     local _, _, _, r, g, b = GetClassColor(class)
     LMAHI_SavedData.classColors[charName] = { r = r, g = g, b = b }
-    local faction = UnitFactionGroup("player")
+    local faction = UnitFactionGroup("player") or "Neutral"
     LMAHI_SavedData.factions[charName] = faction
-
-    -- Initialize lockouts for this character
-    for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
-        for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
-            local lockoutId = tostring(lockout.id)
-            if not LMAHI_SavedData.lockouts[charName][lockoutId] then
-                LMAHI_SavedData.lockouts[charName][lockoutId] = false
-            end
-        end
-    end
-
-    -- Ensure all characters have lockout entries for all lockouts
-    for charName, _ in pairs(LMAHI_SavedData.characters) do
-        LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
-        for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
-            for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
-                local lockoutId = tostring(lockout.id)
-                if not LMAHI_SavedData.lockouts[charName][lockoutId] then
-                    LMAHI_SavedData.lockouts[charName][lockoutId] = false
-                end
-            end
-        end
-    end
 end
 
 function LMAHI.CheckLockouts(event, arg1)
     local charName = UnitName("player") .. "-" .. GetRealmName()
     LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
+
+    -- Clear existing lockouts for the specified types to ensure only active lockouts are stored
+    for _, lockoutType in ipairs({"custom", "raids", "dungeons", "quests", "rares", "currencies"}) do
+        for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
+            local lockoutId = tostring(lockout.id)
+            LMAHI_SavedData.lockouts[charName][lockoutId] = nil
+        end
+    end
 
     -- Check raid lockouts
     for i = 1, GetNumSavedInstances() do
@@ -158,33 +143,34 @@ function LMAHI.CheckLockouts(event, arg1)
     -- Check quest lockouts
     for _, lockout in ipairs(LMAHI.lockoutData.quests) do
         local lockoutId = tostring(lockout.id)
-        local isLocked = C_QuestLog.IsQuestFlaggedCompleted(lockout.id)
-
-        LMAHI_SavedData.lockouts[charName][lockoutId] = isLocked
+        if C_QuestLog.IsQuestFlaggedCompleted(lockout.id) then
+            LMAHI_SavedData.lockouts[charName][lockoutId] = true
+        end
     end
 
     -- Check rare lockouts
     for _, lockout in ipairs(LMAHI.lockoutData.rares) do
         local lockoutId = tostring(lockout.id)
-        local isLocked = C_QuestLog.IsQuestFlaggedCompleted(lockout.id)
-
-        LMAHI_SavedData.lockouts[charName][lockoutId] = isLocked
+        if C_QuestLog.IsQuestFlaggedCompleted(lockout.id) then
+            LMAHI_SavedData.lockouts[charName][lockoutId] = true
+        end
     end
 
     -- Check currency lockouts
     for _, lockout in ipairs(LMAHI.lockoutData.currencies) do
         local lockoutId = tostring(lockout.id)
         local _, currentAmount = C_CurrencyInfo.GetCurrencyInfo(lockout.id)
-        local isLocked = currentAmount and currentAmount >= (lockout.max or math.huge)
-        LMAHI_SavedData.lockouts[charName][lockoutId] = isLocked
+        if currentAmount and currentAmount >= (lockout.max or math.huge) then
+            LMAHI_SavedData.lockouts[charName][lockoutId] = true
+        end
     end
 
-    -- Check custom lockouts (only for current character)
+    -- Check custom lockouts
     for _, lockout in ipairs(LMAHI.lockoutData.custom) do
         local lockoutId = tostring(lockout.id)
-        local isLocked = C_QuestLog.IsQuestFlaggedCompleted(lockout.id)
-
-        LMAHI_SavedData.lockouts[charName][lockoutId] = isLocked
+        if C_QuestLog.IsQuestFlaggedCompleted(lockout.id) then
+            LMAHI_SavedData.lockouts[charName][lockoutId] = true
+        end
     end
 end
 
@@ -192,14 +178,6 @@ function LMAHI.InitializeLockouts()
     LMAHI.lockoutData.custom = LMAHI_SavedData.customLockouts or {}
     for charName, _ in pairs(LMAHI_SavedData.characters or {}) do
         LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
-        for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
-            for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
-                local lockoutId = tostring(lockout.id)
-                if not LMAHI_SavedData.lockouts[charName][lockoutId] then
-                    LMAHI_SavedData.lockouts[charName][lockoutId] = false
-                end
-            end
-        end
     end
 end
 
@@ -231,10 +209,10 @@ function LMAHI.CheckResetTimers()
     if weeklyReset <= 0 then
         LMAHI_SavedData.lastWeeklyReset = currentTime + weeklyReset
         for charName, lockouts in pairs(LMAHI_SavedData.lockouts) do
-            for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
+            for _, lockoutType in ipairs({"custom", "raids", "dungeons", "quests", "rares", "currencies"}) do
                 for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
                     if lockout.reset == "weekly" then
-                        lockouts[tostring(lockout.id)] = false
+                        lockouts[tostring(lockout.id)] = nil
                     end
                 end
             end
@@ -244,10 +222,10 @@ function LMAHI.CheckResetTimers()
     if dailyReset <= 0 then
         LMAHI_SavedData.lastDailyReset = currentTime + dailyReset
         for charName, lockouts in pairs(LMAHI_SavedData.lockouts) do
-            for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
+            for _, lockoutType in ipairs({"custom", "dungeons", "rares"}) do
                 for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
                     if lockout.reset == "daily" then
-                        lockouts[tostring(lockout.id)] = false
+                        lockouts[tostring(lockout.id)] = nil
                     end
                 end
             end
