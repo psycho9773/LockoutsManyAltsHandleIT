@@ -1,4 +1,4 @@
---- Utilities.lua
+---- Utilities.lua
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -14,7 +14,6 @@ LMAHI.SaveCharacterData = function()
     LMAHI_SavedData.lockouts = LMAHI_SavedData.lockouts or {}
     LMAHI_SavedData.classColors = LMAHI_SavedData.classColors or {}
     LMAHI_SavedData.factions = LMAHI_SavedData.factions or {}
-    LMAHI_SavedData.factionColors = LMAHI_SavedData.factionColors or {}
     LMAHI_SavedData.charOrder = LMAHI_SavedData.charOrder or {}
     
     LMAHI_SavedData.characters[charName] = true
@@ -22,19 +21,10 @@ LMAHI.SaveCharacterData = function()
     LMAHI_SavedData.factions[charName] = playerFaction
     
     -- Store class colors
-
     local classColor = RAID_CLASS_COLORS[class] or { r = 1, g = 1, b = 1 }
     LMAHI_SavedData.classColors[charName] = { r = classColor.r, g = classColor.g, b = classColor.b }
     
-    -- Store faction colors
-
-    local factionColor = playerFaction == "Horde" and { r = 0.95, g = 0.2, b = 0.2 }
-        or playerFaction == "Alliance" and { r = 0.2, g = 0.4, b = 1.0 }
-        or { r = 0.8, g = 0.8, b = 0.8 }
-    LMAHI_SavedData.factionColors[charName] = { r = factionColor.r, g = factionColor.g, b = factionColor.b }
-    
     -- Assign or update character order
-
     if not LMAHI_SavedData.charOrder[charName] then
         local maxOrder = 0
         for _, order in pairs(LMAHI_SavedData.charOrder) do
@@ -43,30 +33,27 @@ LMAHI.SaveCharacterData = function()
         LMAHI_SavedData.charOrder[charName] = maxOrder + 1
         print("LMAHI Debug: Registered character " .. charName .. " with order " .. (maxOrder + 1))
     end
-    
-    -- Initialize lockouts for this character
-
-    for _, lockoutType in ipairs(LMAHI.lockoutTypes or {}) do
-        for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
-            local lockoutId = tostring(lockout.id)
-            LMAHI_SavedData.lockouts[charName][lockoutId] = LMAHI_SavedData.lockouts[charName][lockoutId] or false
-        end
-    end
 end
 
 LMAHI.CheckLockouts = function(event, questId)
     local charName = UnitName("player") .. "-" .. GetRealmName()
     LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
+
+    -- Clear existing lockouts for the specified types
+    for _, lockoutType in ipairs({"custom", "raids", "dungeons", "quests", "rares", "currencies"}) do
+        for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
+            local lockoutId = tostring(lockout.id)
+            LMAHI_SavedData.lockouts[charName][lockoutId] = nil
+        end
+    end
     
     -- Handle QUEST_TURNED_IN for both quests and rares
-
     if event == "QUEST_TURNED_IN" and questId then
         for _, lockoutType in ipairs({"quests", "rares"}) do
             for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
                 if lockout.id and lockout.id == questId then
                     local lockoutId = tostring(questId)
                     LMAHI_SavedData.lockouts[charName][lockoutId] = true
-                 
                     break
                 end
             end
@@ -74,33 +61,26 @@ LMAHI.CheckLockouts = function(event, questId)
     end
     
     -- Check saved instances
-
     local numSaved = GetNumSavedInstances()
     for i = 1, numSaved do
         local name, id, _, _, locked, _, _, _, _, _, encounterProgress, _ = GetSavedInstanceInfo(i)
         if locked and id then
-            local lockoutId = tostring(id)
-            LMAHI_SavedData.lockouts[charName][lockoutId] = true
+            for _, lockout in ipairs(LMAHI.lockoutData.raids) do
+                if lockout.id == id then
+                    LMAHI_SavedData.lockouts[charName][tostring(id)] = true
+                    break
+                end
+            end
+            for _, lockout in ipairs(LMAHI.lockoutData.dungeons) do
+                if lockout.id == id then
+                    LMAHI_SavedData.lockouts[charName][tostring(id)] = true
+                    break
+                end
+            end
         end
     end
-    
---[[
-    -- Check world bosses
-
-    local numWorldBosses = GetNumSavedWorldBosses()
-    for i = 1, numWorldBosses do
-        local name, id, _ = GetSavedWorldBossInfo(i)
-        if id then
-            local lockoutId = tostring(id)
-            LMAHI_SavedData.lockouts[charName][lockoutId] = true
-        end
-    end
-
-]]    -- Blocked for later implementation some where maybe added to top of rare section
-
     
     -- Check both quests and rares for completions
-
     local completedQuests = C_QuestLog.GetAllCompletedQuestIDs() or {}
     for _, qId in ipairs(completedQuests) do
         for _, lockoutType in ipairs({"quests", "rares"}) do
@@ -108,7 +88,6 @@ LMAHI.CheckLockouts = function(event, questId)
                 if lockout.id and lockout.id == qId then
                     local lockoutId = tostring(qId)
                     LMAHI_SavedData.lockouts[charName][lockoutId] = true
-                  
                     break
                 end
             end
@@ -116,7 +95,6 @@ LMAHI.CheckLockouts = function(event, questId)
     end
     
     -- Check currencies
-
     for _, currency in ipairs(LMAHI.lockoutData.currencies or {}) do
         if currency.id then
             local lockoutId = tostring(currency.id)
@@ -128,11 +106,10 @@ LMAHI.CheckLockouts = function(event, questId)
     end
     
     -- Check custom lockouts
-
     for _, lockout in ipairs(LMAHI.lockoutData.custom or {}) do
-        if lockout.id then
+        if lockout.id and C_QuestLog.IsQuestFlaggedCompleted(lockout.id) then
             local lockoutId = tostring(lockout.id)
-            LMAHI_SavedData.lockouts[charName][lockoutId] = LMAHI_SavedData.lockouts[charName][lockoutId] or false
+            LMAHI_SavedData.lockouts[charName][lockoutId] = true
         end
     end
 end
@@ -143,16 +120,6 @@ LMAHI.InitializeLockouts = function()
     
     for charName, _ in pairs(LMAHI_SavedData.characters) do
         LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
-        for _, lockoutType in ipairs(LMAHI.lockoutTypes or {}) do
-            for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
-                if lockout.id then
-                    local lockoutId = tostring(lockout.id)
-                    if LMAHI_SavedData.lockouts[charName][lockoutId] == nil then
-                        LMAHI_SavedData.lockouts[charName][lockoutId] = false
-                    end
-                end
-            end
-        end
     end
 end
 
@@ -161,13 +128,11 @@ LMAHI.CleanLockouts = function()
     LMAHI_SavedData.characters = LMAHI_SavedData.characters or {}
     
     -- Initialize lockouts for all characters
-
     for charName, _ in pairs(LMAHI_SavedData.characters) do
         LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
     end
     
     -- Clean up stale lockouts
-
     for charName, lockouts in pairs(LMAHI_SavedData.lockouts) do
         for lockoutId, _ in pairs(lockouts) do
             local isValid = false
@@ -219,25 +184,14 @@ LMAHI.CheckResetTimers = function()
     local nextWeeklyReset = currentTime + weeklyReset
     
     -- Only reset if past the recorded reset time and not already reset
-
     if LMAHI_SavedData.lastDailyReset < currentTime and LMAHI_SavedData.lastDailyReset ~= nextDailyReset then
         for charName, lockouts in pairs(LMAHI_SavedData.lockouts or {}) do
-            for _, lockout in ipairs(LMAHI.lockoutData.quests or {}) do
-                if lockout.reset == "daily" then
-                    local lockoutId = tostring(lockout.id)
-                    lockouts[lockoutId] = false
-                end
-            end
-            for _, lockout in ipairs(LMAHI.lockoutData.rares or {}) do
-                if lockout.reset == "daily" then
-                    local lockoutId = tostring(lockout.id)
-                    lockouts[lockoutId] = false
-                end
-            end
-            for _, lockout in ipairs(LMAHI.lockoutData.custom or {}) do
-                if lockout.reset == "daily" then
-                    local lockoutId = tostring(lockout.id)
-                    lockouts[lockoutId] = false
+            for _, lockoutType in ipairs({"custom", "dungeons", "rares"}) do
+                for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
+                    if lockout.reset == "daily" then
+                        local lockoutId = tostring(lockout.id)
+                        lockouts[lockoutId] = nil
+                    end
                 end
             end
         end
@@ -247,34 +201,12 @@ LMAHI.CheckResetTimers = function()
     
     if LMAHI_SavedData.lastWeeklyReset < currentTime and LMAHI_SavedData.lastWeeklyReset ~= nextWeeklyReset then
         for charName, lockouts in pairs(LMAHI_SavedData.lockouts or {}) do
-            for _, lockout in ipairs(LMAHI.lockoutData.raids or {}) do
-                local lockoutId = tostring(lockout.id)
-                lockouts[lockoutId] = false
-            end
-            for _, lockout in ipairs(LMAHI.lockoutData.worldBosses or {}) do
-                local lockoutId = tostring(lockout.id)
-                lockouts[lockoutId] = false
-            end
-            for _, lockout in ipairs(LMAHI.lockoutData.quests or {}) do
-                if lockout.reset == "weekly" then
-                    local lockoutId = tostring(lockout.id)
-                    lockouts[lockoutId] = false
-                end
-            end
-            for _, lockout in ipairs(LMAHI.lockoutData.rares or {}) do
-                if lockout.reset == "weekly" then
-                    local lockoutId = tostring(lockout.id)
-                    lockouts[lockoutId] = false
-                end
-            end
-            for _, lockout in ipairs(LMAHI.lockoutData.currencies or {}) do
-                local lockoutId = tostring(lockout.id)
-                lockouts[lockoutId] = false
-            end
-            for _, lockout in ipairs(LMAHI.lockoutData.custom or {}) do
-                if lockout.reset == "weekly" then
-                    local lockoutId = tostring(lockout.id)
-                    lockouts[lockoutId] = false
+            for _, lockoutType in ipairs({"custom", "raids", "dungeons", "quests", "rares", "currencies"}) do
+                for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
+                    if lockout.reset == "weekly" then
+                        local lockoutId = tostring(lockout.id)
+                        lockouts[lockoutId] = nil
+                    end
                 end
             end
         end
@@ -286,7 +218,6 @@ end
 Utilities = Utilities or {}
 
 -- Run garbage collection after 10s, then every 300s
-
 Utilities.StartGarbageCollector = function(initialDelay, repeatInterval)
     initialDelay = initialDelay or 10       -- seconds before first run
     repeatInterval = repeatInterval or 300   -- seconds between runs
@@ -309,9 +240,7 @@ Utilities.StartGarbageCollector = function(initialDelay, repeatInterval)
     end)
 end
 
-
 -- Slash commands
-
 SLASH_LMAHI1 = "/lmahi"
 SlashCmdList["LMAHI"] = function()
     mainFrame:SetShown(not mainFrame:IsShown())
@@ -325,7 +254,6 @@ SlashCmdList["LMAHI"] = function()
         ThrottledUpdateDisplay()
     end
 end
-
 
 SLASH_LMAHIMEM1 = "/lmahimem"
 SlashCmdList["LMAHIMEM"] = function()
