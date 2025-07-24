@@ -23,16 +23,21 @@ LMAHI_SavedData = LMAHI_SavedData or {
     customLockouts = {},
     lastWeeklyReset = 0,
     lastDailyReset = 0,
-    frameHeight = 402, -- Default height
+    frameHeight = 402,
     selectionFrameCollapsed = {},
+    lockoutVisibility = {},
+    previousLockoutVisibility = {
+        WLK = {}, DF = {}, LGN = {}, CAT = {}, WOD = {},
+        WOW = {}, TBC = {}, SL = {}, BFA = {}, MOP = {}
+    }
 }
 
 -- Initialize lockoutData
 LMAHI.lockoutData = LMAHI.lockoutData or {}
 LMAHI.FACTION_COLORS = {
-    Horde = { r = 0.95, g = 0.2, b = 0.2 },
+    Horde    = { r = 0.95, g = 0.2, b = 0.2 },
     Alliance = { r = 0.2, g = 0.4, b = 1.0 },
-    Neutral = { r = 0.8, g = 0.8, b = 0.8 },
+    Neutral  = { r = 0.8, g = 0.8, b = 0.8 },
 }
 
 -- Frame variables
@@ -43,6 +48,55 @@ local sectionHeaders = {}
 local lockoutLabels = {}
 local collapseButtons = {}
 local resizeButton
+
+-- Initialize for first time account logged in to current expansion
+LMAHI.eventFrame = LMAHI.eventFrame or CreateFrame("Frame")
+LMAHI.eventFrame:RegisterEvent("ADDON_LOADED")
+LMAHI.eventFrame:SetScript("OnEvent", function(self, event, arg1)
+    if event == "ADDON_LOADED" and arg1 == addonName then
+        LMAHI_SavedData = LMAHI_SavedData or { initialized = false }
+
+        if LMAHI.InitializeData then
+            LMAHI.InitializeData()
+        end
+
+        if not LMAHI_SavedData.initialized then
+            LMAHI_SavedData.initialized = true
+
+            LMAHI_SavedData.expansionVisibility = {
+                TWW  = true, DF   = false, LGN  = false, SL   = false,
+                BFA  = false, WOW = false, WOD = false, TBC  = false,
+                CAT  = false, WLK = false, MOP = false,
+            }
+
+            LMAHI_SavedData.sectionVisibility = {
+                raids = true, custom = true, rares = true,
+                currencies = true, quests = true, dungeons = true,
+            }
+
+            LMAHI_SavedData.selectionFrameCollapsed = {
+                WLK = true, DF = true, MOP = true, LGN = true, SL = true,
+                BFA = true, CAT = true, TBC = true, WOD = true, WOW = true,
+                TWW_raids = false, TWW_dungeons = false,
+                TWW_quests = false, TWW_rares = false, TWW_currencies = false,
+            }
+
+            LMAHI_SavedData.previousLockoutVisibility = {
+                WLK = {}, DF = {}, LGN = {}, CAT = {}, WOD = {},
+                WOW = {}, TBC = {}, SL = {}, BFA = {}, MOP = {}
+            }
+
+            LMAHI_SavedData.customLockoutOrder = {}
+            LMAHI_SavedData.factions = {}
+            LMAHI_SavedData.classColors = {}
+            LMAHI_SavedData.lockoutVisibility = {}
+        end
+
+        if LMAHI.UpdateDisplay then
+            LMAHI.UpdateDisplay()
+        end
+    end
+end)
 
 
 -- Throttle for UpdateDisplay
@@ -1197,13 +1251,11 @@ LMAHI.UpdateSettingsDisplay = function()
     end
 end
 
-
---   CreateLockoutSelectionFrame 
-
+-- CreateLockoutSelectionFrame
 function LMAHI.CreateLockoutSelectionFrame()
     local frame = CreateFrame("Frame", "LMAHILockoutSelectionFrame", UIParent, "BasicFrameTemplateWithInset")
     tinsert(UISpecialFrames, "LMAHILockoutSelectionFrame")
-    frame:SetSize(400, 600)
+    frame:SetSize(400, 640)
     frame:SetPoint(LMAHI_SavedData.selectionFramePos.point, UIParent, LMAHI_SavedData.selectionFramePos.relativePoint, LMAHI_SavedData.selectionFramePos.x, LMAHI_SavedData.selectionFramePos.y)
     frame:SetFrameStrata("DIALOG")
     frame:SetFrameLevel(300)
@@ -1230,94 +1282,84 @@ function LMAHI.CreateLockoutSelectionFrame()
     title:SetPoint("TOP", frame, "TOP", 0, -3)
     title:SetText("|cff99ccffLockout|r |cffADADADSelection|r |cff99ccffSettings|r")
 
--- Lockout selection panel container
-local lockoutSelectionContent = CreateFrame("Frame", "LMAHILockoutSelectionContent", LMAHILockoutSelectionFrame, "BackdropTemplate")
-lockoutSelectionContent:SetSize(345, 160) -- Slightly taller to make room for caption
-lockoutSelectionContent:SetPoint("TOPLEFT", LMAHILockoutSelectionFrame, "TOPLEFT", 28, -25)
-lockoutSelectionContent:SetBackdrop({
-    bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    tile = true,
-    tileSize = 14,
-    edgeSize = 14,
-    insets = { left = 4, right = 4, top = 4, bottom = 4 },
-})
-lockoutSelectionContent:SetBackdropColor(0.1, 0.1, 0.1, 1)
-lockoutSelectionContent:SetFrameLevel(LMAHILockoutSelectionFrame:GetFrameLevel() + 1)
-lockoutSelectionContent:Show()
+    -- Lockout selection panel container
+    local lockoutSelectionContent = CreateFrame("Frame", "LMAHILockoutSelectionContent", LMAHILockoutSelectionFrame, "BackdropTemplate")
+    lockoutSelectionContent:SetSize(345, 160)
+    lockoutSelectionContent:SetPoint("TOPLEFT", LMAHILockoutSelectionFrame, "TOPLEFT", 28, -25)
+    lockoutSelectionContent:SetBackdrop({
+        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true,
+        tileSize = 14,
+        edgeSize = 14,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
+    })
+    lockoutSelectionContent:SetBackdropColor(0.1, 0.1, 0.1, 1)
+    lockoutSelectionContent:SetFrameLevel(LMAHILockoutSelectionFrame:GetFrameLevel() + 1)
+    lockoutSelectionContent:Show()
 
--- Section container for checkboxes
-local topSection = CreateFrame("Frame", nil, lockoutSelectionContent)
-topSection:SetPoint("TOPLEFT", lockoutSelectionContent, "TOPLEFT", 5, -1)
-topSection:SetSize(330, 60) -- Two rows layout
+    -- Section container for checkboxes
+    local topSection = CreateFrame("Frame", nil, lockoutSelectionContent)
+    topSection:SetPoint("TOPLEFT", lockoutSelectionContent, "TOPLEFT", 5, -1)
+    topSection:SetSize(330, 60)
 
--- Checkbox definitions
-local sectionCheckboxes = lockoutSelectionContent.sectionCheckboxes or {}
-local lockoutTypesDisplay = { "custom", "raids", "dungeons", "quests", "rares", "currencies" }
+    -- Checkbox definitions
+    local sectionCheckboxes = lockoutSelectionContent.sectionCheckboxes or {}
+    local lockoutTypesDisplay = { "custom", "raids", "dungeons", "quests", "rares", "currencies" }
 
-LMAHI_SavedData.sectionVisibility = LMAHI_SavedData.sectionVisibility or {}
+    LMAHI_SavedData.sectionVisibility = LMAHI_SavedData.sectionVisibility or {}
 
-for i, lockoutType in ipairs(lockoutTypesDisplay) do
-    local sectionKey = lockoutType
-    local checkbox = sectionCheckboxes[sectionKey] or CreateFrame("CheckButton", nil, topSection, "UICheckButtonTemplate")
-
-    local row = math.floor((i - 1) / 3)
-    local col = (i - 1) % 3
-    checkbox:SetPoint("TOPLEFT", topSection, "TOPLEFT", col * 100 + 10, -row * 25 - 5)
-    checkbox:SetSize(25, 25)
-    checkbox:SetChecked(LMAHI_SavedData.sectionVisibility[sectionKey] ~= false)
-
-    if not sectionCheckboxes[sectionKey] then
-        sectionCheckboxes[sectionKey] = checkbox
-        checkbox:SetScript("OnClick", function(self)
-            LMAHI_SavedData.sectionVisibility[sectionKey] = self:GetChecked()
-            if LMAHI.UpdateDisplay then
-                LMAHI.UpdateDisplay()
-            end
-        end)
+    for i, lockoutType in ipairs(lockoutTypesDisplay) do
+        local sectionKey = lockoutType
+        local checkbox = sectionCheckboxes[sectionKey] or CreateFrame("CheckButton", nil, topSection, "UICheckButtonTemplate")
+        local row = math.floor((i - 1) / 3)
+        local col = (i - 1) % 3
+        checkbox:SetPoint("TOPLEFT", topSection, "TOPLEFT", col * 100 + 10, -row * 25 - 5)
+        checkbox:SetSize(25, 25)
+        checkbox:SetChecked(LMAHI_SavedData.sectionVisibility[sectionKey] ~= false)
+        if not sectionCheckboxes[sectionKey] then
+            sectionCheckboxes[sectionKey] = checkbox
+            checkbox:SetScript("OnClick", function(self)
+                LMAHI_SavedData.sectionVisibility[sectionKey] = self:GetChecked()
+                if LMAHI.UpdateDisplay then
+                    LMAHI.UpdateDisplay()
+                end
+            end)
+        end
+        checkbox:Show()
+        local label = topSection:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
+        label:SetPoint("LEFT", checkbox, "RIGHT", 4, 0)
+        label:SetText(lockoutType:gsub("^%l", string.upper))
+        label:SetWidth(150)
+        label:SetJustifyH("LEFT")
+        label:SetTextColor(1, 1, 1)
+        checkbox.label = label
+        label:Show()
     end
 
-    checkbox:Show()
+    -- Instructional label beneath checkboxes
+    local lines = {
+        "Show or Hide the sections on the Main Page",
+        "by checking or unchecking the boxes above.",
+        "-----------------------------------------------",
+        "Using the collapsable sections below,",
+        "Show or Hide any lockout on the Main Page,",
+        "by checking or unchecking a box.",
+    }
+    local caption = lockoutSelectionContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    caption:SetPoint("TOP", topSection, "BOTTOM", 0, 2)
+    caption:SetWidth(320)
+    caption:SetText(table.concat(lines, "\n"))
+    caption:SetJustifyH("CENTER")
+    caption:SetTextColor(0.9, 0.9, 0.9, 0.9)
+    caption:SetSpacing(3)
+    caption:Show()
 
-    local label = topSection:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
-    label:SetPoint("LEFT", checkbox, "RIGHT", 4, 0)
-    label:SetText(lockoutType:gsub("^%l", string.upper))
-    label:SetWidth(150)
-    label:SetJustifyH("LEFT")
-    label:SetTextColor(1, 1, 1)
-    checkbox.label = label
-    label:Show()
-end
-
--- Instructional label beneath checkboxes
--- Multi-line instructional caption beneath checkboxes
-local lines = {
-    "Show or Hide the sections on the Main Page",
-    "by checking or unchecking the boxes above.",
-    "-----------------------------------------------",
-    "Using the collapsable sections below,",
-    "Show or Hide any lockout on the Main Page,",
-	"by checking or unchecking a box.",
-}
-
-local caption = lockoutSelectionContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-caption:SetPoint("TOP", topSection, "BOTTOM", 0, 2)
-caption:SetWidth(320)
-caption:SetText(table.concat(lines, "\n"))
-caption:SetJustifyH("CENTER")
-caption:SetTextColor(0.9, 0.9, 0.9, 0.9)
-caption:SetSpacing(3)
-caption:Show()
-
-
--- Store reference for reuse
-lockoutSelectionContent.sectionCheckboxes = sectionCheckboxes
-
-
+    lockoutSelectionContent.sectionCheckboxes = sectionCheckboxes
 
     -- Scroll frame starts below top section
     local scrollFrame = CreateFrame("ScrollFrame", "LMAHI_SelectionScrollFrame", frame, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", topSection, "BOTTOMLEFT", 0, -100)
+    scrollFrame:SetPoint("TOPLEFT", topSection, "BOTTOMLEFT", 10, -100)
     scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -30, 10)
     scrollFrame:EnableMouseWheel(true)
     scrollFrame:SetFrameLevel(frame:GetFrameLevel() + 1)
@@ -1334,6 +1376,24 @@ lockoutSelectionContent.sectionCheckboxes = sectionCheckboxes
     content:SetFrameLevel(scrollFrame:GetFrameLevel() + 1)
 
     LMAHI_SavedData.selectionFrameCollapsed = LMAHI_SavedData.selectionFrameCollapsed or {}
+    -- Initialize all sections as collapsed by default
+    local function InitializeCollapsedState()
+        LMAHI_SavedData.selectionFrameCollapsed["custom"] = LMAHI_SavedData.selectionFrameCollapsed["custom"] or true
+        local expansions = {
+            "TWW", "DF", "SL", "BFA", "LGN", "WOD", "MOP", "CAT", "WLK", "TBC", "WOW"
+        }
+        for _, expId in ipairs(expansions) do
+            LMAHI_SavedData.selectionFrameCollapsed[expId] = LMAHI_SavedData.selectionFrameCollapsed[expId] or true
+            for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
+                if lockoutType ~= "custom" then
+                    local typeKey = expId .. "_" .. lockoutType
+                    LMAHI_SavedData.selectionFrameCollapsed[typeKey] = LMAHI_SavedData.selectionFrameCollapsed[typeKey] or true
+                end
+            end
+        end
+    end
+    InitializeCollapsedState()
+
     LMAHI_SavedData.selectionFramePos = LMAHI_SavedData.selectionFramePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
     LMAHI_SavedData.lockoutVisibility = LMAHI_SavedData.lockoutVisibility or {}
     LMAHI_SavedData.sectionVisibility = LMAHI_SavedData.sectionVisibility or {
@@ -1344,12 +1404,16 @@ lockoutSelectionContent.sectionCheckboxes = sectionCheckboxes
         rares = true,
         currencies = true
     }
+    LMAHI_SavedData.expansionVisibility = LMAHI_SavedData.expansionVisibility or {}
+    LMAHI_SavedData.previousLockoutVisibility = LMAHI_SavedData.previousLockoutVisibility or {}
+    LMAHI_SavedData.expansionVisibilityModified = LMAHI_SavedData.expansionVisibilityModified or false
 
     local function UpdateContentLayout()
-        local yOffset = -10
+        local yOffset = -20
         local checkboxes = frame.checkboxes or {}
         local collapseButtons = frame.collapseButtons or {}
         local nameLabels = frame.nameLabels or {}
+        local expCheckboxes = frame.expCheckboxes or {}
 
         -- Clear existing positions and hide all
         for _, checkbox in pairs(checkboxes) do
@@ -1364,42 +1428,46 @@ lockoutSelectionContent.sectionCheckboxes = sectionCheckboxes
             label:ClearAllPoints()
             label:Hide()
         end
+        for _, checkbox in pairs(expCheckboxes) do
+            checkbox:ClearAllPoints()
+            checkbox:Hide()
+        end
 
         -- Handle Custom section with collapse button and lockouts
         local customKey = "custom"
         local customButton = collapseButtons[customKey] or CreateFrame("Button", nil, content)
-        customButton:SetSize(20, 20)
-        customButton:SetPoint("TOPLEFT", content, "TOPLEFT", 5, yOffset)
+        customButton:SetSize(25, 25)
+        customButton:SetPoint("TOPLEFT", content, "TOPLEFT", 35, yOffset -4)
         customButton:SetNormalTexture("Interface\\Buttons\\UI-MinusButton-Up")
-        customButton:GetNormalTexture():SetSize(20, 20)
+        customButton:GetNormalTexture():SetSize(25, 25)
         customButton:SetPushedTexture("Interface\\Buttons\\UI-MinusButton-Down")
-        customButton:GetPushedTexture():SetSize(20, 20)
+        customButton:GetPushedTexture():SetSize(22, 22)
         customButton:SetHighlightTexture("Interface\\Buttons\\UI-PlusButton-Hilight")
-        customButton:GetHighlightTexture():SetSize(20, 20)
+        customButton:GetHighlightTexture():SetSize(22, 22)
         local isCustomCollapsed = LMAHI_SavedData.selectionFrameCollapsed[customKey]
         customButton:SetNormalTexture(isCustomCollapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
-        customButton:GetNormalTexture():SetSize(20, 20)
+        customButton:GetNormalTexture():SetSize(22, 22)
         if not collapseButtons[customKey] then
             collapseButtons[customKey] = customButton
         end
         customButton:Show()
 
         local customLabel = nameLabels[customKey] or content:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
-        customLabel:SetPoint("TOPLEFT", content, "TOPLEFT", 35, yOffset -2)
+        customLabel:SetPoint("TOPLEFT", content, "TOPLEFT", 70, yOffset -8)
         customLabel:SetText("Custom")
         customLabel:SetWidth(300)
         customLabel:SetJustifyH("LEFT")
-        customLabel:SetTextColor(1, 1, 1) -- White
+        customLabel:SetTextColor(1, 1, 1)
         if not nameLabels[customKey] then
             nameLabels[customKey] = customLabel
         end
         customLabel:Show()
-        yOffset = yOffset - 25
+        yOffset = yOffset - 20
 
         customButton:SetScript("OnClick", function(self)
             LMAHI_SavedData.selectionFrameCollapsed[customKey] = not LMAHI_SavedData.selectionFrameCollapsed[customKey]
             self:SetNormalTexture(LMAHI_SavedData.selectionFrameCollapsed[customKey] and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
-            self:GetNormalTexture():SetSize(20, 20)
+            self:GetNormalTexture():SetSize(25, 25)
             UpdateContentLayout()
             if LMAHI.UpdateDisplay then
                 LMAHI.UpdateDisplay()
@@ -1411,53 +1479,177 @@ lockoutSelectionContent.sectionCheckboxes = sectionCheckboxes
             for _, lockout in ipairs(customLockouts) do
                 local lockoutKey = "Custom_" .. lockout.id
                 local checkbox = checkboxes[lockoutKey] or CreateFrame("CheckButton", nil, content, "UICheckButtonTemplate")
-                checkbox:SetPoint("TOPLEFT", content, "TOPLEFT", 25, yOffset)
-			    checkbox:SetSize(25, 25)
+                checkbox:SetPoint("TOPLEFT", content, "TOPLEFT", 55, yOffset - 5)
+                checkbox:SetSize(22, 22)
                 checkbox.Text:SetText(lockout.name)
-				checkbox.Text:SetPoint("LEFT", checkbox, "RIGHT", 5, 0)
-				checkbox.Text:SetFontObject("GameFontNormal")
+                checkbox.Text:SetPoint("LEFT", checkbox, "RIGHT", 10, 0)
+                checkbox.Text:SetFontObject("GameFontNormal")
                 checkbox.Text:SetWidth(300)
                 checkbox.Text:SetJustifyH("LEFT")
-                checkbox.Text:SetTextColor(0.9, 0.7, 0.1) -- Gold
-                checkbox:SetChecked(LMAHI_SavedData.lockoutVisibility[lockoutKey] and true or false)
+                checkbox.Text:SetTextColor(0.9, 0.7, 0.1)
+                checkbox:SetChecked(LMAHI_SavedData.lockoutVisibility[lockoutKey] == true)
                 checkbox.lockoutType = "custom"
                 checkbox.lockoutId = lockout.id
                 if not checkboxes[lockoutKey] then
                     checkboxes[lockoutKey] = checkbox
                     checkbox:SetScript("OnClick", function(self)
-                        LMAHI_SavedData.lockoutVisibility[lockoutKey] = self:GetChecked()
+                        LMAHI_SavedData.lockoutVisibility[lockoutKey] = self:GetChecked() or nil
                         if LMAHI.UpdateDisplay then
                             LMAHI.UpdateDisplay()
                         end
                     end)
                 end
                 checkbox:Show()
-                yOffset = yOffset - 25
+                yOffset = yOffset - 20
             end
-            yOffset = yOffset - 10 -- Consistent 10px gap after Custom section
+            yOffset = yOffset - 10
         else
-            yOffset = yOffset - 10 -- Consistent 10px gap when collapsed
+            yOffset = yOffset - 15
         end
 
-        -- Handle expansions (The War Within, Dragonflight)
+        local expansionNames = {
+            TWW = "The War Within",
+            DF = "Dragonflight",
+            SL = "Shadowlands",
+            BFA = "Battle for Azeroth",
+            LGN = "Legion",
+            WOD = "Warlords of Draenor",
+            MOP = "Mists of Pandaria",
+            CAT = "Cataclysm",
+            WLK = "Wrath of the Lich King",
+            TBC = "The Burning Crusade",
+            WOW = "World of Warcraft"
+        }
+
+        StaticPopupDialogs["LMAHI_CONFIRM_CLEAR_CHECKS"] = {
+            text = "This will remove all |cffffd700checkmarks|r in\n   %s section,\n Including any you've manually unselected.\nAre you sure you want to clear everything?",
+            button1 = "Yes",
+            button2 = "Cancel",
+            OnAccept = function(self, data)
+                local expansionId = data
+                -- Clear lockout visibility for this expansion
+                for key in pairs(LMAHI_SavedData.lockoutVisibility or {}) do
+                    if string.match(key, "^" .. expansionId .. "_") then
+                        LMAHI_SavedData.lockoutVisibility[key] = nil
+                    end
+                end
+                -- Clear expansion visibility
+                LMAHI_SavedData.expansionVisibility[expansionId] = false
+                LMAHI_SavedData.expansionVisibilityModified = true
+                -- Update all relevant checkboxes
+                for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
+                    if lockoutType ~= "custom" then
+                        local lockouts = LMAHI.lockoutData[lockoutType] or {}
+                        for _, lockout in ipairs(lockouts) do
+                            if lockout.expansion == expansionId then
+                                local lockoutKey = expansionId .. "_" .. lockoutType .. "_" .. lockout.id
+                                local checkbox = checkboxes[lockoutKey]
+                                if checkbox then
+                                    checkbox:SetChecked(false)
+                                end
+                            end
+                        end
+                    end
+                end
+                -- Update the expansion checkbox
+                local expCheckbox = expCheckboxes[expansionId]
+                if expCheckbox then
+                    expCheckbox:SetChecked(false)
+                end
+                if LMAHI.UpdateDisplay then
+                    LMAHI.UpdateDisplay()
+                end
+                UpdateContentLayout() -- Refresh layout to ensure checkbox states are updated
+            end,
+            OnCancel = function(self, data)
+                local expansionId = data
+                local expCheckbox = expCheckboxes[expansionId]
+                if expCheckbox then
+                    expCheckbox:SetChecked(LMAHI_SavedData.expansionVisibility[expansionId] == true)
+                end
+            end,
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            showAlert = true,
+        }
+
+        -- Handle expansions
         local expansions = {
-            { name = "The War Within", id = "TWW" },
-            { name = "Dragonflight", id = "Dragonflight" },
+            { name = "The War Within", id = "TWW", color = {0.9, 0.5, 0.1} },
+            { name = "Dragonflight", id = "DF", color = {0.7, 0.8, 0.8} },
+            { name = "Shadowlands", id = "SL", color = {1, 0.9, 0.9} },
+            { name = "Battle for Azeroth", id = "BFA", color = {0.3, 0.5, 1} },
+            { name = "Legion", id = "LGN", color = {0.1, 0.9, 0} },
+            { name = "Warlords of Draenor", id = "WOD", color = {0.6, 0.3, 0} },
+            { name = "Mists of Pandaria", id = "MOP", color = {0, 0.7, 0.2} },
+            { name = "Cataclysm", id = "CAT", color = {0.9, 0.3, 0} },
+            { name = "Wrath of the Lich King", id = "WLK", color = {0, 0.3, 0.7} },
+            { name = "The Burning Crusade", id = "TBC", color = {0.3, 0.6, 0} },
+            { name = "World of Warcraft", id = "WOW", color = {0.9, 0.6, 0} },
         }
 
         for _, expansion in ipairs(expansions) do
+            local expCheckbox = expCheckboxes[expansion.id] or CreateFrame("CheckButton", nil, content, "UICheckButtonTemplate")
+            expCheckbox:SetSize(25, 25)
+            expCheckbox:SetPoint("TOPLEFT", content, "TOPLEFT", 0, yOffset )
+            -- Set checked state explicitly, treating nil as false
+            expCheckbox:SetChecked(LMAHI_SavedData.expansionVisibility[expansion.id] == true)
+
+            if not expCheckboxes[expansion.id] then
+                expCheckboxes[expansion.id] = expCheckbox
+                expCheckbox:SetScript("OnClick", function(self)
+                    local isChecked = self:GetChecked()
+                    LMAHI_SavedData.expansionVisibility[expansion.id] = isChecked
+                    LMAHI_SavedData.expansionVisibilityModified = true
+                    if not isChecked then
+                        local name = expansion.name
+                        local r, g, b = expansion.color[1], expansion.color[2], expansion.color[3]
+                        local hex = string.format("|cff%02x%02x%02x", r * 255, g * 255, b * 255)
+                        local coloredName = hex .. name .. "|r"
+                        local popup = StaticPopup_Show("LMAHI_CONFIRM_CLEAR_CHECKS", coloredName, nil, expansion.id)
+                        if popup then
+                            popup:ClearAllPoints()
+                            popup:SetPoint("LEFT", self, "RIGHT", -30, 65)
+                        end
+                    else
+                        LMAHI_SavedData.previousLockoutVisibility[expansion.id] = LMAHI_SavedData.previousLockoutVisibility[expansion.id] or {}
+                        for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
+                            if lockoutType ~= "custom" then
+                                local lockouts = LMAHI.lockoutData[lockoutType] or {}
+                                for _, lockout in ipairs(lockouts) do
+                                    if lockout.expansion == expansion.id then
+                                        local lockoutKey = expansion.id .. "_" .. lockoutType .. "_" .. lockout.id
+                                        LMAHI_SavedData.lockoutVisibility[lockoutKey] = LMAHI_SavedData.previousLockoutVisibility[expansion.id][lockoutKey] or true
+                                        local checkbox = checkboxes[lockoutKey]
+                                        if checkbox then
+                                            checkbox:SetChecked(true)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                        if LMAHI.UpdateDisplay then
+                            LMAHI.UpdateDisplay()
+                        end
+                        UpdateContentLayout() -- Refresh layout to reflect changes
+                    end
+                end)
+            end
+            expCheckbox:Show()
+
             local expButton = collapseButtons[expansion.id] or CreateFrame("Button", nil, content)
-            expButton:SetSize(20, 20)
-            expButton:SetPoint("TOPLEFT", content, "TOPLEFT", 5, yOffset)
+            expButton:SetSize(25, 25)
+            expButton:SetPoint("TOPLEFT", content, "TOPLEFT", 35, yOffset)
             expButton:SetNormalTexture("Interface\\Buttons\\UI-MinusButton-Up")
-            expButton:GetNormalTexture():SetSize(20, 20)
+            expButton:GetNormalTexture():SetSize(25, 25)
             expButton:SetPushedTexture("Interface\\Buttons\\UI-MinusButton-Down")
-            expButton:GetPushedTexture():SetSize(20, 20)
+            expButton:GetPushedTexture():SetSize(25, 25)
             expButton:SetHighlightTexture("Interface\\Buttons\\UI-PlusButton-Hilight")
-            expButton:GetHighlightTexture():SetSize(20, 20)
+            expButton:GetHighlightTexture():SetSize(25, 25)
             local isCollapsed = LMAHI_SavedData.selectionFrameCollapsed[expansion.id]
             expButton:SetNormalTexture(isCollapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
-            expButton:GetNormalTexture():SetSize(20, 20)
+            expButton:GetNormalTexture():SetSize(25, 25)
             expButton.expansion = expansion.id
             if not collapseButtons[expansion.id] then
                 collapseButtons[expansion.id] = expButton
@@ -1465,21 +1657,21 @@ lockoutSelectionContent.sectionCheckboxes = sectionCheckboxes
             expButton:Show()
 
             local expLabel = nameLabels[expansion.id] or content:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
-            expLabel:SetPoint("TOPLEFT", content, "TOPLEFT", 35, yOffset -2)
+            expLabel:SetPoint("TOPLEFT", content, "TOPLEFT", 70, yOffset - 4)
             expLabel:SetText(expansion.name)
             expLabel:SetWidth(300)
             expLabel:SetJustifyH("LEFT")
-            expLabel:SetTextColor(0.6, 0.8, 1) --  Light blue
+            expLabel:SetTextColor(expansion.color[1], expansion.color[2], expansion.color[3])
             if not nameLabels[expansion.id] then
                 nameLabels[expansion.id] = expLabel
             end
             expLabel:Show()
-            yOffset = yOffset - 25
+            yOffset = yOffset - 20
 
             expButton:SetScript("OnClick", function(self)
                 LMAHI_SavedData.selectionFrameCollapsed[expansion.id] = not LMAHI_SavedData.selectionFrameCollapsed[expansion.id]
                 self:SetNormalTexture(LMAHI_SavedData.selectionFrameCollapsed[expansion.id] and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
-                self:GetNormalTexture():SetSize(20, 20)
+                self:GetNormalTexture():SetSize(25, 25)
                 UpdateContentLayout()
                 if LMAHI.UpdateDisplay then
                     LMAHI.UpdateDisplay()
@@ -1493,17 +1685,17 @@ lockoutSelectionContent.sectionCheckboxes = sectionCheckboxes
                         if #lockouts > 0 then
                             local typeKey = expansion.id .. "_" .. lockoutType
                             local typeButton = collapseButtons[typeKey] or CreateFrame("Button", nil, content)
-                            typeButton:SetSize(20, 20)
-                            typeButton:SetPoint("TOPLEFT", content, "TOPLEFT", 15, yOffset)
+                            typeButton:SetSize(22, 22)
+                            typeButton:SetPoint("TOPLEFT", content, "TOPLEFT", 45, yOffset -5)
                             typeButton:SetNormalTexture("Interface\\Buttons\\UI-MinusButton-Up")
-                            typeButton:GetNormalTexture():SetSize(20, 20)
+                            typeButton:GetNormalTexture():SetSize(22, 22)
                             typeButton:SetPushedTexture("Interface\\Buttons\\UI-MinusButton-Down")
-                            typeButton:GetPushedTexture():SetSize(20, 20)
+                            typeButton:GetPushedTexture():SetSize(22, 22)
                             typeButton:SetHighlightTexture("Interface\\Buttons\\UI-PlusButton-Hilight")
-                            typeButton:GetHighlightTexture():SetSize(20, 20)
+                            typeButton:GetHighlightTexture():SetSize(22, 22)
                             local typeCollapsed = LMAHI_SavedData.selectionFrameCollapsed[typeKey]
                             typeButton:SetNormalTexture(typeCollapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
-                            typeButton:GetNormalTexture():SetSize(20, 20)
+                            typeButton:GetNormalTexture():SetSize(22, 22)
                             typeButton.expansion = expansion.id
                             typeButton.lockoutType = lockoutType
                             if not collapseButtons[typeKey] then
@@ -1512,21 +1704,21 @@ lockoutSelectionContent.sectionCheckboxes = sectionCheckboxes
                             typeButton:Show()
 
                             local typeLabel = nameLabels[typeKey] or content:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
-                            typeLabel:SetPoint("TOPLEFT", content, "TOPLEFT", 45, yOffset -2)
+                            typeLabel:SetPoint("TOPLEFT", content, "TOPLEFT", 75, yOffset - 8)
                             typeLabel:SetText(lockoutType:gsub("^%l", string.upper))
                             typeLabel:SetWidth(110)
                             typeLabel:SetJustifyH("LEFT")
-                            typeLabel:SetTextColor(1, 1, 1) -- White
+                            typeLabel:SetTextColor(1, 1, 1)
                             if not nameLabels[typeKey] then
                                 nameLabels[typeKey] = typeLabel
                             end
                             typeLabel:Show()
-                            yOffset = yOffset - 25
+                            yOffset = yOffset - 20
 
                             typeButton:SetScript("OnClick", function(self)
                                 LMAHI_SavedData.selectionFrameCollapsed[typeKey] = not LMAHI_SavedData.selectionFrameCollapsed[typeKey]
                                 self:SetNormalTexture(LMAHI_SavedData.selectionFrameCollapsed[typeKey] and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
-                                self:GetNormalTexture():SetSize(20, 20)
+                                self:GetNormalTexture():SetSize(22, 22)
                                 UpdateContentLayout()
                                 if LMAHI.UpdateDisplay then
                                     LMAHI.UpdateDisplay()
@@ -1535,48 +1727,69 @@ lockoutSelectionContent.sectionCheckboxes = sectionCheckboxes
 
                             if not typeCollapsed then
                                 for _, lockout in ipairs(lockouts) do
-                                    if expansion.id == "TWW" then
-                                        local lockoutKey = "TWW_" .. lockoutType .. "_" .. lockout.id
+                                    if lockout.expansion == expansion.id then
+                                        local lockoutKey = expansion.id .. "_" .. lockoutType .. "_" .. lockout.id
                                         local checkbox = checkboxes[lockoutKey] or CreateFrame("CheckButton", nil, content, "UICheckButtonTemplate")
-                                        checkbox:SetPoint("TOPLEFT", content, "TOPLEFT", 25, yOffset)
-									    checkbox:SetSize(25, 25)
+                                        checkbox:SetPoint("TOPLEFT", content, "TOPLEFT", 58, yOffset - 7)
+                                        checkbox:SetSize(25, 25)
                                         checkbox.Text:SetText(lockout.name)
-										checkbox.Text:SetPoint("LEFT", checkbox, "RIGHT", 5, 0)
-										checkbox.Text:SetFontObject("GameFontNormal")
+                                        checkbox.Text:SetPoint("LEFT", checkbox, "RIGHT", 7, 1)
+                                        checkbox.Text:SetFontObject("GameFontNormal")
                                         checkbox.Text:SetWidth(300)
                                         checkbox.Text:SetJustifyH("LEFT")
-                                        checkbox.Text:SetTextColor(0.9, 0.7, 0.1) -- Gold
-                                        checkbox:SetChecked(LMAHI_SavedData.lockoutVisibility[lockoutKey] and true or false)
+                                        checkbox.Text:SetTextColor(0.9, 0.7, 0.1)
+                                        checkbox:SetChecked(LMAHI_SavedData.lockoutVisibility[lockoutKey] == true)
                                         checkbox.expansion = expansion.id
                                         checkbox.lockoutType = lockoutType
                                         checkbox.lockoutId = lockout.id
                                         if not checkboxes[lockoutKey] then
                                             checkboxes[lockoutKey] = checkbox
                                             checkbox:SetScript("OnClick", function(self)
-                                                LMAHI_SavedData.lockoutVisibility[lockoutKey] = self:GetChecked()
+                                                LMAHI_SavedData.lockoutVisibility[lockoutKey] = self:GetChecked() or nil
                                                 if LMAHI.UpdateDisplay then
                                                     LMAHI.UpdateDisplay()
                                                 end
                                             end)
                                         end
                                         checkbox:Show()
-                                        yOffset = yOffset - 25
+                                        yOffset = yOffset - 18
                                     end
                                 end
                             end
-                            yOffset = yOffset - 10 -- Consistent 10px gap after sub-section
+                            yOffset = yOffset - 5
                         end
                     end
                 end
             end
-            yOffset = yOffset - 10 -- Consistent 10px gap after expansion
+            yOffset = yOffset - 10
         end
 
         content:SetHeight(-yOffset + 20)
         frame.checkboxes = checkboxes
         frame.collapseButtons = collapseButtons
         frame.nameLabels = nameLabels
+        frame.expCheckboxes = expCheckboxes
     end
+
+    -- Ensure initial checkbox states are set correctly after frame creation
+    frame:SetScript("OnShow", function()
+        -- Reinitialize expansionVisibility only if not modified by user
+        local expansions = {
+            "TWW", "DF", "SL", "BFA", "LGN", "WOD", "MOP", "CAT", "WLK", "TBC", "WOW"
+        }
+        if not LMAHI_SavedData.expansionVisibilityModified then
+            for _, expId in ipairs(expansions) do
+                LMAHI_SavedData.expansionVisibility[expId] = (expId == "TWW")
+            end
+        end
+        for _, expId in ipairs(expansions) do
+            local checkbox = frame.expCheckboxes[expId]
+            if checkbox then
+                checkbox:SetChecked(LMAHI_SavedData.expansionVisibility[expId] == true)
+            end
+        end
+        UpdateContentLayout() -- Refresh layout to ensure consistency
+    end)
 
     UpdateContentLayout()
     return frame
@@ -1763,7 +1976,6 @@ C_Timer.NewTicker(1, function()
     cpuFrame.text:SetText(string.format("LMAHI CPU: %.2f ms/s (%.1f%%)", delta, percent))
 end)
 ]]
-
 -- Main frame hookup
 LMAHI.mainFrame = mainFrame
 
@@ -1774,6 +1986,54 @@ function LMAHI_Enable()
     end
     _G.LMAHI_Sleeping = false
     print("LMAHI activated")
+
+    -- ✅ Seed visibility when waking for the first time
+    if not LMAHI_SavedData.defaultLockoutsSeeded then
+        LMAHI_SavedData.lockoutVisibility = LMAHI_SavedData.lockoutVisibility or {}
+
+        for _, lockoutType in ipairs({ "raids", "dungeons", "quests", "rares", "currencies" }) do
+            for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
+                if lockout.expansion == "TWW" and type(lockout.id) == "number" then
+                    local key = "TWW_" .. lockoutType .. "_" .. lockout.id
+                    LMAHI_SavedData.lockoutVisibility[key] = true
+                end
+            end
+        end
+
+        for _, lockout in ipairs(LMAHI.lockoutData.custom or {}) do
+            if lockout.id then
+                local key = "Custom_" .. lockout.id
+                LMAHI_SavedData.lockoutVisibility[key] = true
+            end
+        end
+
+        LMAHI_SavedData.defaultLockoutsSeeded = true
+        print("✅ TWW visibility seeded during wakeup.")
+    end
+
+    -- Reinitialize expansionVisibility only if not modified by user
+    if not LMAHI_SavedData.expansionVisibilityModified then
+        local expansions = {
+            "TWW", "DF", "SL", "BFA", "LGN", "WOD", "MOP", "CAT", "WLK", "TBC", "WOW"
+        }
+        for _, expId in ipairs(expansions) do
+            LMAHI_SavedData.expansionVisibility[expId] = (expId == "TWW")
+        end
+    end
+
+    -- Refresh selection frame if it exists
+    if LMAHI.lockoutSelectionFrame and LMAHI.lockoutSelectionFrame.expCheckboxes then
+        local expansions = {
+            "TWW", "DF", "SL", "BFA", "LGN", "WOD", "MOP", "CAT", "WLK", "TBC", "WOW"
+        }
+        for _, expId in ipairs(expansions) do
+            local checkbox = LMAHI.lockoutSelectionFrame.expCheckboxes[expId]
+            if checkbox then
+                checkbox:SetChecked(LMAHI_SavedData.expansionVisibility[expId] == true)
+            end
+        end
+    end
+
     LMAHI:ResetCaches()
     if LMAHI.SaveCharacterData then
         LMAHI.SaveCharacterData()
@@ -1781,7 +2041,9 @@ function LMAHI_Enable()
     if LMAHI.CheckLockouts then
         LMAHI.CheckLockouts()
     end
-    LMAHI.UpdateDisplay()
+    if LMAHI.UpdateDisplay then
+        LMAHI.UpdateDisplay()
+    end
 end
 
 function LMAHI_Disable()
