@@ -1,4 +1,4 @@
--- Display.lua
+---- Display.lua
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -15,6 +15,20 @@ LMAHI_SavedData.sectionVisibility = LMAHI_SavedData.sectionVisibility or {
     rares = true,
     currencies = true
 }
+LMAHI_SavedData.expansionVisibility = LMAHI_SavedData.expansionVisibility or {
+    TWW = true,
+    DF = true,
+    SL = true,
+    BFA = true,
+    LGN = true,
+    WOD = true,
+    MOP = true,
+    CAT = true,
+    WLK = true,
+    TBC = true,
+    WOW = true
+}
+LMAHI_SavedData.previousLockoutVisibility = LMAHI_SavedData.previousLockoutVisibility or {}
 
 LMAHI.currentPage = LMAHI.currentPage or 1
 LMAHI.maxCharsPerPage = 10
@@ -394,7 +408,9 @@ function LMAHI.UpdateDisplay()
                 local lockouts = lockoutType == "custom" and (LMAHI_SavedData.customLockouts or {}) or (LMAHI.lockoutData[lockoutType] or {})
                 local sortedLockouts = {}
                 for _, lockout in ipairs(lockouts) do
-                    table.insert(sortedLockouts, lockout)
+                    if lockoutType == "custom" or LMAHI_SavedData.expansionVisibility[lockout.expansion or "TWW"] ~= false then
+                        table.insert(sortedLockouts, lockout)
+                    end
                 end
                 if lockoutType == "custom" then
                     table.sort(sortedLockouts, function(a, b)
@@ -415,8 +431,8 @@ function LMAHI.UpdateDisplay()
                 else
                     offsetY = offsetY + 1
                     for lockoutIndex, lockout in ipairs(sortedLockouts) do
-                        local lockoutKey = lockoutType == "custom" and ("Custom_" .. lockout.id) or ("TWW_" .. lockoutType .. "_" .. lockout.id)
-                        if lockout.name and lockout.id and lockout.id > 0 and LMAHI_SavedData.lockoutVisibility[lockoutKey] ~= false then
+                        local lockoutKey = lockoutType == "custom" and ("Custom_" .. lockout.id) or ((lockout.expansion or "TWW") .. "_" .. lockoutType .. "_" .. lockout.id)
+                        if lockout.name and lockout.id and lockout.id > 0 and LMAHI_SavedData.lockoutVisibility[lockoutKey] == true then
                             local lockoutLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
                             lockoutLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 30, offsetY)
                             lockoutLabel:SetWidth(170)
@@ -426,7 +442,6 @@ function LMAHI.UpdateDisplay()
                             lockoutLabel:SetMaxLines(1)
                             lockoutLabel:SetJustifyH("LEFT")
                             lockoutLabel:Show()
-
 
                             table.insert(LMAHI.lockoutLabels, lockoutLabel)
 
@@ -502,7 +517,7 @@ end
 
 -- Reset caches on UI open to prevent corruption
 function LMAHI:ResetCaches()
-    LMAHI.cached646CharList = {}
+    LMAHI.cachedCharList = {}
     LMAHI.cachedCharLabels = {}
     LMAHI.cachedSectionHeaders = {}
     LMAHI.lastDisplayChars = {}
