@@ -19,7 +19,7 @@ A World of Warcraft Retail addon to manage and view lockouts across multiple cha
 
 ## 🚀 Getting Started
 
-1. Download or clone this repo
+1. Download the .zip file
 2. Place the addon folder in `_retail_/Interface/AddOns/`
 3. Launch WoW and enable the addon in the AddOns menu
 4. Use the mini map button to open or slash command /lmahi
