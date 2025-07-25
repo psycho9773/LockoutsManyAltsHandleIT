@@ -1,7 +1,7 @@
 # LockoutsManyAltsHandleIT
 
 > ⚠️ This addon is currently in **BETA**. Features and data WILL change!
-      Not even a 1/3 of the way done.
+      Almost 2/3 of the way done.
 
 A World of Warcraft Retail addon to manage and view lockouts across multiple characters.
 
@@ -22,7 +22,8 @@ A World of Warcraft Retail addon to manage and view lockouts across multiple cha
 1. Download or clone this repo
 2. Place the addon folder in `_retail_/Interface/AddOns/`
 3. Launch WoW and enable the addon in the AddOns menu
-
+4. Use the mini map button to open or slash command /lmahi
+   
 ## 📦 Installation
 
 Manual install only for now. Future plans may include CurseForge support.
