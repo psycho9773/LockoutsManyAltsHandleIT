@@ -1,4 +1,4 @@
------ Utilities.lua
+-- Utilities.lua
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -241,20 +241,17 @@ Utilities.StartGarbageCollector = function(initialDelay, repeatInterval)
 end
 
 -- Slash commands
-
 SLASH_LMAHI1 = "/lmahi"
 SlashCmdList["LMAHI"] = function()
-    mainFrame:SetShown(not mainFrame:IsShown())
-    if mainFrame:IsShown() then
-        if LMAHI.SaveCharacterData then
-            LMAHI.SaveCharacterData()
-        end
-        if LMAHI.CheckLockouts then
-            LMAHI.CheckLockouts()
-        end
-        ThrottledUpdateDisplay()
+    if _G.LMAHI_Sleeping then
+        if LMAHI_Enable then LMAHI_Enable() end
+        _G.LMAHI_Sleeping = false
+    else
+        if LMAHI_Disable then LMAHI_Disable() end
+        _G.LMAHI_Sleeping = true
     end
 end
+
 
 
 SLASH_LMAHIWIPE1 = "/lmahiwipe"
