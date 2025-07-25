@@ -1,4 +1,4 @@
----- Utilities.lua
+----- Utilities.lua
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -241,6 +241,7 @@ Utilities.StartGarbageCollector = function(initialDelay, repeatInterval)
 end
 
 -- Slash commands
+
 SLASH_LMAHI1 = "/lmahi"
 SlashCmdList["LMAHI"] = function()
     mainFrame:SetShown(not mainFrame:IsShown())
@@ -255,10 +256,21 @@ SlashCmdList["LMAHI"] = function()
     end
 end
 
-SLASH_LMAHIMEM1 = "/lmahimem"
-SlashCmdList["LMAHIMEM"] = function()
-    UpdateAddOnMemoryUsage()
-    local memKB = GetAddOnMemoryUsage("LockoutsManyAltsHandleIT")
-    local memMB = memKB / 1024
-    print(string.format("LockoutsManyAltsHandleIT Memory Usage: %.2f MB", memMB))
+
+SLASH_LMAHIWIPE1 = "/lmahiwipe"
+SlashCmdList["LMAHIWIPE"] = function()
+    StaticPopupDialogs["LMAHIWIPE_CONFIRM"] = {
+        text = "Are you sure you want to wipe all saved data?",
+        button1 = "Yes",
+        button2 = "Cancel",
+        OnAccept = function()
+            LMAHI_SavedData = nil
+            ReloadUI()
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+    }
+    StaticPopup_Show("LMAHIWIPE_CONFIRM")
 end
+
