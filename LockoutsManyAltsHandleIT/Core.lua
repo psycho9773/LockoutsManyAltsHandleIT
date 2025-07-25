@@ -11,7 +11,7 @@ LMAHI_SavedData = LMAHI_SavedData or {
     lockouts = {},
     charOrder = {},
     customLockoutOrder = {},
-    minimapPos = { angle = math.rad(45) },
+    minimapPos = { angle = math.rad(145) },
     framePos = { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 },
     settingsFramePos = { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 },
     customInputFramePos = { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 },
@@ -117,7 +117,7 @@ end
 
 -- SavedVariables setup
 LMAHI_SavedData = LMAHI_SavedData or {}
-LMAHI_SavedData.minimapPos = LMAHI_SavedData.minimapPos or { angle = math.rad(45) }
+LMAHI_SavedData.minimapPos = LMAHI_SavedData.minimapPos or { angle = math.rad(145) }
 
 -- Always start in sleep mode
 _G.LMAHI_Sleeping = true
@@ -155,7 +155,7 @@ border:SetPoint("CENTER", minimapButton, "CENTER")
 
 -- Position logic
 local function UpdateButtonPosition()
-    local a = LMAHI_SavedData.minimapPos.angle or math.rad(45)
+    local a = LMAHI_SavedData.minimapPos.angle or math.rad(145)
     local x = math.cos(a) * radius
     local y = math.sin(a) * radius
     minimapButton:SetPoint("CENTER", Minimap, "CENTER", x, y)
@@ -1033,7 +1033,7 @@ text = string.format(
 
 -- Settings Frame Main
 settingsFrame = CreateFrame("Frame", "LMAHI_SettingsFrame", UIParent, "BasicFrameTemplateWithInset")
-tinsert(UISpecialFrames, settingsFrame:GetName())
+tinsert(UISpecialFrames, settingsFrame)
 settingsFrame:SetSize(415, 500)
 settingsFrame:SetPoint(
     LMAHI_SavedData.settingsFramePos.point,
@@ -1042,7 +1042,7 @@ settingsFrame:SetPoint(
     LMAHI_SavedData.settingsFramePos.x,
     LMAHI_SavedData.settingsFramePos.y
 )
-settingsFrame:SetFrameStrata("DIALOG")
+settingsFrame:SetFrameStrata("HIGH")
 settingsFrame:SetFrameLevel(200)
 settingsFrame:EnableMouse(true)
 settingsFrame:SetMovable(true)
@@ -1271,20 +1271,13 @@ function LMAHI.CreateLockoutSelectionFrame()
     frame:SetScale(LMAHI_SavedData.zoomLevel or 1)
     frame:Hide()
 
-    -- CloseButton appearance
-    frame.CloseButton:SetSize(24, 24)
-    frame.CloseButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
-    frame.CloseButton:SetNormalTexture("Interface\\Buttons\\UIPanelCloseButton")
-    frame.CloseButton:SetPushedTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Down")
-    frame.CloseButton:SetHighlightTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Highlight")
-
     local title = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
     title:SetPoint("TOP", frame, "TOP", 0, -3)
     title:SetText("|cff99ccffLockout|r |cffADADADSelection|r |cff99ccffSettings|r")
 
     -- Lockout selection panel container
     local lockoutSelectionContent = CreateFrame("Frame", "LMAHILockoutSelectionContent", LMAHILockoutSelectionFrame, "BackdropTemplate")
-    lockoutSelectionContent:SetSize(345, 160)
+    lockoutSelectionContent:SetSize(345, 190)
     lockoutSelectionContent:SetPoint("TOPLEFT", LMAHILockoutSelectionFrame, "TOPLEFT", 28, -25)
     lockoutSelectionContent:SetBackdrop({
         bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -1340,11 +1333,13 @@ function LMAHI.CreateLockoutSelectionFrame()
     -- Instructional label beneath checkboxes
     local lines = {
         "Show or Hide the sections on the Main Page",
-        "by checking or unchecking the boxes above.",
+        "by checking or unchecking the boxes ABOVE.",
         "-----------------------------------------------",
-        "Using the collapsable sections below,",
-        "Show or Hide any lockout on the Main Page,",
-        "by checking or unchecking a box.",
+        "Show or Hide ALL lockouts of an Expansion",
+        "by checking or unchecking the boxes BELOW.",
+        "To HIDE specific lockouts, the Expansion box",
+		"MUST be checked, THEN lockouts can be hidden",
+		"in the collapsable sections below them.",
     }
     local caption = lockoutSelectionContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     caption:SetPoint("TOP", topSection, "BOTTOM", 0, 2)
@@ -1359,7 +1354,7 @@ function LMAHI.CreateLockoutSelectionFrame()
 
     -- Scroll frame starts below top section
     local scrollFrame = CreateFrame("ScrollFrame", "LMAHI_SelectionScrollFrame", frame, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", topSection, "BOTTOMLEFT", 10, -100)
+    scrollFrame:SetPoint("TOPLEFT", topSection, "BOTTOMLEFT", 10, -130)
     scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -30, 10)
     scrollFrame:EnableMouseWheel(true)
     scrollFrame:SetFrameLevel(frame:GetFrameLevel() + 1)
@@ -1522,7 +1517,7 @@ function LMAHI.CreateLockoutSelectionFrame()
         }
 
         StaticPopupDialogs["LMAHI_CONFIRM_CLEAR_CHECKS"] = {
-            text = "This will remove all |cffffd700checkmarks|r in\n   %s section,\n Including any you've manually unselected.\nAre you sure you want to clear everything?",
+            text = "This will remove all |cffffd700checkmarks|r in the\n   %s section, including any\n that have been manually unselected.\nAre you sure you want to clear everything?",
             button1 = "Yes",
             button2 = "Cancel",
             OnAccept = function(self, data)
@@ -1853,7 +1848,7 @@ mainFrame:RegisterEvent("LFG_LOCK_INFO_RECEIVED")
 mainFrame:RegisterEvent("UPDATE_INSTANCE_INFO")
 mainFrame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
-        LMAHI_SavedData.minimapPos = LMAHI_SavedData.minimapPos or { angle = math.rad(45) }
+        LMAHI_SavedData.minimapPos = LMAHI_SavedData.minimapPos or { angle = math.rad(145) }
         LMAHI_SavedData.framePos = LMAHI_SavedData.framePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
         LMAHI_SavedData.settingsFramePos = LMAHI_SavedData.settingsFramePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
         LMAHI_SavedData.customInputFramePos = LMAHI_SavedData.customInputFramePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
@@ -1926,8 +1921,8 @@ LMAHI.sectionHeaders = sectionHeaders
 LMAHI.lockoutLabels = lockoutLabels
 LMAHI.collapseButtons = collapseButtons
 
---[[
--- Memory Usage Tracker (always visible)
+-- Memory Tracker Frame
+
 local memFrame = CreateFrame("Frame", "LMAHIMemoryFrame", UIParent)
 memFrame:SetFrameStrata("DIALOG")
 memFrame:SetSize(175, 15)
@@ -1938,8 +1933,9 @@ memFrame.bg:SetColorTexture(0, 0, 0, 0.25)
 memFrame.text = memFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 memFrame.text:SetPoint("LEFT", memFrame, "LEFT")
 memFrame.text:SetTextColor(1, 1, 1)
+memFrame:Hide()
 
--- CPU Usage Tracker (always visible)
+-- CPU Tracker Frame
 local cpuFrame = CreateFrame("Frame", "LMAHICPUFrame", UIParent)
 cpuFrame:SetFrameStrata("DIALOG")
 cpuFrame:SetSize(225, 15)
@@ -1950,32 +1946,92 @@ cpuFrame.bg:SetColorTexture(0, 0, 0, 0.25)
 cpuFrame.text = cpuFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 cpuFrame.text:SetPoint("LEFT", cpuFrame, "LEFT")
 cpuFrame.text:SetTextColor(1, 1, 1)
+cpuFrame:Hide()
 
--- Update memory usage every second
-C_Timer.NewTicker(1, function()
+-- Storage for active tickers
+local memTicker = nil
+local cpuTicker = nil
+
+-- Start tracking performance
+local function StartPerformanceTracking()
     UpdateAddOnMemoryUsage()
-    local mem = GetAddOnMemoryUsage(addonName)
-    memFrame.text:SetText(string.format("LMAHI Mem: %.2f MB", mem / 1024))
+    memTicker = C_Timer.NewTicker(1, function()
+        UpdateAddOnMemoryUsage()
+        local mem = GetAddOnMemoryUsage(addonName)
+        memFrame.text:SetText(string.format("LMAHI Mem: %.2f MB", mem / 1024))
+    end)
+
+    local lastCPU = 0
+    cpuTicker = C_Timer.NewTicker(1, function()
+        UpdateAddOnCPUUsage()
+        local currentCPU = GetAddOnCPUUsage(addonName) or 0
+        local delta = currentCPU - lastCPU
+        lastCPU = currentCPU
+        local framerate = GetFramerate() or 60
+        local frameTime = 1000 / framerate
+        local percent = (delta / frameTime) * 100
+        if percent > 10 then
+            cpuFrame.text:SetTextColor(1, 0.2, 0.2)
+        else
+            cpuFrame.text:SetTextColor(1, 1, 1)
+        end
+        cpuFrame.text:SetText(string.format("LMAHI CPU: %.2f ms/s (%.1f%%)", delta, percent))
+    end)
+
+    memFrame:Show()
+    cpuFrame:Show()
+end
+
+-- Stop tracking performance
+local function StopPerformanceTracking()
+    if memTicker then memTicker:Cancel() end
+    if cpuTicker then cpuTicker:Cancel() end
+    memFrame:Hide()
+    cpuFrame:Hide()
+end
+
+local trackingEnabled = false
+
+local trackingEnabled = false
+
+-- Create the button frame
+local toggleButton = CreateFrame("Button", "CustomMTToggle", UIParent, "BackdropTemplate")
+toggleButton:SetFrameStrata("DIALOG")
+toggleButton:SetSize(24, 45)
+toggleButton:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 48, -2)
+
+toggleButton:SetBackdrop({
+    bgFile = "Interface\\Buttons\\WHITE8x8",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    tile = true, tileSize = 1, edgeSize = 1,
+    insets = { left = 2, right = 2, top = 2, bottom = 2 }
+})
+toggleButton:SetBackdropColor(0.4, 0, 0, 0.5) 
+
+local font = toggleButton:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+font:SetPoint("CENTER")
+font:SetJustifyH("CENTER")
+font:SetJustifyV("MIDDLE")
+font:SetText("O\nF\nF")
+font:SetTextColor(1, 0, 0)  
+toggleButton.font = font
+
+-- Interactivity
+toggleButton:SetScript("OnClick", function()
+    trackingEnabled = not trackingEnabled
+    if trackingEnabled then
+        StartPerformanceTracking()
+        font:SetText("O\nN")
+        font:SetTextColor(0, 1, 0)  
+        toggleButton:SetBackdropColor(0, 0.4, 0, 0.5)  
+    else
+        StopPerformanceTracking()
+        font:SetText("O\nF\nF")
+        font:SetTextColor(1, 0, 0)  
+        toggleButton:SetBackdropColor(0.4, 0, 0, 0.5) 
+    end
 end)
 
--- Update CPU usage every second
-local lastCPU = 0
-C_Timer.NewTicker(1, function()
-    UpdateAddOnCPUUsage()
-    local currentCPU = GetAddOnCPUUsage(addonName) or 0
-    local delta = currentCPU - lastCPU
-    lastCPU = currentCPU
-    local framerate = GetFramerate() or 60
-    local frameTime = 1000 / framerate
-    local percent = (delta / frameTime) * 100
-    if percent > 10 then
-        cpuFrame.text:SetTextColor(1, 0.2, 0.2)
-    else
-        cpuFrame.text:SetTextColor(1, 1, 1)
-    end
-    cpuFrame.text:SetText(string.format("LMAHI CPU: %.2f ms/s (%.1f%%)", delta, percent))
-end)
-]]
 -- Main frame hookup
 LMAHI.mainFrame = mainFrame
 
@@ -2072,15 +2128,3 @@ C_Timer.After(1, function()
     end
 end)
 
--- Slash command for selection frame
-SLASH_LMAHISELECT1 = "/lmahiselect"
-SlashCmdList["LMAHISELECT"] = function()
-    if _G.LMAHI_Sleeping then
-        print("LMAHI: Addon is in sleep mode. Click the minimap button or use /lmahi to activate.")
-        return
-    end
-    if not LMAHI.lockoutSelectionFrame then
-        LMAHI.lockoutSelectionFrame = CreateLockoutSelectionFrame()
-    end
-    LMAHI.lockoutSelectionFrame:SetShown(not LMAHI.lockoutSelectionFrame:IsShown())
-end
