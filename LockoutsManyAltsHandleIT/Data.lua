@@ -1,4 +1,4 @@
------ Data.lua
+     -- Data lua
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -32,8 +32,8 @@ LMAHI.InitializeData = function()
         { id = 1207, name = "Amirdrassil, the Dream's Hope", reset = "weekly", expansion = "DF" },
         { id = 1234, name = "Vault of the Incarnates", reset = "weekly", expansion = "DF" },
         { id = 5678, name = "Aberrus, the Shadowed Crucible", reset = "weekly", expansion = "DF" },
-		{ id = 2296, name = "Castle Nathria", reset = "weekly", expansion = "SL" },
-        { id = 2450, name = "Sanctum of Domination", reset = "weekly", expansion = "SL" },
+        { id = 2296, name = "Castle Nathria", reset = "weekly", expansion = "SL" },
+        { id = 2450, name = "Sanctum of Domination", reset = "weekly", expansion = "weekly", expansion = "SL" },
         { id = 2481, name = "Sepulcher of the First Ones", reset = "weekly", expansion = "SL" },
 		{ id = 1861, name = "Uldir", reset = "weekly", expansion = "BFA" },
 		{ id = 2070, name = "Battle of Dazar'alor", reset = "weekly", expansion = "BFA" },
@@ -80,20 +80,11 @@ LMAHI.InitializeData = function()
 		{ id = 469, name = "Blackwing Lair", reset = "weekly", expansion = "WOW" },
 		{ id = 509, name = "Ruins of Ahn'Qiraj", reset = "weekly", expansion = "WOW" },
 		{ id = 531, name = "Temple of Ahn'Qiraj", reset = "weekly", expansion = "WOW" },
-
-
-
-
-
-
-
-
-
     }
 
     -- Dungeons
     LMAHI.lockoutData.dungeons = {
-     { id = 2549, name = "The Rookery", reset = "daily", expansion = "TWW" },
+        { id = 2549, name = "The Rookery", reset = "daily", expansion = "TWW" },
         { id = 2550, name = "The Stonevault", reset = "daily", expansion = "TWW" },
         { id = 2551, name = "Priory of the Sacred Flame", reset = "daily", expansion = "TWW" },
         { id = 2552, name = "City of Threads", reset = "daily", expansion = "TWW" },
@@ -103,7 +94,6 @@ LMAHI.InitializeData = function()
         { id = 2556, name = "Ara-Kara, City of Echoes", reset = "daily", expansion = "TWW" },
         { id = 2557, name = "Operation: Floodgate", reset = "daily", expansion = "TWW" },
         { id = 2558, name = "Eco-Dome Al’dani", reset = "daily", expansion = "TWW" },
-
 		{ id = 2451, name = "Uldaman: Legacy of Tyr", reset = "daily", expansion = "DF" },
         { id = 2515, name = "Neltharus", reset = "daily", expansion = "DF" },
         { id = 2516, name = "The Nokhud Offensive", reset = "daily", expansion = "DF" },
@@ -114,7 +104,6 @@ LMAHI.InitializeData = function()
         { id = 2521, name = "Halls of Infusion", reset = "daily", expansion = "DF" },
         { id = 2569, name = "Dawn of the Infinite: Galakrond's Fall", reset = "daily", expansion = "DF" },
         { id = 2570, name = "Dawn of the Infinite: Murozond's Rise", reset = "daily", expansion = "DF" },
-		
 		{ id = 2284, name = "Sanguine Depths", reset = "daily", expansion = "SL" },
         { id = 2285, name = "Spires of Ascension", reset = "daily", expansion = "SL" },
         { id = 2286, name = "The Necrotic Wake", reset = "daily", expansion = "SL" },
@@ -124,7 +113,6 @@ LMAHI.InitializeData = function()
         { id = 2291, name = "De Other Side", reset = "daily", expansion = "SL" },
         { id = 2293, name = "Theater of Pain", reset = "daily", expansion = "SL" },
         { id = 2441, name = "Tazavesh, the Veiled Market", reset = "daily", expansion = "SL" },
-		
 		{ id = 1594, name = "The MOTHERLODE!!", reset = "daily", expansion = "BFA" },
 		{ id = 1754, name = "Freehold", reset = "daily", expansion = "BFA" },
 		{ id = 1762, name = "Kings' Rest", reset = "daily", expansion = "BFA" },
@@ -136,7 +124,6 @@ LMAHI.InitializeData = function()
 		{ id = 1864, name = "Shrine of the Storm", reset = "daily", expansion = "BFA" },
 		{ id = 1877, name = "Temple of Sethraliss", reset = "daily", expansion = "BFA" },
 		{ id = 2097, name = "Operation: Mechagon", reset = "daily", expansion = "BFA" },
-		
 		{ id = 1456, name = "Eye of Azshara", reset = "daily", expansion = "LGN" },
 		{ id = 1458, name = "Neltharion's Lair", reset = "daily", expansion = "LGN" },
 		{ id = 1466, name = "Darkheart Thicket", reset = "daily", expansion = "LGN" },
@@ -150,7 +137,6 @@ LMAHI.InitializeData = function()
 		{ id = 1651, name = "Return to Karazhan", reset = "daily", expansion = "LGN" },
 		{ id = 1677, name = "Cathedral of Eternal Night", reset = "daily", expansion = "LGN" },
 		{ id = 1753, name = "Seat of the Triumvirate", reset = "daily", expansion = "LGN" },
-		
 		{ id = 1175, name = "Bloodmaul Slag Mines", reset = "daily", expansion = "WOD" },
 		{ id = 1195, name = "Iron Docks", reset = "daily", expansion = "WOD" },
 		{ id = 1182, name = "Auchindoun", reset = "daily", expansion = "WOD" },
@@ -159,7 +145,6 @@ LMAHI.InitializeData = function()
 		{ id = 1176, name = "Shadowmoon Burial Grounds", reset = "daily", expansion = "WOD" },
 		{ id = 1279, name = "The Everbloom", reset = "daily", expansion = "WOD" },
 		{ id = 1358, name = "Upper Blackrock Spire", reset = "daily", expansion = "WOD" },
-		
 		{ id = 959, name = "Temple of the Jade Serpent", reset = "daily", expansion = "MOP" },
 		{ id = 960, name = "Stormstout Brewery", reset = "daily", expansion = "MOP" },
 		{ id = 961, name = "Shado-Pan Monastery", reset = "daily", expansion = "MOP" },
@@ -169,7 +154,6 @@ LMAHI.InitializeData = function()
 		{ id = 1001, name = "Scarlet Halls", reset = "daily", expansion = "MOP" },
 		{ id = 1004, name = "Scarlet Monastery", reset = "daily", expansion = "MOP" },
 		{ id = 1007, name = "Scholomance", reset = "daily", expansion = "MOP" },
-		
 		{ id = 645, name = "Blackrock Caverns", reset = "daily", expansion = "CAT" },
 		{ id = 643, name = "Throne of the Tides", reset = "daily", expansion = "CAT" },
 		{ id = 725, name = "The Stonecore", reset = "daily", expansion = "CAT" },
@@ -184,7 +168,6 @@ LMAHI.InitializeData = function()
 		{ id = 938, name = "End Time", reset = "daily", expansion = "CAT" },
 		{ id = 939, name = "Well of Eternity", reset = "daily", expansion = "CAT" },
 		{ id = 940, name = "Hour of Twilight", reset = "daily", expansion = "CAT" },
-		
 		{ id = 574, name = "Utgarde Keep", reset = "daily", expansion = "WLK" },
 		{ id = 575, name = "Utgarde Pinnacle", reset = "daily", expansion = "WLK" },
 		{ id = 576, name = "The Nexus", reset = "daily", expansion = "WLK" },
@@ -201,7 +184,6 @@ LMAHI.InitializeData = function()
 		{ id = 650, name = "Trial of the Champion", reset = "daily", expansion = "WLK" },
 		{ id = 658, name = "Pit of Saron", reset = "daily", expansion = "WLK" },
 		{ id = 668, name = "Halls of Reflection", reset = "daily", expansion = "WLK" },
-		
 		{ id = 542, name = "The Blood Furnace", reset = "daily", expansion = "TBC" },
 		{ id = 543, name = "Hellfire Ramparts", reset = "daily", expansion = "TBC" },
 		{ id = 540, name = "The Shattered Halls", reset = "daily", expansion = "TBC" },
@@ -218,7 +200,6 @@ LMAHI.InitializeData = function()
 		{ id = 553, name = "The Botanica", reset = "daily", expansion = "TBC" },
 		{ id = 552, name = "The Arcatraz", reset = "daily", expansion = "TBC" },
 		{ id = 585, name = "Magisters' Terrace", reset = "daily", expansion = "TBC" },
-		
 		{ id = 33, name = "Shadowfang Keep", reset = "daily", expansion = "WOW" },
 		{ id = 34, name = "The Stockade", reset = "daily", expansion = "WOW" },
 		{ id = 36, name = "The Deadmines", reset = "daily", expansion = "WOW" },
@@ -236,17 +217,6 @@ LMAHI.InitializeData = function()
 		{ id = 349, name = "Maraudon", reset = "daily", expansion = "WOW" },
 		{ id = 389, name = "Ragefire Chasm", reset = "daily", expansion = "WOW" },
 		{ id = 429, name = "Dire Maul", reset = "daily", expansion = "WOW" },
-
-
-
-
-
-
-
-
-
-
-	    
     }
 
     -- Quests
@@ -295,147 +265,5 @@ LMAHI.InitializeData = function()
     -- Initialize lockouts for all characters
     if LMAHI.InitializeLockouts then
         LMAHI.InitializeLockouts()
-    end
-end
-
-
-
-function LMAHI.SaveCharacterData()
-    local charName = UnitName("player") .. "-" .. GetRealmName()
-    LMAHI_SavedData.characters[charName] = true
-    LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
-    local _, class = UnitClass("player")
-    local _, _, _, r, g, b = GetClassColor(class)
-    LMAHI_SavedData.classColors[charName] = { r = r, g = g, b = b }
-    local faction = UnitFactionGroup("player") or "Neutral"
-    LMAHI_SavedData.factions[charName] = faction
-end
-
-function LMAHI.CheckLockouts(event, arg1)
-    local charName = UnitName("player") .. "-" .. GetRealmName()
-    LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
-
-    -- Clear existing lockouts for the specified types to ensure only active lockouts are stored
-    for _, lockoutType in ipairs({"custom", "raids", "dungeons", "quests", "rares", "currencies"}) do
-        for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
-            local lockoutId = tostring(lockout.id)
-            LMAHI_SavedData.lockouts[charName][lockoutId] = nil
-        end
-    end
-
-    -- Check raid lockouts
-    for i = 1, GetNumSavedInstances() do
-        local name, id, reset, difficulty, locked, _, _, _, _, _, numEncounters = GetSavedInstanceInfo(i)
-        if locked then
-            for _, lockout in ipairs(LMAHI.lockoutData.raids) do
-                if lockout.name == name then
-                    LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = true
-                end
-            end
-        end
-    end
-
-    -- Check dungeon lockouts
-    for i = 1, GetNumSavedInstances() do
-        local name, id, reset, difficulty, locked, _, _, _, _, _, numEncounters = GetSavedInstanceInfo(i)
-        if locked and difficulty == 23 then -- Mythic difficulty
-            for _, lockout in ipairs(LMAHI.lockoutData.dungeons) do
-                if lockout.name == name then
-                    LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = true
-                end
-            end
-        end
-    end
-
-    -- Check quest lockouts
-    for _, lockout in ipairs(LMAHI.lockoutData.quests) do
-        local lockoutId = tostring(lockout.id)
-        if C_QuestLog.IsQuestFlaggedCompleted(lockout.id) then
-            LMAHI_SavedData.lockouts[charName][lockoutId] = true
-        end
-    end
-
-    -- Check rare lockouts
-    for _, lockout in ipairs(LMAHI.lockoutData.rares) do
-        local lockoutId = tostring(lockout.id)
-        if C_QuestLog.IsQuestFlaggedCompleted(lockout.id) then
-            LMAHI_SavedData.lockouts[charName][lockoutId] = true
-        end
-    end
-
-    -- Check currency lockouts
-    for _, lockout in ipairs(LMAHI.lockoutData.currencies) do
-        local lockoutId = tostring(lockout.id)
-        local _, currentAmount = C_CurrencyInfo.GetCurrencyInfo(lockout.id)
-        if currentAmount and currentAmount >= (lockout.max or math.huge) then
-            LMAHI_SavedData.lockouts[charName][lockoutId] = true
-        end
-    end
-
-    -- Check custom lockouts
-    for _, lockout in ipairs(LMAHI.lockoutData.custom) do
-        local lockoutId = tostring(lockout.id)
-        if C_QuestLog.IsQuestFlaggedCompleted(lockout.id) then
-            LMAHI_SavedData.lockouts[charName][lockoutId] = true
-        end
-    end
-end
-
-function LMAHI.InitializeLockouts()
-    LMAHI.lockoutData.custom = LMAHI_SavedData.customLockouts or {}
-    for charName, _ in pairs(LMAHI_SavedData.characters or {}) do
-        LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
-    end
-end
-
-function LMAHI.CleanLockouts()
-    for charName, lockouts in pairs(LMAHI_SavedData.lockouts) do
-        for lockoutId, _ in pairs(lockouts) do
-            local found = false
-            for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
-                for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
-                    if tostring(lockout.id) == lockoutId then
-                        found = true
-                        break
-                    end
-                end
-                if found then break end
-            end
-            if not found then
-                lockouts[lockoutId] = nil
-            end
-        end
-    end
-end
-
-function LMAHI.CheckResetTimers()
-    local currentTime = time()
-    local weeklyReset = C_DateAndTime.GetSecondsUntilWeeklyReset()
-    local dailyReset = C_DateAndTime.GetSecondsUntilDailyReset()
-
-    if weeklyReset <= 0 then
-        LMAHI_SavedData.lastWeeklyReset = currentTime + weeklyReset
-        for charName, lockouts in pairs(LMAHI_SavedData.lockouts) do
-            for _, lockoutType in ipairs({"custom", "raids", "dungeons", "quests", "rares", "currencies"}) do
-                for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
-                    if lockout.reset == "weekly" then
-                        lockouts[tostring(lockout.id)] = nil
-                    end
-                end
-            end
-        end
-    end
-
-    if dailyReset <= 0 then
-        LMAHI_SavedData.lastDailyReset = currentTime + dailyReset
-        for charName, lockouts in pairs(LMAHI_SavedData.lockouts) do
-            for _, lockoutType in ipairs({"custom", "dungeons", "rares"}) do
-                for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
-                    if lockout.reset == "daily" then
-                        lockouts[tostring(lockout.id)] = nil
-                    end
-                end
-            end
-        end
     end
 end
