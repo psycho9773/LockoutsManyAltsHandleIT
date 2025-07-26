@@ -1,4 +1,4 @@
--- Core.lua
+---- Core.lua
 
 -- Keep ALL HEADERS HEX and everything else r, g, b for colors of text
 
@@ -1747,16 +1747,16 @@ function LMAHI.CreateLockoutSelectionFrame()
                                             end)
                                         end
                                         checkbox:Show()
-                                        yOffset = yOffset - 18
+                                        yOffset = yOffset - 22   -- moves each lockout in each expansion r d q r c apart
                                     end
                                 end
                             end
-                            yOffset = yOffset - 5
+                            yOffset = yOffset - 5   -- moves each expansion r d q r c apart
                         end
                     end
                 end
             end
-            yOffset = yOffset - 10
+            yOffset = yOffset - 10   -- moves each expansion apart
         end
 
         content:SetHeight(-yOffset + 20)
@@ -1925,11 +1925,11 @@ LMAHI.collapseButtons = collapseButtons
 
 local memFrame = CreateFrame("Frame", "LMAHIMemoryFrame", UIParent)
 memFrame:SetFrameStrata("DIALOG")
-memFrame:SetSize(175, 15)
-memFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 75, -4)
+memFrame:SetSize(160, 15)
+memFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 125, -4)
 memFrame.bg = memFrame:CreateTexture(nil, "BACKGROUND")
 memFrame.bg:SetAllPoints()
-memFrame.bg:SetColorTexture(0, 0, 0, 0.25)
+memFrame.bg:SetColorTexture(0, 0, 0, 0.1)
 memFrame.text = memFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 memFrame.text:SetPoint("LEFT", memFrame, "LEFT")
 memFrame.text:SetTextColor(1, 1, 1)
@@ -1938,11 +1938,11 @@ memFrame:Hide()
 -- CPU Tracker Frame
 local cpuFrame = CreateFrame("Frame", "LMAHICPUFrame", UIParent)
 cpuFrame:SetFrameStrata("DIALOG")
-cpuFrame:SetSize(225, 15)
-cpuFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 75, -19)
+cpuFrame:SetSize(160, 15)
+cpuFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 125, -19)
 cpuFrame.bg = cpuFrame:CreateTexture(nil, "BACKGROUND")
 cpuFrame.bg:SetAllPoints()
-cpuFrame.bg:SetColorTexture(0, 0, 0, 0.25)
+cpuFrame.bg:SetColorTexture(0, 0, 0, 0.1)
 cpuFrame.text = cpuFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 cpuFrame.text:SetPoint("LEFT", cpuFrame, "LEFT")
 cpuFrame.text:SetTextColor(1, 1, 1)
@@ -1975,7 +1975,7 @@ local function StartPerformanceTracking()
         else
             cpuFrame.text:SetTextColor(1, 1, 1)
         end
-        cpuFrame.text:SetText(string.format("LMAHI CPU: %.2f ms/s (%.1f%%)", delta, percent))
+cpuFrame.text:SetText(string.format("LMAHI CPU:   %.1f%%", percent))
     end)
 
     memFrame:Show()
@@ -1997,8 +1997,8 @@ local trackingEnabled = false
 -- Create the button frame
 local toggleButton = CreateFrame("Button", "CustomMTToggle", UIParent, "BackdropTemplate")
 toggleButton:SetFrameStrata("DIALOG")
-toggleButton:SetSize(24, 45)
-toggleButton:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 48, -2)
+toggleButton:SetSize(40, 20)
+toggleButton:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 73, -4)
 
 toggleButton:SetBackdrop({
     bgFile = "Interface\\Buttons\\WHITE8x8",
@@ -2009,10 +2009,10 @@ toggleButton:SetBackdrop({
 toggleButton:SetBackdropColor(0.4, 0, 0, 0.5) 
 
 local font = toggleButton:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-font:SetPoint("CENTER")
+font:SetPoint("BOTTOM", -2, 4)
 font:SetJustifyH("CENTER")
 font:SetJustifyV("MIDDLE")
-font:SetText("O\nF\nF")
+font:SetText("OFF")
 font:SetTextColor(1, 0, 0)  
 toggleButton.font = font
 
@@ -2021,12 +2021,12 @@ toggleButton:SetScript("OnClick", function()
     trackingEnabled = not trackingEnabled
     if trackingEnabled then
         StartPerformanceTracking()
-        font:SetText("O\nN")
+        font:SetText("ON")
         font:SetTextColor(0, 1, 0)  
         toggleButton:SetBackdropColor(0, 0.4, 0, 0.5)  
     else
         StopPerformanceTracking()
-        font:SetText("O\nF\nF")
+        font:SetText("OFF")
         font:SetTextColor(1, 0, 0)  
         toggleButton:SetBackdropColor(0.4, 0, 0, 0.5) 
     end
