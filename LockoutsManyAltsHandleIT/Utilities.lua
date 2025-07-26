@@ -1,5 +1,3 @@
--- Utilities.lua
-
 local addonName, addon = ...
 if not _G.LMAHI then
     _G.LMAHI = addon
@@ -31,7 +29,7 @@ LMAHI.SaveCharacterData = function()
             maxOrder = math.max(maxOrder, order)
         end
         LMAHI_SavedData.charOrder[charName] = maxOrder + 1
-        print("LMAHI Debug: Registered character " .. charName .. " with order " .. (maxOrder + 1))
+        print("LMAHI: Registered character " .. charName .. " with order " .. (maxOrder + 1))
     end
 end
 
@@ -63,45 +61,45 @@ LMAHI.CheckLockouts = function(event, questId)
     -- Check saved instances
     local numSaved = GetNumSavedInstances()
     for i = 1, numSaved do
-        local name, id, _, _, locked, _, _, _, _, _, encounterProgress, _ = GetSavedInstanceInfo(i)
-        if locked and id then
+        local name, id, reset, difficulty, locked, _, _, _, _, _, encounterProgress = GetSavedInstanceInfo(i)
+        if locked then
             for _, lockout in ipairs(LMAHI.lockoutData.raids) do
-                if lockout.id == id then
-                    LMAHI_SavedData.lockouts[charName][tostring(id)] = true
-                    break
+                if lockout.name == name then
+                    LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = true
                 end
             end
-            for _, lockout in ipairs(LMAHI.lockoutData.dungeons) do
-                if lockout.id == id then
-                    LMAHI_SavedData.lockouts[charName][tostring(id)] = true
-                    break
-                end
-            end
-        end
-    end
-    
-    -- Check both quests and rares for completions
-    local completedQuests = C_QuestLog.GetAllCompletedQuestIDs() or {}
-    for _, qId in ipairs(completedQuests) do
-        for _, lockoutType in ipairs({"quests", "rares"}) do
-            for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
-                if lockout.id and lockout.id == qId then
-                    local lockoutId = tostring(qId)
-                    LMAHI_SavedData.lockouts[charName][lockoutId] = true
-                    break
+            if difficulty == 23 then -- Mythic difficulty
+                for _, lockout in ipairs(LMAHI.lockoutData.dungeons) do
+                    if lockout.name == name then
+                        LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = true
+                    end
                 end
             end
         end
     end
     
-    -- Check currencies
-    for _, currency in ipairs(LMAHI.lockoutData.currencies or {}) do
-        if currency.id then
-            local lockoutId = tostring(currency.id)
-            local info = C_CurrencyInfo.GetCurrencyInfo(currency.id)
-            if info and info.quantity >= (currency.max or math.huge) then
-                LMAHI_SavedData.lockouts[charName][lockoutId] = true
-            end
+    -- Check quest lockouts
+    for _, lockout in ipairs(LMAHI.lockoutData.quests) do
+        local lockoutId = tostring(lockout.id)
+        if C_QuestLog.IsQuestFlaggedCompleted(lockout.id) then
+            LMAHI_SavedData.lockouts[charName][lockoutId] = true
+        end
+    end
+
+    -- Check rare lockouts
+    for _, lockout in ipairs(LMAHI.lockoutData.rares) do
+        local lockoutId = tostring(lockout.id)
+        if C_QuestLog.IsQuestFlaggedCompleted(lockout.id) then
+            LMAHI_SavedData.lockouts[charName][lockoutId] = true
+        end
+    end
+
+    -- Check currency lockouts
+    for _, lockout in ipairs(LMAHI.lockoutData.currencies) do
+        local lockoutId = tostring(lockout.id)
+        local _, currentAmount = C_CurrencyInfo.GetCurrencyInfo(lockout.id)
+        if currentAmount and currentAmount >= (lockout.max or math.huge) then
+            LMAHI_SavedData.lockouts[charName][lockoutId] = true
         end
     end
     
@@ -118,6 +116,7 @@ LMAHI.InitializeLockouts = function()
     LMAHI_SavedData.lockouts = LMAHI_SavedData.lockouts or {}
     LMAHI_SavedData.characters = LMAHI_SavedData.characters or {}
     
+    LMAHI.lockoutData.custom = LMAHI_SavedData.customLockouts or {}
     for charName, _ in pairs(LMAHI_SavedData.characters) do
         LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
     end
@@ -252,8 +251,6 @@ SlashCmdList["LMAHI"] = function()
     end
 end
 
-
-
 SLASH_LMAHIWIPE1 = "/lmahiwipe"
 SlashCmdList["LMAHIWIPE"] = function()
     StaticPopupDialogs["LMAHIWIPE_CONFIRM"] = {
@@ -270,4 +267,3 @@ SlashCmdList["LMAHIWIPE"] = function()
     }
     StaticPopup_Show("LMAHIWIPE_CONFIRM")
 end
-
