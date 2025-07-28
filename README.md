@@ -1,13 +1,13 @@
 # LockoutsManyAltsHandleIT
 
-> ⚠️ This addon is currently in **BETA**. Features and data WILL change!
-      Almost 2/3 of the way done.
+> ⚠️ This addon is currently in **ALPHA**. Features and data WILL change!
+      Almost 4/5 of the way done.
 
 A World of Warcraft Retail addon to manage and view lockouts across multiple characters.
 
 ## 🔧 Features
 
-- Display all custom, raid, dungeon, quest, or rare lockouts across all of your alternate character's.
+- Display custom, raid, dungeon, quest, or rare lockouts across all of your alternate character's.
 - Paged display showing 10 characters at a time up to 100 character's (max is 64 currently)
 - Moveable, zoomable, scrollable with settings saved across all character's
 - Simple, clean interface with no dependencies
