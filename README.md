@@ -13,7 +13,7 @@ A World of Warcraft Retail addon to manage and view lockouts across multiple cha
 - Simple, clean interface with no dependencies
 - Persistent saved variables for lockouts
 
-![Pageable lockout screen]([https://i.imgur.com/coOnB0W.png](https://imgur.com/ogiulKe) )
+![Pageable lockout screen](https://imgur.com/ogiulKe.png) )
 
 ![Custom input and character sorting frames](https://i.imgur.com/NphbjJI.png )
 
