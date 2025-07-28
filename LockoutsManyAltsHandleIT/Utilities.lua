@@ -1,4 +1,4 @@
-   -- Utilities.lua
+--Utilities.lua
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -96,14 +96,27 @@ LMAHI.CheckLockouts = function(event, questId)
         end
     end
 
-    -- Check currency lockouts
-    for _, lockout in ipairs(LMAHI.lockoutData.currencies) do
-        local lockoutId = tostring(lockout.id)
-        local _, currentAmount = C_CurrencyInfo.GetCurrencyInfo(lockout.id)
-        if currentAmount and currentAmount >= (lockout.max or math.huge) then
-            LMAHI_SavedData.lockouts[charName][lockoutId] = true
-        end
+-- Check currency lockouts
+
+LMAHI_SavedData.currencyInfo = LMAHI_SavedData.currencyInfo or {}
+LMAHI_SavedData.currencyInfo[charName] = LMAHI_SavedData.currencyInfo[charName] or {}
+
+for _, lockout in ipairs(LMAHI.lockoutData.currencies) do
+    local lockoutId = tostring(lockout.id)
+    
+    -- Fetch currency info
+    local info = C_CurrencyInfo.GetCurrencyInfo(lockout.id)
+    local currentAmount = info and info.quantity or 0
+    
+    -- Save amount for display
+    LMAHI_SavedData.currencyInfo[charName][lockout.id] = currentAmount
+    
+    -- Mark lockout if max reached (optional logic)
+    if currentAmount and currentAmount >= (lockout.max or math.huge) then
+        LMAHI_SavedData.lockouts[charName][lockoutId] = true
     end
+end
+
     
     -- Check custom lockouts
     for _, lockout in ipairs(LMAHI.lockoutData.custom or {}) do
