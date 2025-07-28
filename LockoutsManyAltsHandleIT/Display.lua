@@ -1,4 +1,5 @@
--- Display.lua
+
+----- Display.lua
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -205,8 +206,13 @@ function LMAHI.UpdateDisplay()
             label:Hide()
             label:ClearAllPoints()
             label:SetText("")
+            label:EnableMouse(false)
+            label:SetScript("OnEnter", nil)
+            label:SetScript("OnLeave", nil)
         elseif label:IsObjectType("CheckButton") then
             ReleaseCheckButton(label)
+        elseif label:IsObjectType("Button") then
+            ReleaseButton(label)
         end
     end
     for _, button in ipairs(LMAHI.collapseButtons) do
@@ -466,42 +472,199 @@ function LMAHI.UpdateDisplay()
                             table.insert(LMAHI.hoverRegions, hoverRegion)
 
                             for i, charName in ipairs(displayChars) do
-                                local indicator = AcquireCheckButton(LMAHI.lockoutContent)
-                                indicator:SetSize(16, 16)
-                                indicator:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 240 + (i-1) * 96 + (94 - 16) / -6, offsetY + 2)
+                                if lockoutType == "currencies" then
+                                    local currencyAmount = nil
+                                    local lockoutId = tostring(lockout.id)
+                                    local isAccountWide = lockout.isAccountWide or false
 
-                                local isLocked = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] or false
-                                indicator:GetNormalTexture():SetVertexColor(isLocked and 0.8 or 0.2, isLocked and 0.2 or 0.8, 0.2, 1)
-                                indicator:GetCheckedTexture():SetVertexColor(isLocked and 0.8 or 0.2, isLocked and 0.2 or 0.8, 0.2, 1)
-                                indicator:SetChecked(isLocked)
-
-                                indicator:SetScript("OnEnter", function()
-                                    if not IsElementInView(indicator, LMAHI.lockoutScrollFrame) then return end
-                                    GameTooltip:SetOwner(indicator, "ANCHOR_TOP")
-                                    GameTooltip:AddLine(isLocked and "Locked" or "Available", isLocked and 1 or 0, isLocked and 0 or 1, 0)
-                                    GameTooltip:Show()
-                                end)
-                                indicator:SetScript("OnLeave", function()
-                                    GameTooltip:Hide()
-                                end)
-                                indicator:SetScript("OnClick", function()
-                                    LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
-                                    if isLocked then
-                                        LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = nil
+                                    if charName == currentChar then
+                                        local info = C_CurrencyInfo.GetCurrencyInfo(lockout.id)
+                                        if info then
+                                            currencyAmount = info.quantity ~= 0 and info.quantity or nil
+                                            isAccountWide = info.isAccountWide or lockout.isAccountWide or false
+                                            LMAHI_SavedData.currencyInfo[charName] = LMAHI_SavedData.currencyInfo[charName] or {}
+                                            LMAHI_SavedData.currencyInfo[charName][lockoutId] = currencyAmount
+                                        else
+                                            currencyAmount = nil
+                                        end
                                     else
-                                        LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = true
+                                        currencyAmount = (LMAHI_SavedData.currencyInfo[charName] and LMAHI_SavedData.currencyInfo[charName][lockoutId]) or nil
+                                        if currencyAmount == 0 then currencyAmount = nil end
                                     end
-                                    LMAHI.UpdateDisplay()
-                                end)
 
-                                table.insert(LMAHI.lockoutLabels, indicator)
+                                    if currencyAmount then
+                                        local amountLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+                                        amountLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 205 + (i-1) * 96, offsetY)
+                                        amountLabel:SetWidth(80)
+                                        amountLabel:SetJustifyH("CENTER")
+                                        amountLabel:SetText(tostring(currencyAmount))
+                                        if isAccountWide then
+                                            amountLabel:SetTextColor(0.6, 0.8, 1, 1) -- Blue for account-wide
+                                        else
+                                            amountLabel:SetTextColor(1, 1, 1, 1) -- White for character-specific
+                                        end
+                                        amountLabel:Show()
+                                        table.insert(LMAHI.lockoutLabels, amountLabel)
+                                    else
+                                        -- Display blank for missing or zero currency
+                                        local amountLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+                                        amountLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 205 + (i-1) * 96, offsetY - 2)
+                                        amountLabel:SetWidth(80)
+                                        amountLabel:SetJustifyH("CENTER")
+                                        amountLabel:SetText("")
+                                        amountLabel:SetTextColor(1, 1, 1, 1)
+                                        amountLabel:Show()
+                                        table.insert(LMAHI.lockoutLabels, amountLabel)
+                                    end
+									
+									-- Display for Raids and Dungeons
+									
+                                elseif lockoutType == "raids" or lockoutType == "dungeons" then
+                                    local difficulties = lockoutType == "raids" and (lockout.expansion == "CAT" and {"N", "H"} or {"LFR", "N", "H", "M"}) or {"N", "H", "M"}
+                                    local difficultyIds = lockoutType == "raids" and (lockout.expansion == "CAT" and {14, 15} or {17, 14, 15, 16}) or {1, 23, 16}
+                                    local colorCodes = lockoutType == "raids" and (lockout.expansion == "CAT" and {"|cff00ff00", "|cffffff00"} or {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"}) or {"|cff00ff00", "|cffffff00", "|cffff8000"}
+                                    local baseX = 210 + (i-1) * 96
+                                    local hitboxWidth = 20
+                                    local activeDifficulties = {}
+                                    local lockoutKey = lockoutType == "custom" and ("Custom_" .. lockout.id) or ((lockout.expansion or "TWW") .. "_" .. lockoutType .. "_" .. lockout.id)
+
+                                    for j, difficulty in ipairs(difficulties) do
+                                        local diffLockoutId = tostring(lockout.id) .. "-" .. difficultyIds[j]
+                                        local isLocked = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][diffLockoutId] or false
+                                        local colorCode
+                                        if charName == currentChar then
+                                            local instanceIndex
+                                            for k = 1, GetNumSavedInstances() do
+                                                local name, id, _, diff = GetSavedInstanceInfo(k)
+                                                if id == lockout.id and diff == difficultyIds[j] then
+                                                    instanceIndex = k
+                                                    break
+                                                end
+                                            end
+                                            if instanceIndex then
+                                                local _, _, _, _, _, _, _, _, _, _, numEncounters = GetSavedInstanceInfo(instanceIndex)
+                                                local bossesKilled = 0
+                                                for k = 1, numEncounters do
+                                                    local _, _, isKilled = GetSavedInstanceEncounterInfo(instanceIndex, k)
+                                                    if isKilled then bossesKilled = bossesKilled + 1 end
+                                                end
+                                                if bossesKilled == numEncounters then
+                                                    colorCode = "|cffff0000"
+                                                elseif bossesKilled > 0 then
+                                                    colorCode = "|cff808080"
+                                                else
+                                                    colorCode = colorCodes[j]
+                                                end
+                                            else
+                                                colorCode = colorCodes[j]
+                                            end
+                                        else
+                                            colorCode = isLocked and "|cffff0000" or colorCodes[j]
+                                        end
+                                        local coloredText = colorCode .. difficulty .. "|r"
+                                        table.insert(activeDifficulties, { difficulty = difficulty, lockoutId = diffLockoutId, difficultyId = difficultyIds[j], isLocked = isLocked })
+
+                                        -- Create individual font string for each difficulty
+                                        local statusLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+                                        statusLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", baseX + (j-1) * hitboxWidth, offsetY)
+                                        statusLabel:SetWidth(hitboxWidth)
+                                        statusLabel:SetJustifyH("CENTER")
+                                        statusLabel:SetText(coloredText)
+                                        statusLabel:EnableMouse(true)
+                                        statusLabel.lockoutId = lockout.id
+                                        statusLabel.lockoutName = lockout.name
+                                        statusLabel.difficultyData = activeDifficulties[j]
+                                        statusLabel.lockoutType = lockoutType
+                                        statusLabel.lockoutKey = lockoutKey
+                                        statusLabel:SetScript("OnEnter", function(self)
+                                            if not IsElementInView(self, LMAHI.lockoutScrollFrame) then
+                                                return
+                                            end
+                                            if not self:IsVisible() or not MouseIsOver(self) then
+                                                return
+                                            end
+                                            if LMAHI_SavedData.collapsedSections[self.lockoutType] then
+                                                return
+                                            end
+                                            if LMAHI_SavedData.lockoutVisibility[self.lockoutKey] ~= true then
+                                               -- print("LMAHI Debug: Tooltip skipped for", self.lockoutName, "(lockout hidden)")
+                                                return
+                                            end
+
+                                            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+                                            GameTooltip:AddLine(self.lockoutName .. " (" .. self.difficultyData.difficulty .. ")", 1, 1, 1)
+                                            if charName == currentChar then
+                                                local instanceIndex
+                                                for k = 1, GetNumSavedInstances() do
+                                                    local name, id, reset, diff = GetSavedInstanceInfo(k)
+                                                    if id == self.lockoutId and diff == self.difficultyData.difficultyId then
+                                                        instanceIndex = k
+                                                        break
+                                                    end
+                                                end
+                                                if instanceIndex and LMAHI_SavedData.lockouts and LMAHI_SavedData.lockouts[instanceIndex] then
+                                                    local data = LMAHI_SavedData.lockouts[instanceIndex]
+                                                    local bossesKilled = 0
+                                                    for k = 1, data.numEncounters do
+                                                        local bossName = data.encounters[k] and data.encounters[k].name or ("Boss " .. k)
+                                                        local isKilled = data.encounters[k] and data.encounters[k].isKilled or false
+                                                        GameTooltip:AddLine(bossName .. ": " .. (isKilled and "Killed" or "Available"), isKilled and 1 or 0, isKilled and 0 or 1, 0)
+                                                        if isKilled then bossesKilled = bossesKilled + 1 end
+                                                    end
+                                                    GameTooltip:AddLine("Progress: " .. bossesKilled .. "/" .. data.numEncounters, 1, 1, 0)
+                                                    if data.reset > 0 then
+                                                        local timeText = SecondsToTime(data.reset)
+                                                        GameTooltip:AddLine("Resets in: " .. timeText, 0.8, 0.8, 0.8)
+                                                    end
+                                                else
+                                                    GameTooltip:AddLine("Available", 0, 1, 0)
+                                                   -- print("LMAHI Debug: No cached instance data for", self.lockoutName, self.difficultyData.difficulty, "ID:", self.lockoutId, "DiffID:", self.difficultyData.difficultyId)
+                                                end
+                                            else
+                                                GameTooltip:AddLine(self.difficultyData.isLocked and "Locked" or "Available", self.difficultyData.isLocked and 1 or 0, self.difficultyData.isLocked and 0 or 1, 0)
+                                            end
+                                            GameTooltip:Show()
+                                        end)
+                                        statusLabel:SetScript("OnLeave", function()
+                                            GameTooltip:Hide()
+                                        end)
+                                        statusLabel:Show()
+                                        table.insert(LMAHI.lockoutLabels, statusLabel)
+                                    end
+                                else
+                                    local indicator = AcquireCheckButton(LMAHI.lockoutContent)
+                                    indicator:SetSize(16, 16)
+                                    indicator:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 200 + (i-1) * 96 + (94 - 16) / 2, offsetY + 1)
+                                    local isLocked = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] or false
+                                    indicator:GetNormalTexture():SetVertexColor(isLocked and 0.8 or 0.2, isLocked and 0.2 or 0.8, 0.2, 1)
+                                    indicator:GetCheckedTexture():SetVertexColor(isLocked and 0.8 or 0.2, isLocked and 0.2 or 0.8, 0.2, 1)
+                                    indicator:SetChecked(isLocked)
+                                    indicator:SetScript("OnEnter", function(self)
+                                        if not IsElementInView(self, LMAHI.lockoutScrollFrame) then return end
+                                        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+                                        GameTooltip:AddLine(isLocked and "Locked" or "Available", isLocked and 1 or 0, isLocked and 0 or 1, 0)
+                                        GameTooltip:Show()
+                                    end)
+                                    indicator:SetScript("OnLeave", function()
+                                        GameTooltip:Hide()
+                                    end)
+                                    indicator:SetScript("OnClick", function()
+                                        LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
+                                        if isLocked then
+                                            LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = nil
+                                        else
+                                            LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = true
+                                        end
+                                        LMAHI.UpdateDisplay()
+                                    end)
+                                    table.insert(LMAHI.lockoutLabels, indicator)
+                                end
                             end
-
                             offsetY = offsetY - 18
                         end
                     end
+                    offsetY = offsetY - 5
                 end
-                offsetY = offsetY - 5
             end
         end
     end
@@ -564,10 +727,3 @@ local function HandleLogin()
 
     LMAHI.UpdateDisplay()
 end
-
-LMAHI.eventFrame = LMAHI.eventFrame or CreateFrame("Frame")
-LMAHI.eventFrame:RegisterEvent("PLAYER_LOGIN")
-LMAHI.eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-LMAHI.eventFrame:SetScript("OnEvent", function(self, event)
-    HandleLogin()
-end)
