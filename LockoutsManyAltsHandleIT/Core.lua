@@ -1,4 +1,4 @@
----- Core.lua
+-- Core.lua
 
 -- Keep ALL HEADERS HEX and everything else r, g, b for colors of text
 
@@ -771,7 +771,7 @@ tipLabel:SetPoint("TOPLEFT", customInputContent, "TOPLEFT", 35, -55)
 tipLabel:SetTextColor(0.9, 0.9, 0.9, 0.9)
 tipLabel:SetSpacing(3)
 local lines = {
-    "Type in the Name (quest,rare etc.) and ID., select a reset type",
+    "Type in the Name (Quest or Rare) and ID., select a reset type",
     "and then press the Add Custom Lockout button below.",
     "Reorganize the Custom Lockout order by typing a number",
     "in the edit box below and then press Enter.",
@@ -1791,63 +1791,26 @@ function LMAHI.CreateLockoutSelectionFrame()
 end
 
 
+
 -- Event handling
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
+eventFrame:RegisterEvent("PLAYER_LOGOUT")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+eventFrame:RegisterEvent("ENCOUNTER_END")
+eventFrame:RegisterEvent("QUEST_TURNED_IN")
+eventFrame:RegisterEvent("LFG_LOCK_INFO_RECEIVED")
+eventFrame:RegisterEvent("UPDATE_INSTANCE_INFO")
 eventFrame:SetScript("OnEvent", function(self, event, arg1)
+    local charName = UnitName("player") .. "-" .. GetRealmName()
+
     if event == "ADDON_LOADED" and arg1 == addonName then
         if LMAHI.InitializeData then
             LMAHI.InitializeData()
         end
-        LMAHI_SavedData.customLockouts = LMAHI_SavedData.customLockouts or {}
-        LMAHI.lockoutData.custom = LMAHI_SavedData.customLockouts
-        UpdateButtonPosition()
-        if LMAHI.InitializeLockouts then
-            LMAHI.InitializeLockouts()
-        end
-        if LMAHI.SaveCharacterData then
-            LMAHI.SaveCharacterData()
-        end
-        if LMAHI.CheckLockouts then
-            LMAHI.CheckLockouts()
-        end
-        LMAHI.currentPage = 1
-        mainFrame:SetScale(LMAHI_SavedData.zoomLevel)
-        settingsFrame:SetScale(LMAHI_SavedData.zoomLevel)
-        customInputFrame:SetScale(LMAHI_SavedData.zoomLevel)
-        mainFrame:Hide()
-    elseif event == "PLAYER_LOGIN" then
-        UpdateButtonPosition()
-        if LMAHI.SaveCharacterData then
-            LMAHI.SaveCharacterData()
-        end
-        if LMAHI.CheckLockouts then
-            LMAHI.CheckLockouts()
-        end
-        mainFrame:Hide()
-    end
-end)
 
-eventFrame:SetScript("OnUpdate", function(self, elapsed)
-    lastResetCheckTime = lastResetCheckTime + elapsed
-    if lastResetCheckTime >= resetCheckThrottle then
-        if LMAHI.CheckResetTimers then
-            LMAHI.CheckResetTimers()
-        end
-        lastResetCheckTime = 0
-    end
-end)
-
-mainFrame:RegisterEvent("ADDON_LOADED")
-mainFrame:RegisterEvent("PLAYER_LOGOUT")
-mainFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-mainFrame:RegisterEvent("ENCOUNTER_END")
-mainFrame:RegisterEvent("QUEST_TURNED_IN")
-mainFrame:RegisterEvent("LFG_LOCK_INFO_RECEIVED")
-mainFrame:RegisterEvent("UPDATE_INSTANCE_INFO")
-mainFrame:SetScript("OnEvent", function(self, event, arg1)
-    if event == "ADDON_LOADED" and arg1 == addonName then
+        -- SavedVariables initialization
         LMAHI_SavedData.minimapPos = LMAHI_SavedData.minimapPos or { angle = math.rad(145) }
         LMAHI_SavedData.framePos = LMAHI_SavedData.framePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
         LMAHI_SavedData.settingsFramePos = LMAHI_SavedData.settingsFramePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
@@ -1865,7 +1828,10 @@ mainFrame:SetScript("OnEvent", function(self, event, arg1)
         LMAHI_SavedData.lastWeeklyReset = LMAHI_SavedData.lastWeeklyReset or 0
         LMAHI_SavedData.lastDailyReset = LMAHI_SavedData.lastDailyReset or 0
         LMAHI_SavedData.selectionFrameCollapsed = LMAHI_SavedData.selectionFrameCollapsed or {}
+
         LMAHI.lockoutData.custom = LMAHI_SavedData.customLockouts
+
+        -- Character ordering
         local charList = {}
         for charName, _ in pairs(LMAHI_SavedData.characters) do
             table.insert(charList, charName)
@@ -1873,9 +1839,7 @@ mainFrame:SetScript("OnEvent", function(self, event, arg1)
         table.sort(charList, function(a, b)
             local aIndex = LMAHI_SavedData.charOrder[a] or 999
             local bIndex = LMAHI_SavedData.charOrder[b] or 1000
-            if aIndex == bIndex then
-                return a < b
-            end
+            if aIndex == bIndex then return a < b end
             return aIndex < bIndex
         end)
         local newCharOrder = {}
@@ -1883,27 +1847,79 @@ mainFrame:SetScript("OnEvent", function(self, event, arg1)
             newCharOrder[charName] = i
         end
         LMAHI_SavedData.charOrder = newCharOrder
-        if LMAHI.CheckLockouts then
-            LMAHI.CheckLockouts()
-        end
+
+        UpdateButtonPosition()
+        if LMAHI.InitializeLockouts then LMAHI.InitializeLockouts() end
+        if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
+        if LMAHI.CheckLockouts then LMAHI.CheckLockouts() end
+
+        LMAHI.currentPage = 1
+        mainFrame:SetScale(LMAHI_SavedData.zoomLevel)
+        settingsFrame:SetScale(LMAHI_SavedData.zoomLevel)
+        customInputFrame:SetScale(LMAHI_SavedData.zoomLevel)
         mainFrame:Hide()
         Utilities.StartGarbageCollector()
+
+    elseif event == "PLAYER_LOGIN" then
+        UpdateButtonPosition()
+        if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
+        if LMAHI.CheckLockouts then LMAHI.CheckLockouts() end
+        mainFrame:Hide()
+
     elseif event == "PLAYER_LOGOUT" then
-        if LMAHI.SaveCharacterData then
-            LMAHI.SaveCharacterData()
+        if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
+
+    elseif event == "PLAYER_ENTERING_WORLD" or event == "ENCOUNTER_END" or event == "QUEST_TURNED_IN"
+        or event == "LFG_LOCK_INFO_RECEIVED" or event == "UPDATE_INSTANCE_INFO" then
+
+        if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
+
+        LMAHI_SavedData.lockouts = LMAHI_SavedData.lockouts or {}
+        LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
+
+        for i = 1, GetNumSavedInstances() do
+            local name, id, reset, diff, locked, _, _, _, _, _, numEncounters = GetSavedInstanceInfo(i)
+            if locked then
+                LMAHI_SavedData.lockouts[charName][id] = {
+                    name = name,
+                    id = id,
+                    reset = reset,
+                    difficultyId = diff,
+                    numEncounters = numEncounters,
+                    encounters = {}
+                }
+
+                for k = 1, numEncounters do
+                    local bossName, _, isKilled = GetSavedInstanceEncounterInfo(i, k)
+                    LMAHI_SavedData.lockouts[charName][id].encounters[k] = {
+                        name = bossName or ("Boss " .. k),
+                        isKilled = isKilled
+                    }
+                end
+            end
         end
-    elseif event == "PLAYER_ENTERING_WORLD" or event == "ENCOUNTER_END" or event == "QUEST_TURNED_IN" or event == "LFG_LOCK_INFO_RECEIVED" or event == "UPDATE_INSTANCE_INFO" then
-        if LMAHI.SaveCharacterData then
-            LMAHI.SaveCharacterData()
-        end
-        if LMAHI.CheckLockouts then
-            LMAHI.CheckLockouts(event, arg1)
-        end
+
+        if LMAHI.CheckLockouts then LMAHI.CheckLockouts(event, arg1) end
         if mainFrame:IsShown() then
             ThrottledUpdateDisplay()
         end
     end
 end)
+
+
+-- Optional: reset check timer
+eventFrame:SetScript("OnUpdate", function(self, elapsed)
+    lastResetCheckTime = lastResetCheckTime + elapsed
+    if lastResetCheckTime >= resetCheckThrottle then
+        if LMAHI.CheckResetTimers then
+            LMAHI.CheckResetTimers()
+        end
+        lastResetCheckTime = 0
+    end
+end)
+
+
+
 
 -- Expose frames to namespace
 LMAHI.mainFrame = mainFrame
