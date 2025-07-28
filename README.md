@@ -15,7 +15,7 @@ A World of Warcraft Retail addon to manage and view lockouts across multiple cha
 
 ![Pageable lockout screen](https://imgur.com/ogiulKe.png) )
 
-![Custom input and character sorting frames](https://i.imgur.com/NphbjJI.png )
+![Custom input and character sorting frames]([https://i.imgur.com/NphbjJI.png ](https://imgur.com/dAR9uo1.png))
 
 ## 🚀 Getting Started
 
