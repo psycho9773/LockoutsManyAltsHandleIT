@@ -1,6 +1,6 @@
 
------ Display.lua
-
+-- Display.lua
+-
 local addonName, addon = ...
 if not _G.LMAHI then
     _G.LMAHI = addon
