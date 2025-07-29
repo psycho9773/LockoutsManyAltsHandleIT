@@ -1,4 +1,4 @@
--- Core.lua
+----- Core.lua
 
 -- Keep ALL HEADERS HEX and everything else r, g, b for colors of text
 
