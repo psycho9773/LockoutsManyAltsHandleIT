@@ -1042,8 +1042,8 @@ settingsFrame:SetPoint(
     LMAHI_SavedData.settingsFramePos.x,
     LMAHI_SavedData.settingsFramePos.y
 )
-settingsFrame:SetFrameStrata("HIGH")
-settingsFrame:SetFrameLevel(200)
+settingsFrame:SetFrameStrata("DIALOG")
+settingsFrame:SetFrameLevel(100)
 settingsFrame:EnableMouse(true)
 settingsFrame:SetMovable(true)
 settingsFrame:RegisterForDrag("LeftButton")
@@ -1828,8 +1828,22 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         LMAHI_SavedData.lastWeeklyReset = LMAHI_SavedData.lastWeeklyReset or 0
         LMAHI_SavedData.lastDailyReset = LMAHI_SavedData.lastDailyReset or 0
         LMAHI_SavedData.selectionFrameCollapsed = LMAHI_SavedData.selectionFrameCollapsed or {}
+        LMAHI_SavedData.lockoutVisibility = LMAHI_SavedData.lockoutVisibility or {}
+        LMAHI_SavedData.currentPage = LMAHI_SavedData.currentPage or 1
+        LMAHI_SavedData.lockoutVisibilityModified = LMAHI_SavedData.lockoutVisibilityModified or false
 
         LMAHI.lockoutData.custom = LMAHI_SavedData.customLockouts
+
+        -- Initialize lockoutVisibility only if not modified
+        if not LMAHI_SavedData.lockoutVisibilityModified then
+            for _, lockoutType in ipairs({"raids", "dungeons"}) do
+                for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
+                    local lockoutKey = (lockout.expansion or "TWW") .. "_" .. lockoutType .. "_" .. lockout.id
+                    LMAHI_SavedData.lockoutVisibility[lockoutKey] = LMAHI_SavedData.lockoutVisibility[lockoutKey] or (lockout.expansion == "TWW")
+                end
+            end
+            LMAHI_SavedData.lockoutVisibilityModified = true
+        end
 
         -- Character ordering
         local charList = {}
@@ -1853,7 +1867,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
         if LMAHI.CheckLockouts then LMAHI.CheckLockouts() end
 
-        LMAHI.currentPage = 1
+        LMAHI.currentPage = LMAHI_SavedData.currentPage
         mainFrame:SetScale(LMAHI_SavedData.zoomLevel)
         settingsFrame:SetScale(LMAHI_SavedData.zoomLevel)
         customInputFrame:SetScale(LMAHI_SavedData.zoomLevel)
@@ -1864,9 +1878,11 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         UpdateButtonPosition()
         if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
         if LMAHI.CheckLockouts then LMAHI.CheckLockouts() end
+        LMAHI.currentPage = LMAHI_SavedData.currentPage
         mainFrame:Hide()
 
     elseif event == "PLAYER_LOGOUT" then
+        LMAHI_SavedData.currentPage = LMAHI.currentPage
         if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
 
     elseif event == "PLAYER_ENTERING_WORLD" or event == "ENCOUNTER_END" or event == "QUEST_TURNED_IN"
@@ -1877,35 +1893,89 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         LMAHI_SavedData.lockouts = LMAHI_SavedData.lockouts or {}
         LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
 
-        for i = 1, GetNumSavedInstances() do
-            local name, id, reset, diff, locked, _, _, _, _, _, numEncounters = GetSavedInstanceInfo(i)
-            if locked then
-                LMAHI_SavedData.lockouts[charName][id] = {
-                    name = name,
-                    id = id,
-                    reset = reset,
-                    difficultyId = diff,
-                    numEncounters = numEncounters,
-                    encounters = {}
-                }
+        -- Preserve non-raid/dungeon lockouts
+        local nonRaidLockouts = {}
+        for key, data in pairs(LMAHI_SavedData.lockouts[charName]) do
+            if type(data) ~= "table" or (data.type and data.type ~= "raid" and data.type ~= "dungeon") then
+                nonRaidLockouts[key] = data
+            end
+        end
 
-                for k = 1, numEncounters do
-                    local bossName, _, isKilled = GetSavedInstanceEncounterInfo(i, k)
-                    LMAHI_SavedData.lockouts[charName][id].encounters[k] = {
-                        name = bossName or ("Boss " .. k),
-                        isKilled = isKilled
-                    }
+        -- Clear existing lockouts and repopulate with non-raid data
+        LMAHI_SavedData.lockouts[charName] = nonRaidLockouts
+
+        -- Map dungeon names to UI lockout IDs
+        local raidNameToId = {}
+        local dungeonNameToId = {}
+        for _, lockout in ipairs(LMAHI.lockoutData["raids"] or {}) do
+            raidNameToId[lockout.name] = lockout.id
+        end
+        for _, lockout in ipairs(LMAHI.lockoutData["dungeons"] or {}) do
+            dungeonNameToId[lockout.name] = lockout.id
+        end
+
+        -- Process saved instances
+        for i = 1, GetNumSavedInstances() do
+            local name, instanceId, reset, difficultyId, locked, _, _, _, _, _, numEncounters = GetSavedInstanceInfo(i)
+            if locked then
+                local lockoutId = raidNameToId[name] or dungeonNameToId[name]
+                if lockoutId then
+                    local lockoutType = raidNameToId[name] and "raid" or "dungeon"
+                    local validDifficulty = lockoutType == "raid" and (difficultyId == 14 or difficultyId == 15 or difficultyId == 16 or difficultyId == 17) or
+                                          lockoutType == "dungeon" and (difficultyId == 2 or difficultyId == 8 or difficultyId == 23)
+                    if validDifficulty then
+                        local difficultyLabel = lockoutType == "raid" and
+                            (difficultyId == 17 and "Lfr" or difficultyId == 14 and "N" or difficultyId == 15 and "H" or "M") or
+                            (difficultyId == 23 and "L" or difficultyId == 2 and "H" or "M0")
+                        local diffLockoutId = tostring(lockoutId) .. "-" .. difficultyLabel
+                        local lockoutData = {
+                            name = name,
+                            numEncounters = numEncounters,
+                            id = lockoutId,
+                            difficultyId = difficultyId,
+                            difficultyLabel = difficultyLabel,
+                            encounters = {},
+                            reset = reset,
+                            type = lockoutType,
+                        }
+                        for j = 1, numEncounters do
+                            local bossName, _, isKilled = GetSavedInstanceEncounterInfo(i, j)
+                            lockoutData.encounters[j] = { name = bossName or ("Boss " .. j), isKilled = isKilled }
+                        end
+                        LMAHI_SavedData.lockouts[charName][diffLockoutId] = lockoutData
+                        print("LMAHI Debug: Saved", lockoutType, "lockout for", charName, name, "LockoutID:", diffLockoutId, "DifficultyID:", difficultyId, "InstanceID:", instanceId)
+                    end
                 end
             end
         end
 
+        -- Process Mythic+ data for current character
+        if C_MythicPlus and C_MythicPlus.GetRunHistory then
+            local runHistory = C_MythicPlus.GetRunHistory(false, true) or {}
+            for _, run in ipairs(runHistory) do
+                local lockoutId = dungeonNameToId[run.mapChallengeModeID]
+                if lockoutId then
+                    local diffLockoutId = tostring(lockoutId) .. "-M+"
+                    LMAHI_SavedData.lockouts[charName][diffLockoutId] = {
+                        name = run.mapName,
+                        id = lockoutId,
+                        difficultyId = 8,
+                        difficultyLabel = "M+",
+                        type = "dungeon",
+                        mythicPlusLevel = run.level,
+                    }
+                    print("LMAHI Debug: Saved Mythic+ lockout for", charName, run.mapName, "LockoutID:", diffLockoutId, "Level:", run.level)
+                end
+            end
+        end
+
+        LMAHI_SavedData.currentPage = LMAHI.currentPage
         if LMAHI.CheckLockouts then LMAHI.CheckLockouts(event, arg1) end
         if mainFrame:IsShown() then
             ThrottledUpdateDisplay()
         end
     end
 end)
-
 
 -- Optional: reset check timer
 eventFrame:SetScript("OnUpdate", function(self, elapsed)
