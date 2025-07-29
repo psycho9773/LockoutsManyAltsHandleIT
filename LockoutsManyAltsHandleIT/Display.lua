@@ -517,120 +517,164 @@ function LMAHI.UpdateDisplay()
                                         table.insert(LMAHI.lockoutLabels, amountLabel)
                                     end
 									
-									-- Display for Raids and Dungeons
-									
-                                elseif lockoutType == "raids" or lockoutType == "dungeons" then
-                                    local difficulties = lockoutType == "raids" and (lockout.expansion == "CAT" and {"N", "H"} or {"LFR", "N", "H", "M"}) or {"N", "H", "M"}
-                                    local difficultyIds = lockoutType == "raids" and (lockout.expansion == "CAT" and {14, 15} or {17, 14, 15, 16}) or {1, 23, 16}
-                                    local colorCodes = lockoutType == "raids" and (lockout.expansion == "CAT" and {"|cff00ff00", "|cffffff00"} or {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"}) or {"|cff00ff00", "|cffffff00", "|cffff8000"}
-                                    local baseX = 210 + (i-1) * 96
-                                    local hitboxWidth = 20
-                                    local activeDifficulties = {}
-                                    local lockoutKey = lockoutType == "custom" and ("Custom_" .. lockout.id) or ((lockout.expansion or "TWW") .. "_" .. lockoutType .. "_" .. lockout.id)
+-- Display for Raids and Dungeons
+elseif lockoutType == "raids" or lockoutType == "dungeons" then
+    local difficulties, difficultyIds, colorCodes
+    if lockoutType == "raids" then
+        difficulties = lockout.expansion == "CAT" and {"N", "H"} or {"Lfr", "N", "H", "M"}
+        difficultyIds = lockout.expansion == "CAT" and {14, 15} or {17, 14, 15, 16}
+        colorCodes = lockout.expansion == "CAT" and {"|cff00ff00", "|cffffff00"} or {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"}
+    else -- lockoutType == "dungeons"
+        local legacyExpansions = {["DF"] = true, ["SL"] = true, ["BFA"] = true, ["LGN"] = true, ["WOD"] = true, ["MOP"] = true, ["CAT"] = true, ["WLK"] = true, ["TBC"] = true, ["WOW"] = true}
+        if lockout.expansion == "TWW" then
+            difficulties = {"H", "M0", "M+"}
+            difficultyIds = {2, 8, 8} -- Heroic, Mythic, Mythic+
+            colorCodes = {"|cffffff00", "|cffff8000", "|cffa335ee"} -- Yellow, Orange, Purple
+        else -- Legacy expansions
+            difficulties = {"H", "M"}
+            difficultyIds = {2, 23} -- Heroic, Legacy Mythic
+            colorCodes = {"|cffffff00", "|cffff8000"} -- Yellow, Orange
+        end
+    end
+    local baseX = 210 + (i-1) * 96
+    local hitboxWidth = 20
+    local activeDifficulties = {}
+    local lockoutKey = lockoutType == "custom" and ("Custom_" .. lockout.id) or ((lockout.expansion or "TWW") .. "_" .. lockoutType .. "_" .. lockout.id)
 
-                                    for j, difficulty in ipairs(difficulties) do
-                                        local diffLockoutId = tostring(lockout.id) .. "-" .. difficultyIds[j]
-                                        local isLocked = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][diffLockoutId] or false
-                                        local colorCode
-                                        if charName == currentChar then
-                                            local instanceIndex
-                                            for k = 1, GetNumSavedInstances() do
-                                                local name, id, _, diff = GetSavedInstanceInfo(k)
-                                                if id == lockout.id and diff == difficultyIds[j] then
-                                                    instanceIndex = k
-                                                    break
-                                                end
-                                            end
-                                            if instanceIndex then
-                                                local _, _, _, _, _, _, _, _, _, _, numEncounters = GetSavedInstanceInfo(instanceIndex)
-                                                local bossesKilled = 0
-                                                for k = 1, numEncounters do
-                                                    local _, _, isKilled = GetSavedInstanceEncounterInfo(instanceIndex, k)
-                                                    if isKilled then bossesKilled = bossesKilled + 1 end
-                                                end
-                                                if bossesKilled == numEncounters then
-                                                    colorCode = "|cffff0000"
-                                                elseif bossesKilled > 0 then
-                                                    colorCode = "|cff808080"
-                                                else
-                                                    colorCode = colorCodes[j]
-                                                end
-                                            else
-                                                colorCode = colorCodes[j]
-                                            end
-                                        else
-                                            colorCode = isLocked and "|cffff0000" or colorCodes[j]
-                                        end
-                                        local coloredText = colorCode .. difficulty .. "|r"
-                                        table.insert(activeDifficulties, { difficulty = difficulty, lockoutId = diffLockoutId, difficultyId = difficultyIds[j], isLocked = isLocked })
+    for j, difficulty in ipairs(difficulties) do
+        local diffLockoutId = tostring(lockout.id) .. "-" .. difficulty
+        local isLocked = false
+        local colorCode = colorCodes[j]
+        local mythicPlusLevel = nil
 
-                                        -- Create individual font string for each difficulty
-                                        local statusLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-                                        statusLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", baseX + (j-1) * hitboxWidth, offsetY)
-                                        statusLabel:SetWidth(hitboxWidth)
-                                        statusLabel:SetJustifyH("CENTER")
-                                        statusLabel:SetText(coloredText)
-                                        statusLabel:EnableMouse(true)
-                                        statusLabel.lockoutId = lockout.id
-                                        statusLabel.lockoutName = lockout.name
-                                        statusLabel.difficultyData = activeDifficulties[j]
-                                        statusLabel.lockoutType = lockoutType
-                                        statusLabel.lockoutKey = lockoutKey
-                                        statusLabel:SetScript("OnEnter", function(self)
-                                            if not IsElementInView(self, LMAHI.lockoutScrollFrame) then
-                                                return
-                                            end
-                                            if not self:IsVisible() or not MouseIsOver(self) then
-                                                return
-                                            end
-                                            if LMAHI_SavedData.collapsedSections[self.lockoutType] then
-                                                return
-                                            end
-                                            if LMAHI_SavedData.lockoutVisibility[self.lockoutKey] ~= true then
-                                               -- print("LMAHI Debug: Tooltip skipped for", self.lockoutName, "(lockout hidden)")
-                                                return
-                                            end
+        if charName == currentChar then
+            local instanceIndex
+            for k = 1, GetNumSavedInstances() do
+                local name, id, _, diff = GetSavedInstanceInfo(k)
+                if name == lockout.name and diff == difficultyIds[j] and difficulty ~= "M+" then
+                    instanceIndex = k
+                    break
+                end
+            end
+            if instanceIndex then
+                local _, _, _, _, _, _, _, _, _, _, numEncounters = GetSavedInstanceInfo(instanceIndex)
+                local bossesKilled = 0
+                for k = 1, numEncounters do
+                    local _, _, isKilled = GetSavedInstanceEncounterInfo(instanceIndex, k)
+                    if isKilled then bossesKilled = bossesKilled + 1 end
+                end
+                isLocked = true
+                if bossesKilled == numEncounters then
+                    colorCode = "|cffff0000" -- Completed
+                elseif bossesKilled > 0 then
+                    colorCode = "|cff808080" -- Partial
+                end
+            elseif difficulty == "M+" and lockout.expansion == "TWW" then
+                -- Check Mythic+ run history for TWW dungeons
+                local runHistory = C_MythicPlus and C_MythicPlus.GetRunHistory and C_MythicPlus.GetRunHistory(false, true) or {}
+                for _, run in ipairs(runHistory) do
+                    if run.mapChallengeModeID == lockout.id then
+                        mythicPlusLevel = run.level
+                        colorCode = "|cffa335ee" -- Purple for M+
+                        break
+                    end
+                end
+            end
+        else
+            isLocked = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][diffLockoutId] or false
+            if difficulty == "M+" then
+                mythicPlusLevel = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][diffLockoutId] and LMAHI_SavedData.lockouts[charName][diffLockoutId].mythicPlusLevel or nil
+            end
+            if isLocked then
+                colorCode = "|cffff0000" -- Completed for other characters
+            end
+        end
 
-                                            GameTooltip:SetOwner(self, "ANCHOR_TOP")
-                                            GameTooltip:AddLine(self.lockoutName .. " (" .. self.difficultyData.difficulty .. ")", 1, 1, 1)
-                                            if charName == currentChar then
-                                                local instanceIndex
-                                                for k = 1, GetNumSavedInstances() do
-                                                    local name, id, reset, diff = GetSavedInstanceInfo(k)
-                                                    if id == self.lockoutId and diff == self.difficultyData.difficultyId then
-                                                        instanceIndex = k
-                                                        break
-                                                    end
-                                                end
-                                                if instanceIndex and LMAHI_SavedData.lockouts and LMAHI_SavedData.lockouts[instanceIndex] then
-                                                    local data = LMAHI_SavedData.lockouts[instanceIndex]
-                                                    local bossesKilled = 0
-                                                    for k = 1, data.numEncounters do
-                                                        local bossName = data.encounters[k] and data.encounters[k].name or ("Boss " .. k)
-                                                        local isKilled = data.encounters[k] and data.encounters[k].isKilled or false
-                                                        GameTooltip:AddLine(bossName .. ": " .. (isKilled and "Killed" or "Available"), isKilled and 1 or 0, isKilled and 0 or 1, 0)
-                                                        if isKilled then bossesKilled = bossesKilled + 1 end
-                                                    end
-                                                    GameTooltip:AddLine("Progress: " .. bossesKilled .. "/" .. data.numEncounters, 1, 1, 0)
-                                                    if data.reset > 0 then
-                                                        local timeText = SecondsToTime(data.reset)
-                                                        GameTooltip:AddLine("Resets in: " .. timeText, 0.8, 0.8, 0.8)
-                                                    end
-                                                else
-                                                    GameTooltip:AddLine("Available", 0, 1, 0)
-                                                   -- print("LMAHI Debug: No cached instance data for", self.lockoutName, self.difficultyData.difficulty, "ID:", self.lockoutId, "DiffID:", self.difficultyData.difficultyId)
-                                                end
-                                            else
-                                                GameTooltip:AddLine(self.difficultyData.isLocked and "Locked" or "Available", self.difficultyData.isLocked and 1 or 0, self.difficultyData.isLocked and 0 or 1, 0)
-                                            end
-                                            GameTooltip:Show()
-                                        end)
-                                        statusLabel:SetScript("OnLeave", function()
-                                            GameTooltip:Hide()
-                                        end)
-                                        statusLabel:Show()
-                                        table.insert(LMAHI.lockoutLabels, statusLabel)
-                                    end
+        local coloredText = colorCode .. difficulty .. "|r"
+        table.insert(activeDifficulties, { difficulty = difficulty, lockoutId = diffLockoutId, difficultyId = difficultyIds[j], isLocked = isLocked, mythicPlusLevel = mythicPlusLevel })
+
+        -- Create individual font string for each difficulty
+        local statusLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+        statusLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", baseX + (j-1) * hitboxWidth, offsetY)
+        statusLabel:SetWidth(hitboxWidth)
+        statusLabel:SetJustifyH("CENTER")
+        statusLabel:SetText(coloredText)
+        statusLabel:EnableMouse(true)
+        statusLabel.lockoutId = lockout.id
+        statusLabel.lockoutName = lockout.name
+        statusLabel.difficultyData = activeDifficulties[j]
+        statusLabel.lockoutType = lockoutType
+        statusLabel.lockoutKey = lockoutKey
+        statusLabel.charName = charName
+        statusLabel:SetScript("OnEnter", function(self)
+            print("LMAHI Debug: OnEnter triggered for", self.lockoutName, self.difficultyData.difficulty, "Char:", self.charName, "LockoutID:", self.lockoutId, "DiffID:", self.difficultyData.difficultyId)
+
+            if not IsElementInView(self, LMAHI.lockoutScrollFrame) or not self:IsVisible() or not MouseIsOver(self) or LMAHI_SavedData.collapsedSections[self.lockoutType] or LMAHI_SavedData.lockoutVisibility[self.lockoutKey] ~= true then
+                print("LMAHI Debug: Tooltip blocked - InView:", IsElementInView(self, LMAHI.lockoutScrollFrame), "Visible:", self:IsVisible(), "Hovered:", MouseIsOver(self), "Collapsed:", LMAHI_SavedData.collapsedSections[self.lockoutType], "Visibility:", LMAHI_SavedData.lockoutVisibility[self.lockoutKey])
+                return
+            end
+
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:AddLine(self.lockoutName .. " (" .. self.difficultyData.difficulty .. ")", 1, 1, 1)
+
+            -- Debug: Print available lockout keys
+            if LMAHI_SavedData.lockouts[self.charName] then
+                print("LMAHI Debug: Lockout keys for", self.charName, ":")
+                for key, _ in pairs(LMAHI_SavedData.lockouts[self.charName]) do
+                    print("  -", key, "(type:", type(key), ")")
+                end
+            end
+
+            local savedLockoutId = self.difficultyData.lockoutId
+            local lockoutData = LMAHI_SavedData.lockouts[tostring(self.charName)] and LMAHI_SavedData.lockouts[tostring(self.charName)][savedLockoutId]
+
+            if lockoutData and type(lockoutData) == "table" and self.difficultyData.difficulty ~= "M+" then
+                print("LMAHI Debug: Lockout data found for", self.charName, self.lockoutName, self.difficultyData.difficulty)
+                local bossesKilled = 0
+                for k = 1, lockoutData.numEncounters do
+                    local bossName = lockoutData.encounters[k] and lockoutData.encounters[k].name or ("Boss " .. k)
+                    local isKilled = lockoutData.encounters[k] and lockoutData.encounters[k].isKilled or false
+                    GameTooltip:AddLine(bossName .. ": " .. (isKilled and "Killed" or "Available"), isKilled and 1 or 0, isKilled and 0 or 1, 0)
+                    if isKilled then bossesKilled = bossesKilled + 1 end
+                end
+                GameTooltip:AddLine("Progress: " .. bossesKilled .. "/" .. lockoutData.numEncounters, 1, 1, 0)
+                if lockoutData.reset > 0 then
+                    GameTooltip:AddLine("Resets in: " .. SecondsToTime(lockoutData.reset), 0.8, 0.8, 0.8)
+                end
+            elseif self.difficultyData.difficulty == "M+" and self.difficultyData.mythicPlusLevel then
+                GameTooltip:AddLine("Last Mythic+ Level: " .. self.difficultyData.mythicPlusLevel, 1, 1, 0)
+            elseif self.charName == currentChar then
+                local instanceIndex
+                for k = 1, GetNumSavedInstances() do
+                    local name, id, reset, diff = GetSavedInstanceInfo(k)
+                    if name == self.lockoutName and diff == self.difficultyData.difficultyId then
+                        instanceIndex = k
+                        break
+                    end
+                end
+                if instanceIndex then
+                    print("LMAHI Debug: Live instance data found for", self.lockoutName, self.difficultyData.difficulty)
+                    local _, _, reset, _, _, _, _, _, _, _, numEncounters = GetSavedInstanceInfo(instanceIndex)
+                    local bossesKilled = 0
+                    for k = 1, numEncounters do
+                        local bossName, _, isKilled = GetSavedInstanceEncounterInfo(instanceIndex, k)
+                        GameTooltip:AddLine((bossName or ("Boss " .. k)) .. ": " .. (isKilled and "Killed" or "Available"), isKilled and 1 or 0, isKilled and 0 or 1, 0)
+                        if isKilled then bossesKilled = bossesKilled + 1 end
+                    end
+                    GameTooltip:AddLine("Progress: " .. bossesKilled .. "/" .. numEncounters, 1, 1, 0)
+                    if reset > 0 then
+                        GameTooltip:AddLine("Resets in: " .. SecondsToTime(reset), 0.8, 0.8, 0.8)
+                    end
+                end
+            end
+            GameTooltip:Show()
+        end)
+        statusLabel:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+        statusLabel:Show()
+        table.insert(LMAHI.lockoutLabels, statusLabel)
+    end
                                 else
                                     local indicator = AcquireCheckButton(LMAHI.lockoutContent)
                                     indicator:SetSize(16, 16)
