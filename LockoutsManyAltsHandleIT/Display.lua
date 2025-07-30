@@ -1,6 +1,6 @@
 
--- Display.lua
--
+----- Display.lua
+
 local addonName, addon = ...
 if not _G.LMAHI then
     _G.LMAHI = addon
@@ -296,8 +296,11 @@ function LMAHI.UpdateDisplay()
         local realmName = charName:match("-(.+)$") or "Unknown"
 
         local charLabel = LMAHI.charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-        charLabel:SetPoint("TOPLEFT", LMAHI.charFrame, "TOPLEFT", 8 + (i-1) * 96, -8)
+        charLabel:SetPoint("TOPLEFT", LMAHI.charFrame, "TOPLEFT", 8 + (i-1) * 100, -8)
         charLabel:SetText(playerName)
+		charLabel:SetWidth(101) -- was 96
+		charLabel:SetHeight(22) -- was 20
+		charLabel:SetJustifyV("TOP")
         local classColor = LMAHI_SavedData.classColors[charName] or { r = 1, g = 1, b = 1 }
         charLabel:SetTextColor(classColor.r, classColor.g, classColor.b)
         charLabel:Show()
@@ -305,7 +308,7 @@ function LMAHI.UpdateDisplay()
         LMAHI.cachedCharLabels[i] = charLabel
 
         local realmLabel = LMAHI.charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-        realmLabel:SetPoint("TOPLEFT", charLabel, "BOTTOMLEFT", 0, -2)
+        realmLabel:SetPoint("BOTTOM", charLabel, "BOTTOM", 0, -2)
         realmLabel:SetText(realmName)
         local faction = LMAHI_SavedData.factions[charName] or "Neutral"
         local factionColor = LMAHI.FACTION_COLORS[faction] or { r = 0.8, g = 0.8, b = 0.8 }
@@ -317,7 +320,7 @@ function LMAHI.UpdateDisplay()
         -- Highlight current character
         if currentCharIndex and currentCharIndex == startIndex + i - 1 and LMAHI.currentCharHighlight then
             LMAHI.currentCharHighlight:SetPoint("TOPLEFT", charLabel, "TOPLEFT", -5, 5)
-            LMAHI.currentCharHighlight:SetSize(94 + 6, 20 + 13)
+            LMAHI.currentCharHighlight:SetSize(104, 33)
             LMAHI.currentCharHighlight:Show()
         end
 
@@ -452,8 +455,8 @@ function LMAHI.UpdateDisplay()
                             table.insert(LMAHI.lockoutLabels, lockoutLabel)
 
                             local hoverRegion = AcquireHoverRegion(LMAHI.lockoutContent)
-                            hoverRegion:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 0, offsetY)
-                            hoverRegion:SetSize(1155, 10)
+                            hoverRegion:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 10, offsetY)
+                            hoverRegion:SetSize(1200, 10)
                             hoverRegion:SetFrameLevel(LMAHI.lockoutContent:GetFrameLevel() - 1)
                             hoverRegion:EnableMouse(true)
                             hoverRegion:Show()
@@ -461,7 +464,7 @@ function LMAHI.UpdateDisplay()
                                 if not IsElementInView(self, LMAHI.lockoutScrollFrame) then return end
                                 LMAHI.highlightFrame:ClearAllPoints()
                                 LMAHI.highlightFrame:SetPoint("TOPLEFT", self, "TOPLEFT", 8, 0)
-                                LMAHI.highlightFrame:SetSize(1155, 10)
+                                LMAHI.highlightFrame:SetSize(1200, 10)
                                 LMAHI.highlightFrame:SetBackdropColor(0.3, 0.3, 0.3, .3)
                                 LMAHI.highlightFrame:Show()
                             end)
@@ -494,7 +497,7 @@ function LMAHI.UpdateDisplay()
 
                                     if currencyAmount then
                                         local amountLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-                                        amountLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 205 + (i-1) * 96, offsetY)
+                                        amountLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 210 + (i-1) * 100, offsetY)
                                         amountLabel:SetWidth(80)
                                         amountLabel:SetJustifyH("CENTER")
                                         amountLabel:SetText(tostring(currencyAmount))
@@ -508,7 +511,7 @@ function LMAHI.UpdateDisplay()
                                     else
                                         -- Display blank for missing or zero currency
                                         local amountLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-                                        amountLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 205 + (i-1) * 96, offsetY - 2)
+                                        amountLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 210 + (i-1) * 100, offsetY - 2)
                                         amountLabel:SetWidth(80)
                                         amountLabel:SetJustifyH("CENTER")
                                         amountLabel:SetText("")
@@ -536,7 +539,7 @@ elseif lockoutType == "raids" or lockoutType == "dungeons" then
             colorCodes = {"|cffffff00", "|cffff8000"} -- Yellow, Orange
         end
     end
-    local baseX = 210 + (i-1) * 96
+    local baseX = 210 + (i-1) * 100
     local hitboxWidth = 20
     local activeDifficulties = {}
     local lockoutKey = lockoutType == "custom" and ("Custom_" .. lockout.id) or ((lockout.expansion or "TWW") .. "_" .. lockoutType .. "_" .. lockout.id)
@@ -607,10 +610,10 @@ elseif lockoutType == "raids" or lockoutType == "dungeons" then
         statusLabel.lockoutKey = lockoutKey
         statusLabel.charName = charName
         statusLabel:SetScript("OnEnter", function(self)
-            print("LMAHI Debug: OnEnter triggered for", self.lockoutName, self.difficultyData.difficulty, "Char:", self.charName, "LockoutID:", self.lockoutId, "DiffID:", self.difficultyData.difficultyId)
+           --print("LMAHI Debug: OnEnter triggered for", self.lockoutName, self.difficultyData.difficulty, "Char:", self.charName, "LockoutID:", self.lockoutId, "DiffID:", self.difficultyData.difficultyId)
 
             if not IsElementInView(self, LMAHI.lockoutScrollFrame) or not self:IsVisible() or not MouseIsOver(self) or LMAHI_SavedData.collapsedSections[self.lockoutType] or LMAHI_SavedData.lockoutVisibility[self.lockoutKey] ~= true then
-                print("LMAHI Debug: Tooltip blocked - InView:", IsElementInView(self, LMAHI.lockoutScrollFrame), "Visible:", self:IsVisible(), "Hovered:", MouseIsOver(self), "Collapsed:", LMAHI_SavedData.collapsedSections[self.lockoutType], "Visibility:", LMAHI_SavedData.lockoutVisibility[self.lockoutKey])
+                --print("LMAHI Debug: Tooltip blocked - InView:", IsElementInView(self, LMAHI.lockoutScrollFrame), "Visible:", self:IsVisible(), "Hovered:", MouseIsOver(self), "Collapsed:", LMAHI_SavedData.collapsedSections[self.lockoutType], "Visibility:", LMAHI_SavedData.lockoutVisibility[self.lockoutKey])
                 return
             end
 
@@ -619,7 +622,7 @@ elseif lockoutType == "raids" or lockoutType == "dungeons" then
 
             -- Debug: Print available lockout keys
             if LMAHI_SavedData.lockouts[self.charName] then
-                print("LMAHI Debug: Lockout keys for", self.charName, ":")
+                --print("LMAHI Debug: Lockout keys for", self.charName, ":")
                 for key, _ in pairs(LMAHI_SavedData.lockouts[self.charName]) do
                     print("  -", key, "(type:", type(key), ")")
                 end
@@ -678,7 +681,7 @@ elseif lockoutType == "raids" or lockoutType == "dungeons" then
                                 else
                                     local indicator = AcquireCheckButton(LMAHI.lockoutContent)
                                     indicator:SetSize(16, 16)
-                                    indicator:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 200 + (i-1) * 96 + (94 - 16) / 2, offsetY + 1)
+                                    indicator:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 242 + (i-1) * 100, offsetY + 1)
                                     local isLocked = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] or false
                                     indicator:GetNormalTexture():SetVertexColor(isLocked and 0.8 or 0.2, isLocked and 0.2 or 0.8, 0.2, 1)
                                     indicator:GetCheckedTexture():SetVertexColor(isLocked and 0.8 or 0.2, isLocked and 0.2 or 0.8, 0.2, 1)
