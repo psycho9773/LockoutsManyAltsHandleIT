@@ -1,4 +1,4 @@
------ Core.lua
+-- Core.lua
 
 -- Keep ALL HEADERS HEX and everything else r, g, b for colors of text
 
@@ -233,7 +233,7 @@ minimapButton:SetScript("OnLeave", GameTooltip_Hide)
 -- Create main frame
 mainFrame = CreateFrame("Frame", "LMAHI_Frame", UIParent, "BasicFrameTemplateWithInset")
 tinsert(UISpecialFrames, "LMAHI_Frame")
-mainFrame:SetSize(1225, LMAHI_SavedData.frameHeight or 402)
+mainFrame:SetSize(1260, LMAHI_SavedData.frameHeight or 402)
 mainFrame:SetPoint(LMAHI_SavedData.framePos.point, UIParent, LMAHI_SavedData.framePos.relativePoint, LMAHI_SavedData.framePos.x, LMAHI_SavedData.framePos.y)
 mainFrame:SetFrameStrata("HIGH")
 mainFrame:SetFrameLevel(100)
@@ -265,7 +265,7 @@ authorLabel:SetText("|cffADADADBy: Psycho|r")
 -- Zoom buttons
 local zoomStep = 0.01
 local function ApplyZoom(level)
-    level = math.min(1.2, math.max(0.9, level))
+    level = math.min(1.17, math.max(0.9, level))
     LMAHI_SavedData.zoomLevel = math.floor(level * 100 + 0.5) / 100
     mainFrame:SetScale(LMAHI_SavedData.zoomLevel)
     settingsFrame:SetScale(LMAHI_SavedData.zoomLevel)
@@ -475,7 +475,7 @@ LMAHI.rightArrow = rightArrow
 -- Character Paged frame
 charFrame = CreateFrame("Frame", "LMAHI_CharFrame", mainFrame, "BackdropTemplate")
 charFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 210, -28)
-charFrame:SetSize(980, 40)
+charFrame:SetSize(1016, 40)
 charFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 5)
 charFrame:SetBackdrop({
     bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -1874,12 +1874,44 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         mainFrame:Hide()
         Utilities.StartGarbageCollector()
 
-    elseif event == "PLAYER_LOGIN" then
-        UpdateButtonPosition()
-        if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
-        if LMAHI.CheckLockouts then LMAHI.CheckLockouts() end
-        LMAHI.currentPage = LMAHI_SavedData.currentPage
-        mainFrame:Hide()
+elseif event == "PLAYER_LOGIN" then
+    UpdateButtonPosition()
+    if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
+    if LMAHI.CheckLockouts then LMAHI.CheckLockouts() end
+
+    -- Get sorted character list
+    local charList = {}
+    for charName, _ in pairs(LMAHI_SavedData.characters) do
+        table.insert(charList, charName)
+    end
+    table.sort(charList, function(a, b)
+        local aIndex = LMAHI_SavedData.charOrder[a] or 999
+        local bIndex = LMAHI_SavedData.charOrder[b] or 1000
+        if aIndex == bIndex then return a < b end
+        return aIndex < bIndex
+    end)
+
+    -- Find current character index
+    local currentChar = UnitName("player") .. "-" .. GetRealmName()
+    local currentCharIndex = nil
+    for i, charName in ipairs(charList) do
+        if charName == currentChar then
+            currentCharIndex = i
+            break
+        end
+    end
+
+    -- Calculate and set the correct page
+    if currentCharIndex then
+        local charsPerPage = LMAHI.maxCharsPerPage or 10
+        local targetPage = math.ceil(currentCharIndex / charsPerPage)
+        LMAHI.currentPage = targetPage
+        LMAHI_SavedData.currentPage = targetPage
+    else
+        LMAHI.currentPage = LMAHI_SavedData.currentPage or 1
+    end
+
+    mainFrame:Hide()
 
     elseif event == "PLAYER_LOGOUT" then
         LMAHI_SavedData.currentPage = LMAHI.currentPage
