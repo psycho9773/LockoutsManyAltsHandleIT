@@ -1,4 +1,4 @@
---Utilities.lua
+  -- Utilities.lua    getting there
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -61,7 +61,7 @@ LMAHI.CheckLockouts = function(event, questId)
     end
     
     -- Check saved instances
-    local numSaved = GetNumSavedInstances()
+ --[[   local numSaved = GetNumSavedInstances()
     for i = 1, numSaved do
         local name, id, reset, difficulty, locked, _, _, _, _, _, encounterProgress = GetSavedInstanceInfo(i)
         if locked then
@@ -79,7 +79,7 @@ LMAHI.CheckLockouts = function(event, questId)
             end
         end
     end
-    
+ ]]--   
     -- Check quest lockouts
     for _, lockout in ipairs(LMAHI.lockoutData.quests) do
         local lockoutId = tostring(lockout.id)
