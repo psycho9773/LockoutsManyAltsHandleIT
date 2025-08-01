@@ -1,4 +1,4 @@
--- Core.lua
+---- Core.lua   getting there
 
 -- Keep ALL HEADERS HEX and everything else r, g, b for colors of text
 
@@ -265,7 +265,7 @@ authorLabel:SetText("|cffADADADBy: Psycho|r")
 -- Zoom buttons
 local zoomStep = 0.01
 local function ApplyZoom(level)
-    level = math.min(1.17, math.max(0.9, level))
+    level = math.min(1.18, math.max(0.9, level))
     LMAHI_SavedData.zoomLevel = math.floor(level * 100 + 0.5) / 100
     mainFrame:SetScale(LMAHI_SavedData.zoomLevel)
     settingsFrame:SetScale(LMAHI_SavedData.zoomLevel)
@@ -1790,7 +1790,54 @@ function LMAHI.CreateLockoutSelectionFrame()
     return frame
 end
 
+-- Throttle timers
+local lastClearTime = 0
+local lastInstanceCheckTime = 0
+local clearThrottle = 5 -- Seconds between ClearExpiredLockouts calls
+local instanceThrottle = 10 -- Increased to 10s to catch multiple UPDATE_INSTANCE_INFO
+local lastNumSavedInstances = 0 -- Track number of saved instances
+local lastMythicRunCount = 0 -- Track Mythic+ run count
 
+-- Utility function to clear expired lockouts
+local function ClearExpiredLockouts(charName, fullCheck)
+    local currentTime = time()
+    if currentTime - lastClearTime < clearThrottle and not fullCheck then
+        print("LMAHI Debug: Skipped ClearExpiredLockouts due to throttle")
+        return
+    end
+    lastClearTime = currentTime
+    if not LMAHI_SavedData.lockouts then
+        LMAHI_SavedData.lockouts = {}
+        print("LMAHI Debug: Initialized empty LMAHI_SavedData.lockouts")
+        return
+    end
+    local charactersToCheck = charName and { [charName] = LMAHI_SavedData.lockouts[charName] } or LMAHI_SavedData.lockouts
+    print("LMAHI Debug: Running ClearExpiredLockouts at", date("%Y-%m-%d %H:%M:%S", currentTime), "for", charName or "all characters", "FullCheck:", fullCheck or false)
+    local checkedCount, clearedCount = 0, 0
+    for char, lockouts in pairs(charactersToCheck) do
+        if not lockouts or next(lockouts) == nil then
+            -- Skip empty lockouts silently
+            break
+        end
+        local hasRaidOrDungeon = false
+        for diffLockoutId, lockoutData in pairs(lockouts) do
+            if type(lockoutData) == "table" and lockoutData.type and (lockoutData.type == "raid" or lockoutData.type == "dungeon") and lockoutData.reset and lockoutData.difficultyLabel ~= "M+" then
+                hasRaidOrDungeon = true
+                checkedCount = checkedCount + 1
+                local expirationTime = lockoutData.reset
+                if currentTime >= expirationTime then
+                    LMAHI_SavedData.lockouts[char][diffLockoutId] = nil
+                    clearedCount = clearedCount + 1
+                    print("LMAHI Debug: Cleared expired lockout for", char, lockoutData.name, lockoutData.difficultyLabel, "LockoutID:", diffLockoutId, "Reset:", date("%Y-%m-%d %H:%M:%S", expirationTime))
+                end
+            end
+        end
+        if not hasRaidOrDungeon and charName then
+            print("LMAHI Debug: No raid/dungeon lockouts for", char)
+        end
+    end
+    print("LMAHI Debug: Checked", checkedCount, "lockouts, cleared", clearedCount)
+end
 
 -- Event handling
 local eventFrame = CreateFrame("Frame")
@@ -1874,56 +1921,111 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         mainFrame:Hide()
         Utilities.StartGarbageCollector()
 
-elseif event == "PLAYER_LOGIN" then
-    UpdateButtonPosition()
-    if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
-    if LMAHI.CheckLockouts then LMAHI.CheckLockouts() end
+    elseif event == "PLAYER_LOGIN" then
+        UpdateButtonPosition()
+        if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
+        if LMAHI.CheckLockouts then LMAHI.CheckLockouts() end
 
-    -- Get sorted character list
-    local charList = {}
-    for charName, _ in pairs(LMAHI_SavedData.characters) do
-        table.insert(charList, charName)
-    end
-    table.sort(charList, function(a, b)
-        local aIndex = LMAHI_SavedData.charOrder[a] or 999
-        local bIndex = LMAHI_SavedData.charOrder[b] or 1000
-        if aIndex == bIndex then return a < b end
-        return aIndex < bIndex
-    end)
-
-    -- Find current character index
-    local currentChar = UnitName("player") .. "-" .. GetRealmName()
-    local currentCharIndex = nil
-    for i, charName in ipairs(charList) do
-        if charName == currentChar then
-            currentCharIndex = i
-            break
+        -- Get sorted character list
+        local charList = {}
+        for charName, _ in pairs(LMAHI_SavedData.characters) do
+            table.insert(charList, charName)
         end
-    end
+        table.sort(charList, function(a, b)
+            local aIndex = LMAHI_SavedData.charOrder[a] or 999
+            local bIndex = LMAHI_SavedData.charOrder[b] or 1000
+            if aIndex == bIndex then return a < b end
+            return aIndex < bIndex
+        end)
 
-    -- Calculate and set the correct page
-    if currentCharIndex then
-        local charsPerPage = LMAHI.maxCharsPerPage or 10
-        local targetPage = math.ceil(currentCharIndex / charsPerPage)
-        LMAHI.currentPage = targetPage
-        LMAHI_SavedData.currentPage = targetPage
-    else
-        LMAHI.currentPage = LMAHI_SavedData.currentPage or 1
-    end
+        -- Find current character index
+        local currentChar = UnitName("player") .. "-" .. GetRealmName()
+        local currentCharIndex = nil
+        for i, charName in ipairs(charList) do
+            if charName == currentChar then
+                currentCharIndex = i
+                break
+            end
+        end
 
-    mainFrame:Hide()
+        -- Calculate and set the correct page
+        if currentCharIndex then
+            local charsPerPage = LMAHI.maxCharsPerPage or 10
+            local targetPage = math.ceil(currentCharIndex / charsPerPage)
+            LMAHI.currentPage = targetPage
+            LMAHI_SavedData.currentPage = targetPage
+        else
+            LMAHI.currentPage = LMAHI_SavedData.currentPage or 1
+        end
+
+        mainFrame:Hide()
+        -- Check current character's lockouts on login
+        ClearExpiredLockouts(currentChar)
 
     elseif event == "PLAYER_LOGOUT" then
         LMAHI_SavedData.currentPage = LMAHI.currentPage
         if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
 
-    elseif event == "PLAYER_ENTERING_WORLD" or event == "ENCOUNTER_END" or event == "QUEST_TURNED_IN"
-        or event == "LFG_LOCK_INFO_RECEIVED" or event == "UPDATE_INSTANCE_INFO" then
-
+    elseif event == "PLAYER_ENTERING_WORLD" or event == "ENCOUNTER_END" or event == "QUEST_TURNED_IN" or event == "LFG_LOCK_INFO_RECEIVED" then
         if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
+        if LMAHI.CheckLockouts then LMAHI.CheckLockouts(event, arg1) end
+        if mainFrame:IsShown() then
+            ThrottledUpdateDisplay()
+        end
+
+    elseif event == "UPDATE_INSTANCE_INFO" then
+        if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
+        if LMAHI.CheckLockouts then LMAHI.CheckLockouts() end
 
         LMAHI_SavedData.lockouts = LMAHI_SavedData.lockouts or {}
         LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
+
+        -- Update reset timers
+        local currentTime = time()
+        local serverTime = GetServerTime()
+        local dailyReset = C_DateAndTime.GetSecondsUntilDailyReset() + serverTime
+        local weeklyReset = C_DateAndTime.GetSecondsUntilWeeklyReset() + serverTime
+        local dailyResetChanged = LMAHI_SavedData.lastDailyReset < currentTime and dailyReset > LMAHI_SavedData.lastDailyReset
+        local weeklyResetChanged = LMAHI_SavedData.lastWeeklyReset < currentTime and weeklyReset > LMAHI_SavedData.lastWeeklyReset
+        if dailyResetChanged then
+            LMAHI_SavedData.lastDailyReset = dailyReset
+            print("LMAHI Debug: Updated lastDailyReset to", date("%Y-%m-%d %H:%M:%S", dailyReset))
+        end
+        if weeklyResetChanged then
+            LMAHI_SavedData.lastWeeklyReset = weeklyReset
+            print("LMAHI Debug: Updated lastWeeklyReset to", date("%Y-%m-%d %H:%M:%S", weeklyReset))
+        end
+
+        -- Run ClearExpiredLockouts only if reset occurred or first check
+        if dailyResetChanged or weeklyResetChanged then
+            ClearExpiredLockouts(nil, true)
+        elseif not LMAHI_SavedData.lockouts[charName] or next(LMAHI_SavedData.lockouts[charName]) == nil then
+            ClearExpiredLockouts(charName)
+        end
+
+        -- Check if instance data has changed
+        local numSaved = GetNumSavedInstances()
+        local mythicRunCount = C_MythicPlus and C_MythicPlus.GetRunHistory and #C_MythicPlus.GetRunHistory(false, true) or 0
+        if numSaved == lastNumSavedInstances and mythicRunCount == lastMythicRunCount then
+            print("LMAHI Debug: Skipped instance check; no new instances or Mythic+ runs")
+            if mainFrame:IsShown() then
+                ThrottledUpdateDisplay()
+            end
+            return
+        end
+        lastNumSavedInstances = numSaved
+        lastMythicRunCount = mythicRunCount
+
+        -- Throttle instance checks
+        if currentTime - lastInstanceCheckTime < instanceThrottle then
+            print("LMAHI Debug: Skipped instance check due to throttle")
+            if mainFrame:IsShown() then
+                ThrottledUpdateDisplay()
+            end
+            return
+        end
+        lastInstanceCheckTime = currentTime
+		
 
         -- Preserve non-raid/dungeon lockouts
         local nonRaidLockouts = {}
@@ -1933,7 +2035,7 @@ elseif event == "PLAYER_LOGIN" then
             end
         end
 
-        -- Clear existing lockouts and repopulate with non-raid data
+        -- Clear existing raid/dungeon lockouts and repopulate with non-raid data
         LMAHI_SavedData.lockouts[charName] = nonRaidLockouts
 
         -- Map dungeon names to UI lockout IDs
@@ -1947,9 +2049,10 @@ elseif event == "PLAYER_LOGIN" then
         end
 
         -- Process saved instances
-        for i = 1, GetNumSavedInstances() do
+        local instanceProcessed = false
+        for i = 1, numSaved do
             local name, instanceId, reset, difficultyId, locked, _, _, _, _, _, numEncounters = GetSavedInstanceInfo(i)
-            if locked then
+            if locked and reset > 0 then
                 local lockoutId = raidNameToId[name] or dungeonNameToId[name]
                 if lockoutId then
                     local lockoutType = raidNameToId[name] and "raid" or "dungeon"
@@ -1958,8 +2061,9 @@ elseif event == "PLAYER_LOGIN" then
                     if validDifficulty then
                         local difficultyLabel = lockoutType == "raid" and
                             (difficultyId == 17 and "Lfr" or difficultyId == 14 and "N" or difficultyId == 15 and "H" or "M") or
-                            (difficultyId == 23 and "L" or difficultyId == 2 and "H" or "M0")
+                            (difficultyId == 23 and "M" or difficultyId == 2 and "H" or "M0")
                         local diffLockoutId = tostring(lockoutId) .. "-" .. difficultyLabel
+                        local resetTimer = reset > 0 and (currentTime + reset) or nil
                         local lockoutData = {
                             name = name,
                             numEncounters = numEncounters,
@@ -1967,7 +2071,7 @@ elseif event == "PLAYER_LOGIN" then
                             difficultyId = difficultyId,
                             difficultyLabel = difficultyLabel,
                             encounters = {},
-                            reset = reset,
+                            reset = resetTimer,
                             type = lockoutType,
                         }
                         for j = 1, numEncounters do
@@ -1975,7 +2079,8 @@ elseif event == "PLAYER_LOGIN" then
                             lockoutData.encounters[j] = { name = bossName or ("Boss " .. j), isKilled = isKilled }
                         end
                         LMAHI_SavedData.lockouts[charName][diffLockoutId] = lockoutData
-                        print("LMAHI Debug: Saved", lockoutType, "lockout for", charName, name, "LockoutID:", diffLockoutId, "DifficultyID:", difficultyId, "InstanceID:", instanceId)
+                        print("LMAHI Debug: Saved", lockoutType, "lockout for", charName, name, "LockoutID:", diffLockoutId, "DifficultyID:", difficultyId, "InstanceID:", instanceId, "Reset:", date("%Y-%m-%d %H:%M:%S", resetTimer))
+                        instanceProcessed = true
                     end
                 end
             end
@@ -1984,21 +2089,30 @@ elseif event == "PLAYER_LOGIN" then
         -- Process Mythic+ data for current character
         if C_MythicPlus and C_MythicPlus.GetRunHistory then
             local runHistory = C_MythicPlus.GetRunHistory(false, true) or {}
-            for _, run in ipairs(runHistory) do
-                local lockoutId = dungeonNameToId[run.mapChallengeModeID]
-                if lockoutId then
-                    local diffLockoutId = tostring(lockoutId) .. "-M+"
-                    LMAHI_SavedData.lockouts[charName][diffLockoutId] = {
-                        name = run.mapName,
-                        id = lockoutId,
-                        difficultyId = 8,
-                        difficultyLabel = "M+",
-                        type = "dungeon",
-                        mythicPlusLevel = run.level,
-                    }
-                    print("LMAHI Debug: Saved Mythic+ lockout for", charName, run.mapName, "LockoutID:", diffLockoutId, "Level:", run.level)
+            if #runHistory > 0 then
+                print("LMAHI Debug: Found", #runHistory, "Mythic+ runs")
+                for _, run in ipairs(runHistory) do
+                    local lockoutId = dungeonNameToId[run.mapChallengeModeID]
+                    if lockoutId then
+                        local diffLockoutId = tostring(lockoutId) .. "-M+"
+                        LMAHI_SavedData.lockouts[charName][diffLockoutId] = {
+                            name = run.mapName,
+                            id = lockoutId,
+                            difficultyId = 8,
+                            difficultyLabel = "M+",
+                            type = "dungeon",
+                            mythicPlusLevel = run.level,
+                            reset = nil, -- No reset timer for Mythic+
+                        }
+                        print("LMAHI Debug: Saved Mythic+ lockout for", charName, run.mapName, "LockoutID:", diffLockoutId, "Level:", run.level)
+                        instanceProcessed = true
+                    end
                 end
             end
+        end
+
+        if not instanceProcessed then
+            print("LMAHI Debug: No new instances or Mythic+ runs processed for", charName)
         end
 
         LMAHI_SavedData.currentPage = LMAHI.currentPage
@@ -2008,7 +2122,7 @@ elseif event == "PLAYER_LOGIN" then
         end
     end
 end)
-
+--[[
 -- Optional: reset check timer
 eventFrame:SetScript("OnUpdate", function(self, elapsed)
     lastResetCheckTime = lastResetCheckTime + elapsed
@@ -2019,8 +2133,7 @@ eventFrame:SetScript("OnUpdate", function(self, elapsed)
         lastResetCheckTime = 0
     end
 end)
-
-
+]]--
 
 
 -- Expose frames to namespace
