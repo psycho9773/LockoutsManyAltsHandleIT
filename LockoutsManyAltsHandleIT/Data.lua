@@ -1,4 +1,4 @@
-----Data.lua
+   -- Data.lua    getting there
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -44,7 +44,7 @@ LMAHI.InitializeData = function()
 		{ id = 1648, name = "Trial of Valor", reset = "weekly", expansion = "LGN" },
 		{ id = 1530, name = "The Nighthold", reset = "weekly", expansion = "LGN" },
 		{ id = 1676, name = "Tomb of Sargeras", reset = "weekly", expansion = "LGN" },
-		{ id = 1712, name = "Antorus, the Burning Throne", reset = "weekly", expansion = "LGN" },
+		{ id = 1712, name = "Antorus, the Burning Throne", reset = "weekly", expansion = "LGN" }, -- All LFR N H M from here up
 		{ id = 1228, name = "Highmaul", reset = "weekly", expansion = "WOD" },
 		{ id = 1205, name = "Blackrock Foundry", reset = "weekly", expansion = "WOD" },
 		{ id = 1448, name = "Hellfire Citadel", reset = "weekly", expansion = "WOD" },
@@ -52,7 +52,7 @@ LMAHI.InitializeData = function()
 		{ id = 1009, name = "Heart of Fear", reset = "weekly", expansion = "MOP" },
 		{ id = 1010, name = "Terrace of Endless Spring", reset = "weekly", expansion = "MOP" },
 		{ id = 1098, name = "Throne of Thunder", reset = "weekly", expansion = "MOP" },
-		{ id = 1136, name = "Siege of Orgrimmar", reset = "weekly", expansion = "MOP" },
+		{ id = 1136, name = "Siege of Orgrimmar", reset = "weekly", expansion = "MOP" },  -- LFR N H for all except SoO got mythic
 		{ id = 752, name = "Baradin Hold", reset = "weekly", expansion = "CAT" },
 		{ id = 758, name = "Blackwing Descent", reset = "weekly", expansion = "CAT" },
 		{ id = 773, name = "The Bastion of Twilight", reset = "weekly", expansion = "CAT" },
@@ -144,7 +144,7 @@ LMAHI.InitializeData = function()
 		{ id = 1208, name = "Grimrail Depot", reset = "daily", expansion = "WOD" },
 		{ id = 1176, name = "Shadowmoon Burial Grounds", reset = "daily", expansion = "WOD" },
 		{ id = 1279, name = "The Everbloom", reset = "daily", expansion = "WOD" },
-		{ id = 1358, name = "Upper Blackrock Spire", reset = "daily", expansion = "WOD" },
+		{ id = 1358, name = "Upper Blackrock Spire", reset = "daily", expansion = "WOD" },  --mythic was implemented for dungeons
 		{ id = 959, name = "Temple of the Jade Serpent", reset = "daily", expansion = "MOP" },
 		{ id = 960, name = "Stormstout Brewery", reset = "daily", expansion = "MOP" },
 		{ id = 961, name = "Shado-Pan Monastery", reset = "daily", expansion = "MOP" },
@@ -199,24 +199,24 @@ LMAHI.InitializeData = function()
 		{ id = 554, name = "The Mechanar", reset = "daily", expansion = "TBC" },
 		{ id = 553, name = "The Botanica", reset = "daily", expansion = "TBC" },
 		{ id = 552, name = "The Arcatraz", reset = "daily", expansion = "TBC" },
-		{ id = 585, name = "Magisters' Terrace", reset = "daily", expansion = "TBC" },
-		{ id = 33, name = "Shadowfang Keep", reset = "daily", expansion = "WOW" },
-		{ id = 34, name = "The Stockade", reset = "daily", expansion = "WOW" },
-		{ id = 36, name = "The Deadmines", reset = "daily", expansion = "WOW" },
-		{ id = 43, name = "Wailing Caverns", reset = "daily", expansion = "WOW" },
-		{ id = 47, name = "Razorfen Kraul", reset = "daily", expansion = "WOW" },
-		{ id = 48, name = "Blackfathom Deeps", reset = "daily", expansion = "WOW" },
-		{ id = 70, name = "Uldaman", reset = "daily", expansion = "WOW" },
-		{ id = 90, name = "Gnomeregan", reset = "daily", expansion = "WOW" },
-		{ id = 109, name = "The Temple of Atal'Hakkar", reset = "daily", expansion = "WOW" },
-		{ id = 129, name = "Razorfen Downs", reset = "daily", expansion = "WOW" },
-		{ id = 209, name = "Zul'Farrak", reset = "daily", expansion = "WOW" },
-		{ id = 229, name = "Blackrock Spire", reset = "daily", expansion = "WOW" },
-		{ id = 230, name = "Blackrock Depths", reset = "daily", expansion = "WOW" },
-		{ id = 329, name = "Stratholme", reset = "daily", expansion = "WOW" },
-		{ id = 349, name = "Maraudon", reset = "daily", expansion = "WOW" },
-		{ id = 389, name = "Ragefire Chasm", reset = "daily", expansion = "WOW" },
-		{ id = 429, name = "Dire Maul", reset = "daily", expansion = "WOW" },
+		{ id = 585, name = "Magisters' Terrace", reset = "daily", expansion = "TBC" },  -- Heroic implemented for dungeons SFK and Deadmines from classic
+		{ id = 33, name = "Shadowfang Keep H", reset = "daily", expansion = "WOW" },
+		{ id = 34, name = "The Stockade n", reset = "daily", expansion = "WOW" },
+		{ id = 36, name = "The Deadmines H", reset = "daily", expansion = "WOW" },
+		{ id = 43, name = "Wailing Caverns n", reset = "daily", expansion = "WOW" },
+		{ id = 47, name = "Razorfen Kraul n", reset = "daily", expansion = "WOW" },
+		{ id = 48, name = "Blackfathom Deeps n", reset = "daily", expansion = "WOW" },
+		{ id = 70, name = "Uldaman n", reset = "daily", expansion = "WOW" },
+		{ id = 90, name = "Gnomeregan n", reset = "daily", expansion = "WOW" },
+		{ id = 109, name = "The Temple of Atal'Hakkar n", reset = "daily", expansion = "WOW" },
+		{ id = 129, name = "Razorfen Downs n", reset = "daily", expansion = "WOW" },
+		{ id = 209, name = "Zul'Farrak n", reset = "daily", expansion = "WOW" },
+		{ id = 229, name = "Blackrock Spire n", reset = "daily", expansion = "WOW" },
+		{ id = 230, name = "Blackrock Depths n", reset = "daily", expansion = "WOW" },
+		{ id = 329, name = "Stratholme n", reset = "daily", expansion = "WOW" },
+		{ id = 349, name = "Maraudon n", reset = "daily", expansion = "WOW" },
+		{ id = 389, name = "Ragefire Chasm n", reset = "daily", expansion = "WOW" },
+		{ id = 429, name = "Dire Maul n", reset = "daily", expansion = "WOW" },
     }
 
     -- Quests
