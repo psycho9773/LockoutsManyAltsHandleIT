@@ -1,5 +1,4 @@
-
--- Display.lua   getting there
+-- Display.lua
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -8,6 +7,7 @@ end
 
 -- Initialize saved variables early to prevent nil errors
 LMAHI_SavedData = LMAHI_SavedData or {}
+LMAHI_SavedData.currencyInfo = LMAHI_SavedData.currencyInfo or {}
 LMAHI_SavedData.sectionVisibility = LMAHI_SavedData.sectionVisibility or {
     custom = true,
     raids = true,
@@ -45,6 +45,31 @@ LMAHI.cachedSectionHeaders = LMAHI.cachedSectionHeaders or {}
 LMAHI.lastDisplayChars = LMAHI.lastDisplayChars or {}
 LMAHI.canPagePrevious = false -- Flag for Core.lua to disable Previous button
 LMAHI.canPageNext = false -- Flag for Core.lua to disable Next button
+
+-- Function to update currency data for the current character
+function LMAHI.UpdateCurrencyData()
+    local charName = UnitName("player") .. "-" .. GetRealmName()
+    LMAHI_SavedData.currencyInfo = LMAHI_SavedData.currencyInfo or {}
+    LMAHI_SavedData.currencyInfo[charName] = LMAHI_SavedData.currencyInfo[charName] or {}
+
+    local currencies = LMAHI.lockoutData["currencies"] or {}
+    local debugPrinted = {} -- Track printed currencies to prevent duplicates
+    for _, currency in ipairs(currencies) do
+        local lockoutId = tostring(currency.id)
+        local info = C_CurrencyInfo.GetCurrencyInfo(currency.id)
+        if info then
+            local currencyAmount = info.quantity ~= 0 and info.quantity or nil
+            LMAHI_SavedData.currencyInfo[charName][lockoutId] = currencyAmount
+            -- print("LMAHI Debug: Updated currency", currency.name, "for", charName, "Amount:", currencyAmount or "nil")
+        else
+            if not debugPrinted[currency.id] then
+                print("LMAHI Debug: No info for currency", currency.name, "for", charName)
+                debugPrinted[currency.id] = true
+            end
+            LMAHI_SavedData.currencyInfo[charName][lockoutId] = nil
+        end
+    end
+end
 
 -- Object pools for reusing UI elements (excluding character labels)
 local buttonPool = {} -- Used for collapse buttons
@@ -244,8 +269,8 @@ function LMAHI.UpdateDisplay()
         end
     end
     if #charList == 0 then
-        local emptyLabel = LMAHI.charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-        emptyLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 10, -10)
+        local emptyLabel = LMAHI.charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalHuge")
+        emptyLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 250, 0)
         emptyLabel:SetText("No characters found. Log in to each alt to register.")
         emptyLabel:SetTextColor(1, 1, 1, 1)
         emptyLabel:Show()
@@ -298,9 +323,9 @@ function LMAHI.UpdateDisplay()
         local charLabel = LMAHI.charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
         charLabel:SetPoint("TOPLEFT", LMAHI.charFrame, "TOPLEFT", 8 + (i-1) * 100, -8)
         charLabel:SetText(playerName)
-		charLabel:SetWidth(101) -- was 96
-		charLabel:SetHeight(22) -- was 20
-		charLabel:SetJustifyV("TOP")
+        charLabel:SetWidth(101) -- was 96
+        charLabel:SetHeight(22) -- was 20
+        charLabel:SetJustifyV("TOP")
         local classColor = LMAHI_SavedData.classColors[charName] or { r = 1, g = 1, b = 1 }
         charLabel:SetTextColor(classColor.r, classColor.g, classColor.b)
         charLabel:Show()
@@ -379,7 +404,7 @@ function LMAHI.UpdateDisplay()
             local isCollapsed = LMAHI_SavedData.collapsedSections[lockoutType]
             local collapseButton = AcquireButton(LMAHI.lockoutContent)
             collapseButton:SetSize(20, 20)
-            collapseButton:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 25, offsetY)
+            collapseButton:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 20, offsetY)
             collapseButton:SetNormalTexture(isCollapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
             collapseButton:GetNormalTexture():SetSize(20, 20)
             collapseButton:SetHighlightTexture("Interface\\Buttons\\UI-PlusButton-Hilight")
@@ -403,7 +428,7 @@ function LMAHI.UpdateDisplay()
             table.insert(LMAHI.collapseButtons, collapseButton)
 
             local sectionHeader = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
-            sectionHeader:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 50, offsetY - 1)
+            sectionHeader:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 45, offsetY - 1)
             sectionHeader:SetText(lockoutType:gsub("^%l", string.upper))
             sectionHeader:SetTextColor(1, 1, 1, 1)
             sectionHeader:Show()
@@ -431,7 +456,7 @@ function LMAHI.UpdateDisplay()
 
                 if #sortedLockouts == 0 then
                     local noLockoutLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-                    noLockoutLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 30, offsetY)
+                    noLockoutLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 21, offsetY)
                     noLockoutLabel:SetText("No " .. lockoutType .. " found")
                     noLockoutLabel:SetTextColor(1, 1, 1, 1)
                     noLockoutLabel:Show()
@@ -443,8 +468,8 @@ function LMAHI.UpdateDisplay()
                         local lockoutKey = lockoutType == "custom" and ("Custom_" .. lockout.id) or ((lockout.expansion or "TWW") .. "_" .. lockoutType .. "_" .. lockout.id)
                         if lockout.name and lockout.id and lockout.id > 0 and LMAHI_SavedData.lockoutVisibility[lockoutKey] == true then
                             local lockoutLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-                            lockoutLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 30, offsetY)
-                            lockoutLabel:SetWidth(170)
+                            lockoutLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 21, offsetY)
+                            lockoutLabel:SetWidth(200)
                             lockoutLabel:SetText(lockout.name)
                             lockoutLabel:SetTextColor(0.9, 0.7, 0.1)
                             lockoutLabel:SetWordWrap(false)
@@ -519,319 +544,340 @@ function LMAHI.UpdateDisplay()
                                         amountLabel:Show()
                                         table.insert(LMAHI.lockoutLabels, amountLabel)
                                     end
-									
--- Display for Raids and Dungeons
-elseif lockoutType == "raids" or lockoutType == "dungeons" then
-    local difficulties, difficultyIds, colorCodes
+                                elseif lockoutType == "raids" or lockoutType == "dungeons" then
+                                    local difficulties, difficultyIds, colorCodes
+                                    local expansionModes = {
+                                        TWW = {
+                                            raids = {
+                                                difficulties = {"Lfr", "N", "H", "M"},
+                                                difficultyIds = {17, 14, 15, 16},
+                                                colorCodes = {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"},
+                                            },
+                                            dungeons = {
+                                                difficulties = {"H", "M0", "M+"},
+                                                difficultyIds = {2, 8, 8},
+                                                colorCodes = {"|cffffff00", "|cffff8000", "|cffa335ee"},
+                                            },
+                                        },
+                                        DF = {
+                                            raids = {
+                                                difficulties = {"Lfr", "N", "H", "M"},
+                                                difficultyIds = {17, 14, 15, 16},
+                                                colorCodes = {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"},
+                                            },
+                                            dungeons = {
+                                                difficulties = {"H", "M"},
+                                                difficultyIds = {2, 23},
+                                                colorCodes = {"|cffffff00", "|cffff8000"},
+                                            },
+                                        },
+                                        SL = {
+                                            raids = {
+                                                difficulties = {"Lfr", "N", "H", "M"},
+                                                difficultyIds = {17, 14, 15, 16},
+                                                colorCodes = {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"},
+                                            },
+                                            dungeons = {
+                                                difficulties = {"H", "M"},
+                                                difficultyIds = {2, 23},
+                                                colorCodes = {"|cffffff00", "|cffff8000"},
+                                            },
+                                        },
+                                        BFA = {
+                                            raids = {
+                                                difficulties = {"Lfr", "N", "H", "M"},
+                                                difficultyIds = {17, 14, 15, 16},
+                                                colorCodes = {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"},
+                                            },
+                                            dungeons = {
+                                                difficulties = {"H", "M"},
+                                                difficultyIds = {2, 23},
+                                                colorCodes = {"|cffffff00", "|cffff8000"},
+                                            },
+                                        },
+                                        LGN = {
+                                            raids = {
+                                                difficulties = {"Lfr", "N", "H", "M"},
+                                                difficultyIds = {17, 14, 15, 16},
+                                                colorCodes = {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"},
+                                            },
+                                            dungeons = {
+                                                difficulties = {"H", "M"},
+                                                difficultyIds = {2, 23},
+                                                colorCodes = {"|cffffff00", "|cffff8000"},
+                                            },
+                                        },
+                                        WOD = {
+                                            raids = {
+                                                difficulties = {"Lfr", "N", "H", "M"},
+                                                difficultyIds = {17, 14, 15, 16},
+                                                colorCodes = {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"},
+                                            },
+                                            dungeons = {
+                                                difficulties = {"H", "M"},
+                                                difficultyIds = {2, 23},
+                                                colorCodes = {"|cffffff00", "|cffff8000"},
+                                            },
+                                        },
+                                        MOP = {
+                                            raids = {
+                                                difficulties = lockout.id == 1136 and {"Lfr", "N", "H", "M"} or {"Lfr", "N", "H"},
+                                                difficultyIds = lockout.id == 1136 and {17, 14, 15, 16} or {17, 14, 15},
+                                                colorCodes = lockout.id == 1136 and {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"} or {"|cff3399ff", "|cff00ff00", "|cffffff00"},
+                                            },
+                                            dungeons = {
+                                                difficulties = {"H"},
+                                                difficultyIds = {2},
+                                                colorCodes = {"|cffffff00"},
+                                            },
+                                        },
+                                        CAT = {
+                                            raids = {
+                                                difficulties = {"N", "H"},
+                                                difficultyIds = {14, 15},
+                                                colorCodes = {"|cff00ff00", "|cffffff00"},
+                                            },
+                                            dungeons = {
+                                                difficulties = {"H"},
+                                                difficultyIds = {2},
+                                                colorCodes = {"|cffffff00"},
+                                            },
+                                        },
+                                        WLK = {
+                                            raids = {
+                                                difficulties = {"N", "H"},
+                                                difficultyIds = {14, 15},
+                                                colorCodes = {"|cff00ff00", "|cffffff00"},
+                                            },
+                                            dungeons = {
+                                                difficulties = {"H"},
+                                                difficultyIds = {2},
+                                                colorCodes = {"|cffffff00"},
+                                            },
+                                        },
+                                        TBC = {
+                                            raids = {
+                                                difficulties = {"N"},
+                                                difficultyIds = {14},
+                                                colorCodes = {"|cff00ff00"},
+                                            },
+                                            dungeons = {
+                                                difficulties = {"H"},
+                                                difficultyIds = {2},
+                                                colorCodes = {"|cffffff00"},
+                                            },
+                                        },
+                                        WOW = {
+                                            raids = {
+                                                difficulties = {"N"},
+                                                difficultyIds = {14},
+                                                colorCodes = {"|cff00ff00"},
+                                            },
+                                            dungeons = {
+                                                difficulties = (lockout.id == 756 or lockout.id == 764) and {"H"} or {"N"},
+                                                difficultyIds = (lockout.id == 756 or lockout.id == 764) and {2} or {1},
+                                                colorCodes = (lockout.id == 756 or lockout.id == 764) and {"|cffffff00"} or {"|cff00ff00"},
+                                            },
+                                        },
+                                    }
 
-    local expansionModes = {
-        TWW = {
-            raids = {
-                difficulties = {"Lfr", "N", "H", "M"},
-                difficultyIds = {17, 14, 15, 16},
-                colorCodes = {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"},
-            },
-            dungeons = {
-                difficulties = {"H", "M0", "M+"},
-                difficultyIds = {2, 8, 8},
-                colorCodes = {"|cffffff00", "|cffff8000", "|cffa335ee"},
-            },
-        },
-        DF = {
-            raids = {
-                difficulties = {"Lfr", "N", "H", "M"},
-                difficultyIds = {17, 14, 15, 16},
-                colorCodes = {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"},
-            },
-            dungeons = {
-                difficulties = {"H", "M"},
-                difficultyIds = {2, 23},
-                colorCodes = {"|cffffff00", "|cffff8000"},
-            },
-        },
-        SL = {
-            raids = {
-                difficulties = {"Lfr", "N", "H", "M"},
-                difficultyIds = {17, 14, 15, 16},
-                colorCodes = {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"},
-            },
-            dungeons = {
-                difficulties = {"H", "M"},
-                difficultyIds = {2, 23},
-                colorCodes = {"|cffffff00", "|cffff8000"},
-            },
-        },
-        BFA = {
-            raids = {
-                difficulties = {"Lfr", "N", "H", "M"},
-                difficultyIds = {17, 14, 15, 16},
-                colorCodes = {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"},
-            },
-            dungeons = {
-                difficulties = {"H", "M"},
-                difficultyIds = {2, 23},
-                colorCodes = {"|cffffff00", "|cffff8000"},
-            },
-        },
-        LGN = {
-            raids = {
-                difficulties = {"Lfr", "N", "H", "M"},
-                difficultyIds = {17, 14, 15, 16},
-                colorCodes = {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"},
-            },
-            dungeons = {
-                difficulties = {"H", "M"},
-                difficultyIds = {2, 23},
-                colorCodes = {"|cffffff00", "|cffff8000"},
-            },
-        },
-        WOD = {
-            raids = {
-                difficulties = {"Lfr", "N", "H", "M"},
-                difficultyIds = {17, 14, 15, 16},
-                colorCodes = {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"},
-            },
-            dungeons = {
-                difficulties = {"H", "M"},
-                difficultyIds = {2, 23},
-                colorCodes = {"|cffffff00", "|cffff8000"},
-            },
-        },
-        MOP = {
-            raids = {
-                difficulties = lockout.id == 1136 and {"Lfr", "N", "H", "M"} or {"Lfr", "N", "H"},
-                difficultyIds = lockout.id == 1136 and {17, 14, 15, 16} or {17, 14, 15},
-                colorCodes = lockout.id == 1136 and {"|cff3399ff", "|cff00ff00", "|cffffff00", "|cffff8000"} or {"|cff3399ff", "|cff00ff00", "|cffffff00"},
-            },
-            dungeons = {
-                difficulties = {"H"},
-                difficultyIds = {2},
-                colorCodes = {"|cffffff00"},
-            },
-        },
-        CAT = {
-            raids = {
-                difficulties = {"N", "H"},
-                difficultyIds = {14, 15},
-                colorCodes = {"|cff00ff00", "|cffffff00"},
-            },
-            dungeons = {
-                difficulties = {"H"},
-                difficultyIds = {2},
-                colorCodes = {"|cffffff00"},
-            },
-        },
-        WLK = {
-            raids = {
-                difficulties = {"N", "H"},
-                difficultyIds = {14, 15},
-                colorCodes = {"|cff00ff00", "|cffffff00"},
-            },
-            dungeons = {
-                difficulties = {"H"},
-                difficultyIds = {2},
-                colorCodes = {"|cffffff00"},
-            },
-        },
-        TBC = {
-            raids = {
-                difficulties = {"N"},
-                difficultyIds = {14},
-                colorCodes = {"|cff00ff00"},
-            },
-            dungeons = {
-                difficulties = {"H"},
-                difficultyIds = {2},
-                colorCodes = {"|cffffff00"},
-            },
-        },
-        WOW = {
-            raids = {
-                difficulties = {"N"},
-                difficultyIds = {14},
-                colorCodes = {"|cff00ff00"},
-            },
-            dungeons = {
-                difficulties = (lockout.id == 33 or lockout.id == 36) and {"N", "H"} or {"N"},
-                difficultyIds = (lockout.id == 33 or lockout.id == 36) and {1, 2} or {1},
-                colorCodes = (lockout.id == 33 or lockout.id == 36) and {"|cff00ff00", "|cffffff00"} or {"|cff00ff00"},
-            },
-        },
-    }
+                                    local modeSet = expansionModes[lockout.expansion]
+                                    if modeSet then
+                                        local modeData = modeSet[lockoutType]
+                                        if modeData then
+                                            difficulties = modeData.difficulties
+                                            difficultyIds = modeData.difficultyIds
+                                            colorCodes = modeData.colorCodes
+                                        end
+                                    end
 
-    local modeSet = expansionModes[lockout.expansion]
-    if modeSet then
-        local modeData = modeSet[lockoutType]
-        if modeData then
-            difficulties = modeData.difficulties
-            difficultyIds = modeData.difficultyIds
-            colorCodes = modeData.colorCodes
-        end
-    end
+                                    local baseX = 255 + (i-1) * 100
+                                    local hitboxWidth = 20
+                                    local groupWidth = (#difficulties * hitboxWidth)
+                                    local startX = baseX - groupWidth / 2
+                                    local activeDifficulties = {}
+                                    local lockoutKey = lockoutType == "custom" and ("Custom_" .. lockout.id) or ((lockout.expansion or "TWW") .. "_" .. lockoutType .. "_" .. lockout.id)
+                                    local debugPrinted = false -- Track debug print for this lockout
+                                    local expireDebugPrinted = false -- Track expired lockout debug print
 
-    local baseX = 255 + (i-1) * 100
-    local hitboxWidth = 20
-    local groupWidth = (#difficulties * hitboxWidth)
-    local startX = baseX - groupWidth / 2
-    local activeDifficulties = {}
-    local lockoutKey = lockoutType == "custom" and ("Custom_" .. lockout.id) or ((lockout.expansion or "TWW") .. "_" .. lockoutType .. "_" .. lockout.id)
+                                    for j, difficulty in ipairs(difficulties) do
+                                        local diffLockoutId = tostring(lockout.id) .. "-" .. difficulty
+                                        local isLocked = false
+                                        local colorCode = colorCodes[j]
+                                        local mythicPlusLevel = nil
 
-    for j, difficulty in ipairs(difficulties) do
-        local diffLockoutId = tostring(lockout.id) .. "-" .. difficulty
-        local isLocked = false
-        local colorCode = colorCodes[j]
-        local mythicPlusLevel = nil
-
-        if charName == currentChar then
-            local instanceIndex
-            for k = 1, GetNumSavedInstances() do
-                local name, id, reset, diff, locked = GetSavedInstanceInfo(k)
-                if name == lockout.name and diff == difficultyIds[j] and difficulty ~= "M+" and locked and reset > 0 then
-                    instanceIndex = k
-                    break
-                end
-            end
-            if instanceIndex then
-                local _, _, _, _, _, _, _, _, _, _, numEncounters = GetSavedInstanceInfo(instanceIndex)
-                local bossesKilled = 0
-                for k = 1, numEncounters do
-                    local _, _, isKilled = GetSavedInstanceEncounterInfo(instanceIndex, k)
-                    if isKilled then bossesKilled = bossesKilled + 1 end
-                end
-                isLocked = true
-                if bossesKilled == numEncounters then
-                    colorCode = "|cffff0000" -- Completed
-                elseif bossesKilled > 0 then
-                    colorCode = "|cff808080" -- Partial
-                end
-                print("LMAHI Debug: Displayed live lockout for", charName, lockout.name, difficulty, "Bosses:", bossesKilled, "/", numEncounters)
-            elseif difficulty == "M+" and lockout.expansion == "TWW" then
-                -- Check Mythic+ run history for TWW dungeons
-                local runHistory = C_MythicPlus and C_MythicPlus.GetRunHistory and C_MythicPlus.GetRunHistory(false,  true) or {}
-                for _, run in ipairs(runHistory) do
-                    if run.mapChallengeModeID == lockout.id then
-                        mythicPlusLevel = run.level
-                        colorCode = "|cffa335ee" -- Purple for M+
-                        isLocked = false -- M+ is not locked
-                        print("LMAHI Debug: Displayed M+ for", charName, lockout.name, "Level:", run.level)
-                        break
-                    end
-                end
+                                        if charName == currentChar then
+                                            local instanceIndex
+                                            for k = 1, GetNumSavedInstances() do
+                                                local name, id, reset, diff, locked = GetSavedInstanceInfo(k)
+                                                if name == lockout.name and diff == difficultyIds[j] and difficulty ~= "M+" and locked and reset > 0 then
+                                                    instanceIndex = k
+                                                    break
+                                                end
+                                            end
+                                            if instanceIndex then
+                                                local _, _, _, _, _, _, _, _, _, _, numEncounters = GetSavedInstanceInfo(instanceIndex)
+                                                local bossesKilled = 0
+                                                for k = 1, numEncounters do
+                                                    local _, _, isKilled = GetSavedInstanceEncounterInfo(instanceIndex, k)
+                                                    if isKilled then bossesKilled = bossesKilled + 1 end
+                                                end
+                                                isLocked = true
+                                                if bossesKilled == numEncounters then
+                                                    colorCode = "|cffff0000" -- Completed
+                                                elseif bossesKilled > 0 then
+                                                    colorCode = "|cff808080" -- Partial
+                                                end
+                                                if not debugPrinted then
+                                                    print("LMAHI Debug: Displayed live lockout for", charName, lockout.name, "Difficulties:", table.concat(difficulties, ", "), "Bosses:", bossesKilled, "/", numEncounters)
+                                                    debugPrinted = true
+                                                end
+                                            elseif difficulty == "M+" and lockout.expansion == "TWW" then
+                                                -- Check Mythic+ run history for TWW dungeons
+                                                local runHistory = C_MythicPlus and C_MythicPlus.GetRunHistory and C_MythicPlus.GetRunHistory(false, true) or {}
+                                                for _, run in ipairs(runHistory) do
+                                                    if run.mapChallengeModeID == lockout.id then
+                                                        mythicPlusLevel = run.level
+                                                        colorCode = "|cffa335ee" -- Purple for M+
+                                                        isLocked = false -- M+ is not locked
+                                                        if not debugPrinted then
+                                                            print("LMAHI Debug: Displayed M+ for", charName, lockout.name, "Level:", run.level)
+                                                            debugPrinted = true
+                                                        end
+                                                        break
+                                                    end
+                                                end
+                                            end
+                                       else   --Alternate character views
+    isLocked = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][diffLockoutId] and difficulty ~= "M+" or false
+    if isLocked then
+        local lockoutData = LMAHI_SavedData.lockouts[charName][diffLockoutId]
+        if lockoutData.reset and time() >= lockoutData.reset then
+            LMAHI_SavedData.lockouts[charName][diffLockoutId] = nil
+            isLocked = false
+            if not expireDebugPrinted then
+                print("LMAHI Debug: Cleared expired lockout in display for", charName, lockoutData.name, "Difficulties:", table.concat(difficulties, ", "), "LockoutID:", diffLockoutId)
+                expireDebugPrinted = true
             end
         else
-            isLocked = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][diffLockoutId] and difficulty ~= "M+" or false
-            if isLocked then
-                local lockoutData = LMAHI_SavedData.lockouts[charName][diffLockoutId]
-                if lockoutData.reset and time() >= lockoutData.reset then
-                    LMAHI_SavedData.lockouts[charName][diffLockoutId] = nil
-                    isLocked = false
-                    print("LMAHI Debug: Cleared expired lockout in display for", charName, lockoutData.name, lockoutData.difficultyLabel, "LockoutID:", diffLockoutId)
-                else
-                    local bossesKilled = 0
-                    for k = 1, lockoutData.numEncounters or 0 do
-                        if lockoutData.encounters[k] and lockoutData.encounters[k].isKilled then
-                            bossesKilled = bossesKilled + 1
-                        end
-                    end
-                    if bossesKilled == lockoutData.numEncounters then
-                        colorCode = "|cffff0000" -- Completed
-                    elseif bossesKilled > 0 then
-                        colorCode = "|cff808080" -- Partial
-                    end
-                    print("LMAHI Debug: Displayed saved lockout for", charName, lockoutData.name, lockoutData.difficultyLabel, "Bosses:", bossesKilled, "/", lockoutData.numEncounters)
+            local numEncounters = lockoutData.numEncounters or #lockoutData.encounters or 0
+            local bossesKilled = 0
+            for k = 1, numEncounters do
+                if lockoutData.encounters[k] and lockoutData.encounters[k].isKilled then
+                    bossesKilled = bossesKilled + 1
                 end
             end
-            if difficulty == "M+" then
-                mythicPlusLevel = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][diffLockoutId] and LMAHI_SavedData.lockouts[charName][diffLockoutId].mythicPlusLevel or nil
-                isLocked = false -- M+ is not locked
-                if mythicPlusLevel then
-                    print("LMAHI Debug: Displayed M+ for", charName, lockout.name, "Level:", mythicPlusLevel)
-                end
+            if bossesKilled == numEncounters then
+                colorCode = "|cffff0000" -- Completed
+            elseif bossesKilled > 0 then
+                colorCode = "|cff808080" -- Partial
+            end
+            if not debugPrinted then
+                print("LMAHI Debug: Displayed saved lockout for", charName, lockoutData.name, "Difficulties:", table.concat(difficulties, ", "), "Bosses:", bossesKilled, "/", numEncounters)
+                debugPrinted = true
             end
         end
-
-        local coloredText = colorCode .. difficulty .. "|r"
-        table.insert(activeDifficulties, { difficulty = difficulty, lockoutId = diffLockoutId, difficultyId = difficultyIds[j], isLocked = isLocked, mythicPlusLevel = mythicPlusLevel })
-
-        -- Create individual font string for each difficulty
-        local statusLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-        statusLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", startX + (j-1) * hitboxWidth, offsetY)
-        statusLabel:SetWidth(hitboxWidth)
-        statusLabel:SetJustifyH("CENTER")
-        statusLabel:SetText(coloredText)
-        statusLabel:EnableMouse(true)
-        statusLabel.lockoutId = lockout.id
-        statusLabel.lockoutName = lockout.name
-        statusLabel.difficultyData = activeDifficulties[j]
-        statusLabel.lockoutType = lockoutType
-        statusLabel.lockoutKey = lockoutKey
-        statusLabel.charName = charName
-        statusLabel:SetScript("OnEnter", function(self)
-            if not IsElementInView(self, LMAHI.lockoutScrollFrame) or not self:IsVisible() or not MouseIsOver(self) or LMAHI_SavedData.collapsedSections[self.lockoutType] or LMAHI_SavedData.lockoutVisibility[self.lockoutKey] ~= true then
-                return
-            end
-
-            GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            GameTooltip:AddLine(self.lockoutName .. " (" .. self.difficultyData.difficulty .. ")", 1, 1, 1)
-
-            local savedLockoutId = self.difficultyData.lockoutId
-            local lockoutData = LMAHI_SavedData.lockouts[tostring(self.charName)] and LMAHI_SavedData.lockouts[tostring(self.charName)][savedLockoutId]
-
-            if lockoutData and type(lockoutData) == "table" and self.difficultyData.difficulty ~= "M+" then
-                if lockoutData.reset and time() >= lockoutData.reset then
-                    LMAHI_SavedData.lockouts[tostring(self.charName)][savedLockoutId] = nil
-                    print("LMAHI Debug: Cleared expired lockout in tooltip for", self.charName, lockoutData.name, lockoutData.difficultyLabel, "LockoutID:", savedLockoutId)
-                    GameTooltip:Hide()
-                    return
-                end
-                local bossesKilled = 0
-                for k = 1, lockoutData.numEncounters do
-                    local bossName = lockoutData.encounters[k] and lockoutData.encounters[k].name or ("Boss " .. k)
-                    local isKilled = lockoutData.encounters[k] and lockoutData.encounters[k].isKilled or false
-                    GameTooltip:AddLine(bossName .. ": " .. (isKilled and "Killed" or "Available"), isKilled and 1 or 0, isKilled and 0 or 1, 0)
-                    if isKilled then bossesKilled = bossesKilled + 1 end
-                end
-                GameTooltip:AddLine("Progress: " .. bossesKilled .. "/" .. lockoutData.numEncounters, 1, 1, 0)
-                if lockoutData.reset and time() < lockoutData.reset then
-                    local secondsUntilReset = lockoutData.reset - time()
-                    local resetType = lockoutData.difficultyId == 2 and "daily" or "weekly"
-                    GameTooltip:AddLine("Resets " .. resetType .. ": " .. SecondsToTime(secondsUntilReset), 0.8, 0.8, 0.8)
-                end
-            elseif self.difficultyData.difficulty == "M+" and self.difficultyData.mythicPlusLevel then
-                GameTooltip:AddLine("Last Mythic+ Level: " .. self.difficultyData.mythicPlusLevel, 1, 1, 0)
-                GameTooltip:AddLine("Mythic+ can be run multiple times with keys", 0.8, 0.8, 0.8)
-            elseif self.charName == currentChar then
-                local instanceIndex
-                for k = 1, GetNumSavedInstances() do
-                    local name, id, reset, diff, locked = GetSavedInstanceInfo(k)
-                    if name == self.lockoutName and diff == self.difficultyData.difficultyId and locked and reset > 0 then
-                        instanceIndex = k
-                        break
-                    end
-                end
-                if instanceIndex then
-                    local _, _, reset, _, _, _, _, _, _, _, numEncounters = GetSavedInstanceInfo(instanceIndex)
-                    local bossesKilled = 0
-                    for k = 1, numEncounters do
-                        local bossName, _, isKilled = GetSavedInstanceEncounterInfo(instanceIndex, k)
-                        GameTooltip:AddLine((bossName or ("Boss " .. k)) .. ": " .. (isKilled and "Killed" or "Available"), isKilled and 1 or 0, isKilled and 0 or 1, 0)
-                        if isKilled then bossesKilled = bossesKilled + 1 end
-                    end
-                    GameTooltip:AddLine("Progress: " .. bossesKilled .. "/" .. numEncounters, 1, 1, 0)
-                    if reset > 0 then
-                        local resetType = self.difficultyData.difficultyId == 2 and "daily" or "weekly"
-                        GameTooltip:AddLine("Resets " .. resetType .. ": " .. SecondsToTime(reset), 0.8, 0.8, 0.8)
-                    end
-                end
-            end
-            GameTooltip:Show()
-        end)
-        statusLabel:SetScript("OnLeave", function()
-            GameTooltip:Hide()
-        end)
-        statusLabel:Show()
-        table.insert(LMAHI.lockoutLabels, statusLabel)
     end
+
+                                            if difficulty == "M+" then
+                                                mythicPlusLevel = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][diffLockoutId] and LMAHI_SavedData.lockouts[charName][diffLockoutId].mythicPlusLevel or nil
+                                                isLocked = false -- M+ is not locked
+                                                if mythicPlusLevel and not debugPrinted then
+                                                    print("LMAHI Debug: Displayed M+ for", charName, lockout.name, "Level:", mythicPlusLevel)
+                                                    debugPrinted = true
+                                                end
+                                            end
+                                        end
+
+                                        local coloredText = colorCode .. difficulty .. "|r"
+                                        table.insert(activeDifficulties, { difficulty = difficulty, lockoutId = diffLockoutId, difficultyId = difficultyIds[j], isLocked = isLocked, mythicPlusLevel = mythicPlusLevel })
+
+                                        -- Create individual font string for each difficulty
+                                        local statusLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+                                        statusLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", startX + (j-1) * hitboxWidth, offsetY)
+                                        statusLabel:SetWidth(hitboxWidth)
+                                        statusLabel:SetJustifyH("CENTER")
+                                        statusLabel:SetText(coloredText)
+                                        statusLabel:EnableMouse(true)
+                                        statusLabel.lockoutId = lockout.id
+                                        statusLabel.lockoutName = lockout.name
+                                        statusLabel.difficultyData = activeDifficulties[j]
+                                        statusLabel.lockoutType = lockoutType
+                                        statusLabel.lockoutKey = lockoutKey
+                                        statusLabel.charName = charName
+
+                                        -- Only enable tooltips for completed (red) or partially completed (gray) lockouts
+                                        if isLocked or (difficulty == "M+" and mythicPlusLevel) then
+                                            statusLabel:SetScript("OnEnter", function(self)
+                                                if not IsElementInView(self, LMAHI.lockoutScrollFrame) or not self:IsVisible() or not MouseIsOver(self) or LMAHI_SavedData.collapsedSections[self.lockoutType] or LMAHI_SavedData.lockoutVisibility[self.lockoutKey] ~= true then
+                                                    return
+                                                end
+
+                                                GameTooltip:SetOwner(self, "ANCHOR_TOP")
+                                                GameTooltip:AddLine(self.lockoutName .. " (" .. self.difficultyData.difficulty .. ")", 1, 1, 1)
+
+                                                local savedLockoutId = self.difficultyData.lockoutId
+                                                local lockoutData = LMAHI_SavedData.lockouts[tostring(self.charName)] and LMAHI_SavedData.lockouts[tostring(self.charName)][savedLockoutId]
+
+                                                if lockoutData and type(lockoutData) == "table" and self.difficultyData.difficulty ~= "M+" then
+                                                    if lockoutData.reset and time() >= lockoutData.reset then
+                                                        LMAHI_SavedData.lockouts[tostring(self.charName)][savedLockoutId] = nil
+                                                        if not expireDebugPrinted then
+                                                            print("LMAHI Debug: Cleared expired lockout in tooltip for", self.charName, lockoutData.name, "Difficulties:", table.concat(difficulties, ", "), "LockoutID:", savedLockoutId)
+                                                            expireDebugPrinted = true
+                                                        end
+                                                        GameTooltip:Hide()
+                                                        return
+                                                    end
+                                                    local bossesKilled = 0
+                                                    for k = 1, lockoutData.numEncounters do
+                                                        local bossName = lockoutData.encounters[k] and lockoutData.encounters[k].name or ("Boss " .. k)
+                                                        local isKilled = lockoutData.encounters[k] and lockoutData.encounters[k].isKilled or false
+                                                        GameTooltip:AddLine(bossName .. ": " .. (isKilled and "Killed" or "Available"), isKilled and 1 or 0, isKilled and 0 or 1, 0)
+                                                        if isKilled then bossesKilled = bossesKilled + 1 end
+                                                    end
+                                                    GameTooltip:AddLine("Progress: " .. bossesKilled .. "/" .. lockoutData.numEncounters, 1, 1, 0)
+                                                    if lockoutData.reset and time() < lockoutData.reset then
+                                                        local secondsUntilReset = lockoutData.reset - time()
+                                                        local resetType = lockoutData.difficultyId == 2 and "daily" or "weekly"
+                                                        GameTooltip:AddLine("Resets " .. resetType .. ": " .. SecondsToTime(secondsUntilReset), 0.8, 0.8, 0.8)
+                                                    end
+                                                elseif self.difficultyData.difficulty == "M+" and self.difficultyData.mythicPlusLevel then
+                                                    GameTooltip:AddLine("Last Mythic+ Level: " .. self.difficultyData.mythicPlusLevel, 1, 1, 0)
+                                                    GameTooltip:AddLine("Mythic+ can be run multiple times with keys", 0.8, 0.8, 0.8)
+                                                elseif self.charName == currentChar then
+                                                    local instanceIndex
+                                                    for k = 1, GetNumSavedInstances() do
+                                                        local name, id, reset, diff, locked = GetSavedInstanceInfo(k)
+                                                        if name == self.lockoutName and diff == self.difficultyData.difficultyId and locked and reset > 0 then
+                                                            instanceIndex = k
+                                                            break
+                                                        end
+                                                    end
+                                                    if instanceIndex then
+                                                        local _, _, reset, _, _, _, _, _, _, _, numEncounters = GetSavedInstanceInfo(instanceIndex)
+                                                        local bossesKilled = 0
+                                                        for k = 1, numEncounters do
+                                                            local bossName, _, isKilled = GetSavedInstanceEncounterInfo(instanceIndex, k)
+                                                            GameTooltip:AddLine((bossName or ("Boss " .. k)) .. ": " .. (isKilled and "Killed" or "Available"), isKilled and 1 or 0, isKilled and 0 or 1, 0)
+                                                            if isKilled then bossesKilled = bossesKilled + 1 end
+                                                        end
+                                                        GameTooltip:AddLine("Progress: " .. bossesKilled .. "/" .. numEncounters, 1, 1, 0)
+                                                        if reset > 0 then
+                                                            local resetType = self.difficultyData.difficultyId == 2 and "daily" or "weekly"
+                                                            GameTooltip:AddLine("Resets " .. resetType .. ": " .. SecondsToTime(reset), 0.8, 0.8, 0.8)
+                                                        end
+                                                    end
+                                                end
+                                                GameTooltip:Show()
+                                            end)
+                                            statusLabel:SetScript("OnLeave", function()
+                                                GameTooltip:Hide()
+                                            end)
+                                        end
+                                        statusLabel:Show()
+                                        table.insert(LMAHI.lockoutLabels, statusLabel)
+                                    end
                                 else
                                     local indicator = AcquireCheckButton(LMAHI.lockoutContent)
                                     indicator:SetSize(16, 16)
@@ -849,15 +895,15 @@ elseif lockoutType == "raids" or lockoutType == "dungeons" then
                                     indicator:SetScript("OnLeave", function()
                                         GameTooltip:Hide()
                                     end)
-  --[[                                  indicator:SetScript("OnClick", function()
+                                    --[[indicator:SetScript("OnClick", function()
                                         LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
                                         if isLocked then
                                             LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = nil
                                         else
                                             LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = true
-                                        end									
+                                        end
                                         LMAHI.UpdateDisplay()
-                                    end)]]-- blocked the red button for checking if resets work persitintly
+                                    end)]]-- Blocked as per original
                                     table.insert(LMAHI.lockoutLabels, indicator)
                                 end
                             end
