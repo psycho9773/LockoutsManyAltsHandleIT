@@ -1,4 +1,4 @@
----- Core.lua   getting there
+-- Core.lua
 
 -- Keep ALL HEADERS HEX and everything else r, g, b for colors of text
 
@@ -63,33 +63,41 @@ LMAHI.eventFrame:SetScript("OnEvent", function(self, event, arg1)
         if not LMAHI_SavedData.initialized then
             LMAHI_SavedData.initialized = true
 
-            LMAHI_SavedData.expansionVisibility = {
-                TWW  = true, DF   = false, LGN  = false, SL   = false,
-                BFA  = false, WOW = false, WOD = false, TBC  = false,
-                CAT  = false, WLK = false, MOP = false,
+            LMAHI_SavedData.expansionVisibility = LMAHI_SavedData.expansionVisibility or {
+                TWW = true, DF = false, SL = false, BFA = false,
+                LGN = false, WOD = false, MOP = false, CAT = false,
+                WLK = false, TBC = false, WOW = false,
             }
 
-            LMAHI_SavedData.sectionVisibility = {
+            LMAHI_SavedData.sectionVisibility = LMAHI_SavedData.sectionVisibility or {
                 raids = true, custom = true, rares = true,
                 currencies = true, quests = true, dungeons = true,
             }
 
-            LMAHI_SavedData.selectionFrameCollapsed = {
-                WLK = true, DF = true, MOP = true, LGN = true, SL = true,
-                BFA = true, CAT = true, TBC = true, WOD = true, WOW = true,
+            LMAHI_SavedData.selectionFrameCollapsed = LMAHI_SavedData.selectionFrameCollapsed or {
+                TWW = true, DF = true, SL = true, BFA = true,
+                LGN = true, WOD = true, MOP = true, CAT = true,
+                WLK = true, TBC = true, WOW = true,
+                custom = true,
                 TWW_raids = false, TWW_dungeons = false,
                 TWW_quests = false, TWW_rares = false, TWW_currencies = false,
             }
 
-            LMAHI_SavedData.previousLockoutVisibility = {
-                WLK = {}, DF = {}, LGN = {}, CAT = {}, WOD = {},
-                WOW = {}, TBC = {}, SL = {}, BFA = {}, MOP = {}
+            LMAHI_SavedData.previousLockoutVisibility = LMAHI_SavedData.previousLockoutVisibility or {
+                TWW = {}, DF = {}, SL = {}, BFA = {}, LGN = {},
+                WOD = {}, MOP = {}, CAT = {}, WLK = {}, TBC = {}, WOW = {},
             }
 
-            LMAHI_SavedData.customLockoutOrder = {}
-            LMAHI_SavedData.factions = {}
-            LMAHI_SavedData.classColors = {}
-            LMAHI_SavedData.lockoutVisibility = {}
+            LMAHI_SavedData.customLockouts = LMAHI_SavedData.customLockouts or {}
+            LMAHI_SavedData.customLockoutOrder = LMAHI_SavedData.customLockoutOrder or {}
+            LMAHI_SavedData.lockoutVisibility = LMAHI_SavedData.lockoutVisibility or {}
+            LMAHI_SavedData.factions = LMAHI_SavedData.factions or {}
+            LMAHI_SavedData.classColors = LMAHI_SavedData.classColors or {}
+            LMAHI_SavedData.selectionFramePos = LMAHI_SavedData.selectionFramePos or {
+                point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0
+            }
+            LMAHI_SavedData.zoomLevel = LMAHI_SavedData.zoomLevel or 1
+            LMAHI_SavedData.expansionVisibilityModified = LMAHI_SavedData.expansionVisibilityModified or false
         end
 
         if LMAHI.UpdateDisplay then
@@ -693,7 +701,7 @@ local customLockoutLabels = {}
 local removeCustomButtons = {}
 local customOrderInputs = {}
 
--- Custom input frame
+-- Custom Input Frame
 customInputFrame = CreateFrame("Frame", "LMAHI_CustomInputFrame", UIParent, "BasicFrameTemplateWithInset")
 tinsert(UISpecialFrames, "LMAHI_CustomInputFrame")
 customInputFrame:SetSize(515, 515)
@@ -749,7 +757,7 @@ nameLabel:Show()
 local nameInput = CreateFrame("EditBox", nil, customInputContent, "InputBoxTemplate")
 nameInput:SetSize(180, 20)
 nameInput:SetPoint("TOPLEFT", customInputContent, "TOPLEFT", 20, -29)
-nameInput:SetMaxLetters(24)
+nameInput:SetMaxLetters(32)
 nameInput:SetAutoFocus(false)
 nameInput:Show()
 
@@ -836,6 +844,7 @@ addButton:SetScript("OnClick", function()
     table.insert(LMAHI.lockoutData.custom, { id = id, name = name, reset = reset })
     LMAHI_SavedData.customLockouts = LMAHI.lockoutData.custom
     LMAHI_SavedData.customLockoutOrder[tostring(id)] = #LMAHI.lockoutData.custom
+    LMAHI_SavedData.lockoutVisibility["Custom_" .. id] = true
 
     nameInput:SetText("")
     idInput:SetText("")
@@ -846,6 +855,9 @@ addButton:SetScript("OnClick", function()
         LMAHI.UpdateCustomInputDisplay()
     end
     ThrottledUpdateDisplay()
+    if LMAHI.lockoutSelectionFrame then
+        LMAHI.lockoutSelectionFrame.UpdateContentLayout()
+    end
 end)
 
 customInputScrollFrame = CreateFrame("ScrollFrame", "LMAHI_CustomInputScrollFrame", customInputFrame, "UIPanelScrollFrameTemplate")
@@ -919,10 +931,9 @@ LMAHI.UpdateCustomInputDisplay = function()
         local label = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         label:SetPoint("RIGHT", button, "RIGHT", -10, 0)
         label:SetText(string.format("|cffffcc00%s|r   |cff99ccffID:|r |cff99ccff%d|r |cffffffff%s|r",
-        lockout.name, lockout.id, lockout.reset
-))
-          label:Show()
-          table.insert(customLockoutLabels, label)
+            lockout.name, lockout.id, lockout.reset))
+        label:Show()
+        table.insert(customLockoutLabels, label)
 
         local orderInput = CreateFrame("EditBox", nil, LMAHI.customInputScrollContent, "InputBoxTemplate")
         orderInput:SetSize(40, 20)
@@ -952,6 +963,9 @@ LMAHI.UpdateCustomInputDisplay = function()
                     LMAHI.UpdateCustomInputDisplay()
                 end
                 ThrottledUpdateDisplay()
+                if LMAHI.lockoutSelectionFrame then
+                    LMAHI.lockoutSelectionFrame.UpdateContentLayout()
+                end
             end
             self:SetText(tostring(LMAHI_SavedData.customLockoutOrder[tostring(self.lockoutId)] or i))
             self:ClearFocus()
@@ -959,76 +973,74 @@ LMAHI.UpdateCustomInputDisplay = function()
         orderInput:Show()
         table.insert(customOrderInputs, orderInput)
 
-local removeButton = CreateFrame("Button", nil, LMAHI.customInputScrollContent, "UIPanelButtonTemplate")
-removeButton:SetSize(60, 25)
-removeButton:SetPoint("LEFT", orderInput, "RIGHT", 5, 0)
-removeButton:SetText("Remove")
-removeButton.lockoutId = lockout.id
-removeButton:Show()
-table.insert(removeCustomButtons, removeButton)
+        local removeButton = CreateFrame("Button", nil, LMAHI.customInputScrollContent, "UIPanelButtonTemplate")
+        removeButton:SetSize(60, 25)
+        removeButton:SetPoint("LEFT", orderInput, "RIGHT", 5, 0)
+        removeButton:SetText("Remove")
+        removeButton.lockoutId = lockout.id
+        removeButton:Show()
+        table.insert(removeCustomButtons, removeButton)
 
-removeButton:SetScript("OnClick", function(self)
-    local dialogKey = "LMAHI_CONFIRM_REMOVE_LOCKOUT_" .. lockout.id
-
-    StaticPopupDialogs[dialogKey] = {
-text = string.format(
-    "Do you want to remove\n|cffffcc00%s|r   |cff99ccffID:|r |cff99ccff%d|r |cffffffff%s|r\nfrom the list?",
-    lockout.name, lockout.id, lockout.reset),
-
-
-        button1 = "Yes",
-        button2 = "No",
-        OnAccept = function()
-            for i, l in ipairs(LMAHI.lockoutData.custom) do
-                if l.id == self.lockoutId then
-                    table.remove(LMAHI.lockoutData.custom, i)
-                    LMAHI_SavedData.customLockouts = LMAHI.lockoutData.custom
-                    LMAHI_SavedData.customLockoutOrder[tostring(self.lockoutId)] = nil
-
-                    -- Rebuild and sort the custom lockout list
-                    local newCustomList = {}
-                    for _, lockout in ipairs(LMAHI.lockoutData.custom) do
-                        table.insert(newCustomList, lockout)
+        removeButton:SetScript("OnClick", function(self)
+            local dialogKey = "LMAHI_CONFIRM_REMOVE_LOCKOUT_" .. lockout.id
+            StaticPopupDialogs[dialogKey] = {
+                text = string.format(
+                    "Do you want to remove\n|cffffcc00%s|r   |cff99ccffID:|r |cff99ccff%d|r |cffffffff%s|r\nfrom the list?",
+                    lockout.name, lockout.id, lockout.reset),
+                button1 = "Yes",
+                button2 = "No",
+                OnAccept = function()
+                    for i, l in ipairs(LMAHI.lockoutData.custom) do
+                        if l.id == self.lockoutId then
+                            table.remove(LMAHI.lockoutData.custom, i)
+                            LMAHI_SavedData.customLockouts = LMAHI.lockoutData.custom
+                            LMAHI_SavedData.customLockoutOrder[tostring(self.lockoutId)] = nil
+                            LMAHI_SavedData.lockoutVisibility["Custom_" .. self.lockoutId] = nil
+                            local newCustomList = {}
+                            for _, lockout in ipairs(LMAHI.lockoutData.custom) do
+                                table.insert(newCustomList, lockout)
+                            end
+                            table.sort(newCustomList, function(a, b)
+                                local aIndex = LMAHI_SavedData.customLockoutOrder[tostring(a.id)] or 999
+                                local bIndex = LMAHI_SavedData.customLockoutOrder[tostring(b.id)] or 1000
+                                return aIndex < bIndex or (aIndex == bIndex and a.id < b.id)
+                            end)
+                            local newCustomLockoutOrder = {}
+                            for i, lockout in ipairs(newCustomList) do
+                                newCustomLockoutOrder[tostring(lockout.id)] = i
+                            end
+                            LMAHI_SavedData.customLockoutOrder = newCustomLockoutOrder
+                            if LMAHI.UpdateCustomInputDisplay then
+                                LMAHI.UpdateCustomInputDisplay()
+                            end
+                            ThrottledUpdateDisplay()
+                            if LMAHI.SaveCharacterData then
+                                LMAHI.SaveCharacterData()
+                            end
+                            if LMAHI.lockoutSelectionFrame then
+                                LMAHI.lockoutSelectionFrame.UpdateContentLayout()
+                            end
+                            break
+                        end
                     end
-                    table.sort(newCustomList, function(a, b)
-                        local aIndex = LMAHI_SavedData.customLockoutOrder[tostring(a.id)] or 999
-                        local bIndex = LMAHI_SavedData.customLockoutOrder[tostring(b.id)] or 1000
-                        return aIndex < bIndex or (aIndex == bIndex and a.id < b.id)
-                    end)
-
-                    -- Save new order
-                    local newCustomLockoutOrder = {}
-                    for i, lockout in ipairs(newCustomList) do
-                        newCustomLockoutOrder[tostring(lockout.id)] = i
-                    end
-                    LMAHI_SavedData.customLockoutOrder = newCustomLockoutOrder
-
-                    -- Update displays and save
-                    if LMAHI.UpdateCustomInputDisplay then
-                        LMAHI.UpdateCustomInputDisplay()
-                    end
-                    ThrottledUpdateDisplay()
-                    if LMAHI.SaveCharacterData then
-                        LMAHI.SaveCharacterData()
-                    end
-                    break
-                end
+                end,
+                timeout = 0,
+                whileDead = true,
+                hideOnEscape = true,
+                preferredIndex = 3
+            }
+            local popup = StaticPopup_Show(dialogKey)
+            if popup then
+                popup:ClearAllPoints()
+                popup:SetPoint("RIGHT", self, "RIGHT", 40, 60)
             end
-        end,
-        timeout = 0,
-        whileDead = true,
-        hideOnEscape = true,
-        preferredIndex = 3
-    }
-
-    local popup = StaticPopup_Show(dialogKey)
-    if popup then
-        popup:ClearAllPoints()
-        popup:SetPoint("RIGHT", self, "RIGHT", 40, 60)
+        end)
     end
- end)
- end
- end
+
+    if LMAHI.lockoutSelectionFrame then
+        LMAHI.lockoutSelectionFrame.UpdateContentLayout()
+    end
+end
 
 
 -- Settings Frame Main
@@ -1252,6 +1264,7 @@ LMAHI.UpdateSettingsDisplay = function()
 end
 
 -- CreateLockoutSelectionFrame
+-- Lockout Selection Frame
 function LMAHI.CreateLockoutSelectionFrame()
     local frame = CreateFrame("Frame", "LMAHILockoutSelectionFrame", UIParent, "BasicFrameTemplateWithInset")
     tinsert(UISpecialFrames, "LMAHILockoutSelectionFrame")
@@ -1271,11 +1284,12 @@ function LMAHI.CreateLockoutSelectionFrame()
     frame:SetScale(LMAHI_SavedData.zoomLevel or 1)
     frame:Hide()
 
+    LMAHI.lockoutSelectionFrame = frame
+
     local title = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
     title:SetPoint("TOP", frame, "TOP", 0, -3)
     title:SetText("|cff99ccffLockout|r |cffADADADSelection|r |cff99ccffSettings|r")
 
-    -- Lockout selection panel container
     local lockoutSelectionContent = CreateFrame("Frame", "LMAHILockoutSelectionContent", LMAHILockoutSelectionFrame, "BackdropTemplate")
     lockoutSelectionContent:SetSize(345, 190)
     lockoutSelectionContent:SetPoint("TOPLEFT", LMAHILockoutSelectionFrame, "TOPLEFT", 28, -25)
@@ -1291,12 +1305,10 @@ function LMAHI.CreateLockoutSelectionFrame()
     lockoutSelectionContent:SetFrameLevel(LMAHILockoutSelectionFrame:GetFrameLevel() + 1)
     lockoutSelectionContent:Show()
 
-    -- Section container for checkboxes
     local topSection = CreateFrame("Frame", nil, lockoutSelectionContent)
     topSection:SetPoint("TOPLEFT", lockoutSelectionContent, "TOPLEFT", 5, -1)
     topSection:SetSize(330, 60)
 
-    -- Checkbox definitions
     local sectionCheckboxes = lockoutSelectionContent.sectionCheckboxes or {}
     local lockoutTypesDisplay = { "custom", "raids", "dungeons", "quests", "rares", "currencies" }
 
@@ -1330,7 +1342,6 @@ function LMAHI.CreateLockoutSelectionFrame()
         label:Show()
     end
 
-    -- Instructional label beneath checkboxes
     local lines = {
         "Show or Hide the sections on the Main Page",
         "by checking or unchecking the boxes ABOVE.",
@@ -1338,8 +1349,8 @@ function LMAHI.CreateLockoutSelectionFrame()
         "Show or Hide ALL lockouts of an Expansion",
         "by checking or unchecking the boxes BELOW.",
         "To HIDE specific lockouts, the Expansion box",
-		"MUST be checked, THEN lockouts can be hidden",
-		"in the collapsable sections below them.",
+        "MUST be checked, THEN lockouts can be hidden",
+        "in the collapsable sections below them.",
     }
     local caption = lockoutSelectionContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     caption:SetPoint("TOP", topSection, "BOTTOM", 0, 2)
@@ -1352,16 +1363,15 @@ function LMAHI.CreateLockoutSelectionFrame()
 
     lockoutSelectionContent.sectionCheckboxes = sectionCheckboxes
 
-    -- Scroll frame starts below top section
     local scrollFrame = CreateFrame("ScrollFrame", "LMAHI_SelectionScrollFrame", frame, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", topSection, "BOTTOMLEFT", 10, -130)
-    scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -30, 10)
+    scrollFrame:SetPoint("TOPLEFT", lockoutSelectionContent, "BOTTOMLEFT", 20, -400)
+    scrollFrame:SetPoint("BOTTOMRIGHT", lockoutSelectionContent, "BOTTOMRIGHT", -8, -10)
     scrollFrame:EnableMouseWheel(true)
     scrollFrame:SetFrameLevel(frame:GetFrameLevel() + 1)
     scrollFrame:SetScript("OnMouseWheel", function(self, delta)
         local current = self:GetVerticalScroll()
         local maxScroll = self:GetVerticalScrollRange()
-        local scrollAmount = 32
+        local scrollAmount = 30
         self:SetVerticalScroll(math.max(0, math.min(current - delta * scrollAmount, maxScroll)))
     end)
 
@@ -1371,7 +1381,6 @@ function LMAHI.CreateLockoutSelectionFrame()
     content:SetFrameLevel(scrollFrame:GetFrameLevel() + 1)
 
     LMAHI_SavedData.selectionFrameCollapsed = LMAHI_SavedData.selectionFrameCollapsed or {}
-    -- Initialize all sections as collapsed by default
     local function InitializeCollapsedState()
         LMAHI_SavedData.selectionFrameCollapsed["custom"] = LMAHI_SavedData.selectionFrameCollapsed["custom"] or true
         local expansions = {
@@ -1390,18 +1399,52 @@ function LMAHI.CreateLockoutSelectionFrame()
     InitializeCollapsedState()
 
     LMAHI_SavedData.selectionFramePos = LMAHI_SavedData.selectionFramePos or { point = "CENTER", relativeTo = "UIParent", relativePoint = "CENTER", x = 0, y = 0 }
-    LMAHI_SavedData.lockoutVisibility = LMAHI_SavedData.lockoutVisibility or {}
     LMAHI_SavedData.sectionVisibility = LMAHI_SavedData.sectionVisibility or {
-        custom = true,
-        raids = true,
-        dungeons = true,
-        quests = true,
-        rares = true,
-        currencies = true
+        custom = true, raids = true, dungeons = true, quests = true, rares = true, currencies = true
     }
     LMAHI_SavedData.expansionVisibility = LMAHI_SavedData.expansionVisibility or {}
     LMAHI_SavedData.previousLockoutVisibility = LMAHI_SavedData.previousLockoutVisibility or {}
     LMAHI_SavedData.expansionVisibilityModified = LMAHI_SavedData.expansionVisibilityModified or false
+
+    StaticPopupDialogs["LMAHI_CONFIRM_CLEAR_CUSTOM_CHECKS"] = {
+        text = "This will remove all |cffffd700checkmarks|r in the\nCustom section, including any\nthat have been manually unselected.\nAre you sure you want to clear everything?",
+        button1 = "Yes",
+        button2 = "Cancel",
+        OnAccept = function(self)
+            for key in pairs(LMAHI_SavedData.lockoutVisibility or {}) do
+                if string.match(key, "^Custom_") then
+                    LMAHI_SavedData.lockoutVisibility[key] = nil
+                end
+            end
+            for _, lockout in ipairs(LMAHI_SavedData.customLockouts or {}) do
+                local lockoutKey = "Custom_" .. lockout.id
+                local checkbox = frame.checkboxes[lockoutKey]
+                if checkbox then
+                    checkbox:SetChecked(false)
+                end
+            end
+            if frame.customCheckbox then
+                frame.customCheckbox:SetChecked(false)
+            end
+            if LMAHI.UpdateDisplay then
+                LMAHI.UpdateDisplay()
+            end
+            if LMAHI.lockoutSelectionFrame and LMAHI.lockoutSelectionFrame.UpdateContentLayout then
+                LMAHI.lockoutSelectionFrame.UpdateContentLayout()
+            end
+            StaticPopup_Hide("LMAHI_CONFIRM_CLEAR_CUSTOM_CHECKS")
+        end,
+        OnCancel = function(self)
+            if frame.customCheckbox then
+                frame.customCheckbox:SetChecked(true)
+            end
+            StaticPopup_Hide("LMAHI_CONFIRM_CLEAR_CUSTOM_CHECKS")
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        showAlert = true,
+    }
 
     local function UpdateContentLayout()
         local yOffset = -20
@@ -1410,7 +1453,6 @@ function LMAHI.CreateLockoutSelectionFrame()
         local nameLabels = frame.nameLabels or {}
         local expCheckboxes = frame.expCheckboxes or {}
 
-        -- Clear existing positions and hide all
         for _, checkbox in pairs(checkboxes) do
             checkbox:ClearAllPoints()
             checkbox:Hide()
@@ -1428,11 +1470,10 @@ function LMAHI.CreateLockoutSelectionFrame()
             checkbox:Hide()
         end
 
-        -- Handle Custom section with collapse button and lockouts
         local customKey = "custom"
         local customButton = collapseButtons[customKey] or CreateFrame("Button", nil, content)
         customButton:SetSize(25, 25)
-        customButton:SetPoint("TOPLEFT", content, "TOPLEFT", 35, yOffset -4)
+        customButton:SetPoint("TOPLEFT", content, "TOPLEFT", 35, yOffset - 4)
         customButton:SetNormalTexture("Interface\\Buttons\\UI-MinusButton-Up")
         customButton:GetNormalTexture():SetSize(25, 25)
         customButton:SetPushedTexture("Interface\\Buttons\\UI-MinusButton-Down")
@@ -1447,8 +1488,50 @@ function LMAHI.CreateLockoutSelectionFrame()
         end
         customButton:Show()
 
+        local customCheckbox = frame.customCheckbox or CreateFrame("CheckButton", nil, content, "UICheckButtonTemplate")
+        customCheckbox:SetSize(25, 25)
+        customCheckbox:SetPoint("TOPLEFT", content, "TOPLEFT", 0, yOffset -4)
+        local allCustomVisible = true
+        for _, lockout in ipairs(LMAHI_SavedData.customLockouts or {}) do
+            local lockoutKey = "Custom_" .. lockout.id
+            if not LMAHI_SavedData.lockoutVisibility[lockoutKey] then
+                allCustomVisible = false
+                break
+            end
+        end
+        customCheckbox:SetChecked(allCustomVisible)
+        if not frame.customCheckbox then
+            frame.customCheckbox = customCheckbox
+            customCheckbox:SetScript("OnClick", function(self)
+                local isChecked = self:GetChecked()
+                if isChecked then
+                    for _, lockout in ipairs(LMAHI_SavedData.customLockouts or {}) do
+                        local lockoutKey = "Custom_" .. lockout.id
+                        LMAHI_SavedData.lockoutVisibility[lockoutKey] = true
+                        local checkbox = checkboxes[lockoutKey]
+                        if checkbox then
+                            checkbox:SetChecked(true)
+                        end
+                    end
+                    if LMAHI.UpdateDisplay then
+                        LMAHI.UpdateDisplay()
+                    end
+                    if LMAHI.lockoutSelectionFrame and LMAHI.lockoutSelectionFrame.UpdateContentLayout then
+                        LMAHI.lockoutSelectionFrame.UpdateContentLayout()
+                    end
+                else
+                    local popup = StaticPopup_Show("LMAHI_CONFIRM_CLEAR_CUSTOM_CHECKS")
+                    if popup then
+                        popup:ClearAllPoints()
+                        popup:SetPoint("LEFT", self, "RIGHT", -30, 65)
+                    end
+                end
+            end)
+        end
+        customCheckbox:Show()
+
         local customLabel = nameLabels[customKey] or content:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
-        customLabel:SetPoint("TOPLEFT", content, "TOPLEFT", 70, yOffset -8)
+        customLabel:SetPoint("TOPLEFT", content, "TOPLEFT", 70, yOffset - 8)
         customLabel:SetText("Custom")
         customLabel:SetWidth(300)
         customLabel:SetJustifyH("LEFT")
@@ -1463,14 +1546,29 @@ function LMAHI.CreateLockoutSelectionFrame()
             LMAHI_SavedData.selectionFrameCollapsed[customKey] = not LMAHI_SavedData.selectionFrameCollapsed[customKey]
             self:SetNormalTexture(LMAHI_SavedData.selectionFrameCollapsed[customKey] and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
             self:GetNormalTexture():SetSize(25, 25)
-            UpdateContentLayout()
+            if LMAHI.lockoutSelectionFrame and LMAHI.lockoutSelectionFrame.UpdateContentLayout then
+                LMAHI.lockoutSelectionFrame.UpdateContentLayout()
+            end
             if LMAHI.UpdateDisplay then
                 LMAHI.UpdateDisplay()
             end
         end)
 
         if not isCustomCollapsed then
-            local customLockouts = LMAHI_SavedData.customLockouts or {}
+            local customLockouts = {}
+            for _, lockout in ipairs(LMAHI_SavedData.customLockouts or {}) do
+                if lockout.id then
+                    table.insert(customLockouts, lockout)
+                end
+            end
+            table.sort(customLockouts, function(a, b)
+                local aIndex = LMAHI_SavedData.customLockoutOrder[tostring(a.id)] or 999
+                local bIndex = LMAHI_SavedData.customLockoutOrder[tostring(b.id)] or 1000
+                if aIndex == bIndex then
+                    return a.id < b.id
+                end
+                return aIndex < bIndex
+            end)
             for _, lockout in ipairs(customLockouts) do
                 local lockoutKey = "Custom_" .. lockout.id
                 local checkbox = checkboxes[lockoutKey] or CreateFrame("CheckButton", nil, content, "UICheckButtonTemplate")
@@ -1479,7 +1577,7 @@ function LMAHI.CreateLockoutSelectionFrame()
                 checkbox.Text:SetText(lockout.name)
                 checkbox.Text:SetPoint("LEFT", checkbox, "RIGHT", 10, 0)
                 checkbox.Text:SetFontObject("GameFontNormal")
-                checkbox.Text:SetWidth(300)
+                checkbox.Text:SetWidth(220)
                 checkbox.Text:SetJustifyH("LEFT")
                 checkbox.Text:SetTextColor(0.9, 0.7, 0.1)
                 checkbox:SetChecked(LMAHI_SavedData.lockoutVisibility[lockoutKey] == true)
@@ -1488,7 +1586,15 @@ function LMAHI.CreateLockoutSelectionFrame()
                 if not checkboxes[lockoutKey] then
                     checkboxes[lockoutKey] = checkbox
                     checkbox:SetScript("OnClick", function(self)
-                        LMAHI_SavedData.lockoutVisibility[lockoutKey] = self:GetChecked() or nil
+                        LMAHI_SavedData.lockoutVisibility[lockoutKey] = self:GetChecked()
+                        local allVisible = true
+                        for _, l in ipairs(LMAHI_SavedData.customLockouts or {}) do
+                            if not LMAHI_SavedData.lockoutVisibility["Custom_" .. l.id] then
+                                allVisible = false
+                                break
+                            end
+                        end
+                        frame.customCheckbox:SetChecked(allVisible)
                         if LMAHI.UpdateDisplay then
                             LMAHI.UpdateDisplay()
                         end
@@ -1522,16 +1628,13 @@ function LMAHI.CreateLockoutSelectionFrame()
             button2 = "Cancel",
             OnAccept = function(self, data)
                 local expansionId = data
-                -- Clear lockout visibility for this expansion
                 for key in pairs(LMAHI_SavedData.lockoutVisibility or {}) do
                     if string.match(key, "^" .. expansionId .. "_") then
                         LMAHI_SavedData.lockoutVisibility[key] = nil
                     end
                 end
-                -- Clear expansion visibility
                 LMAHI_SavedData.expansionVisibility[expansionId] = false
                 LMAHI_SavedData.expansionVisibilityModified = true
-                -- Update all relevant checkboxes
                 for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
                     if lockoutType ~= "custom" then
                         local lockouts = LMAHI.lockoutData[lockoutType] or {}
@@ -1546,7 +1649,6 @@ function LMAHI.CreateLockoutSelectionFrame()
                         end
                     end
                 end
-                -- Update the expansion checkbox
                 local expCheckbox = expCheckboxes[expansionId]
                 if expCheckbox then
                     expCheckbox:SetChecked(false)
@@ -1554,14 +1656,18 @@ function LMAHI.CreateLockoutSelectionFrame()
                 if LMAHI.UpdateDisplay then
                     LMAHI.UpdateDisplay()
                 end
-                UpdateContentLayout() -- Refresh layout to ensure checkbox states are updated
+                if LMAHI.lockoutSelectionFrame and LMAHI.lockoutSelectionFrame.UpdateContentLayout then
+                    LMAHI.lockoutSelectionFrame.UpdateContentLayout()
+                end
             end,
             OnCancel = function(self, data)
                 local expansionId = data
+                LMAHI_SavedData.expansionVisibility[expansionId] = true
                 local expCheckbox = expCheckboxes[expansionId]
                 if expCheckbox then
-                    expCheckbox:SetChecked(LMAHI_SavedData.expansionVisibility[expansionId] == true)
+                    expCheckbox:SetChecked(true)
                 end
+                StaticPopup_Hide("LMAHI_CONFIRM_CLEAR_CHECKS")
             end,
             timeout = 0,
             whileDead = true,
@@ -1569,7 +1675,6 @@ function LMAHI.CreateLockoutSelectionFrame()
             showAlert = true,
         }
 
-        -- Handle expansions
         local expansions = {
             { name = "The War Within", id = "TWW", color = {0.9, 0.5, 0.1} },
             { name = "Dragonflight", id = "DF", color = {0.7, 0.8, 0.8} },
@@ -1587,27 +1692,15 @@ function LMAHI.CreateLockoutSelectionFrame()
         for _, expansion in ipairs(expansions) do
             local expCheckbox = expCheckboxes[expansion.id] or CreateFrame("CheckButton", nil, content, "UICheckButtonTemplate")
             expCheckbox:SetSize(25, 25)
-            expCheckbox:SetPoint("TOPLEFT", content, "TOPLEFT", 0, yOffset )
-            -- Set checked state explicitly, treating nil as false
+            expCheckbox:SetPoint("TOPLEFT", content, "TOPLEFT", 0, yOffset)
             expCheckbox:SetChecked(LMAHI_SavedData.expansionVisibility[expansion.id] == true)
-
             if not expCheckboxes[expansion.id] then
                 expCheckboxes[expansion.id] = expCheckbox
                 expCheckbox:SetScript("OnClick", function(self)
                     local isChecked = self:GetChecked()
-                    LMAHI_SavedData.expansionVisibility[expansion.id] = isChecked
-                    LMAHI_SavedData.expansionVisibilityModified = true
-                    if not isChecked then
-                        local name = expansion.name
-                        local r, g, b = expansion.color[1], expansion.color[2], expansion.color[3]
-                        local hex = string.format("|cff%02x%02x%02x", r * 255, g * 255, b * 255)
-                        local coloredName = hex .. name .. "|r"
-                        local popup = StaticPopup_Show("LMAHI_CONFIRM_CLEAR_CHECKS", coloredName, nil, expansion.id)
-                        if popup then
-                            popup:ClearAllPoints()
-                            popup:SetPoint("LEFT", self, "RIGHT", -30, 65)
-                        end
-                    else
+                    if isChecked then
+                        LMAHI_SavedData.expansionVisibility[expansion.id] = true
+                        LMAHI_SavedData.expansionVisibilityModified = true
                         LMAHI_SavedData.previousLockoutVisibility[expansion.id] = LMAHI_SavedData.previousLockoutVisibility[expansion.id] or {}
                         for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
                             if lockoutType ~= "custom" then
@@ -1627,7 +1720,19 @@ function LMAHI.CreateLockoutSelectionFrame()
                         if LMAHI.UpdateDisplay then
                             LMAHI.UpdateDisplay()
                         end
-                        UpdateContentLayout() -- Refresh layout to reflect changes
+                        if LMAHI.lockoutSelectionFrame and LMAHI.lockoutSelectionFrame.UpdateContentLayout then
+                            LMAHI.lockoutSelectionFrame.UpdateContentLayout()
+                        end
+                    else
+                        local name = expansion.name
+                        local r, g, b = expansion.color[1], expansion.color[2], expansion.color[3]
+                        local hex = string.format("|cff%02x%02x%02x", r * 255, g * 255, b * 255)
+                        local coloredName = hex .. name .. "|r"
+                        local popup = StaticPopup_Show("LMAHI_CONFIRM_CLEAR_CHECKS", coloredName, nil, expansion.id)
+                        if popup then
+                            popup:ClearAllPoints()
+                            popup:SetPoint("LEFT", self, "RIGHT", -30, 65)
+                        end
                     end
                 end)
             end
@@ -1667,7 +1772,9 @@ function LMAHI.CreateLockoutSelectionFrame()
                 LMAHI_SavedData.selectionFrameCollapsed[expansion.id] = not LMAHI_SavedData.selectionFrameCollapsed[expansion.id]
                 self:SetNormalTexture(LMAHI_SavedData.selectionFrameCollapsed[expansion.id] and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
                 self:GetNormalTexture():SetSize(25, 25)
-                UpdateContentLayout()
+                if LMAHI.lockoutSelectionFrame and LMAHI.lockoutSelectionFrame.UpdateContentLayout then
+                    LMAHI.lockoutSelectionFrame.UpdateContentLayout()
+                end
                 if LMAHI.UpdateDisplay then
                     LMAHI.UpdateDisplay()
                 end
@@ -1681,7 +1788,7 @@ function LMAHI.CreateLockoutSelectionFrame()
                             local typeKey = expansion.id .. "_" .. lockoutType
                             local typeButton = collapseButtons[typeKey] or CreateFrame("Button", nil, content)
                             typeButton:SetSize(22, 22)
-                            typeButton:SetPoint("TOPLEFT", content, "TOPLEFT", 45, yOffset -5)
+                            typeButton:SetPoint("TOPLEFT", content, "TOPLEFT", 45, yOffset - 5)
                             typeButton:SetNormalTexture("Interface\\Buttons\\UI-MinusButton-Up")
                             typeButton:GetNormalTexture():SetSize(22, 22)
                             typeButton:SetPushedTexture("Interface\\Buttons\\UI-MinusButton-Down")
@@ -1714,7 +1821,9 @@ function LMAHI.CreateLockoutSelectionFrame()
                                 LMAHI_SavedData.selectionFrameCollapsed[typeKey] = not LMAHI_SavedData.selectionFrameCollapsed[typeKey]
                                 self:SetNormalTexture(LMAHI_SavedData.selectionFrameCollapsed[typeKey] and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
                                 self:GetNormalTexture():SetSize(22, 22)
-                                UpdateContentLayout()
+                                if LMAHI.lockoutSelectionFrame and LMAHI.lockoutSelectionFrame.UpdateContentLayout then
+                                    LMAHI.lockoutSelectionFrame.UpdateContentLayout()
+                                end
                                 if LMAHI.UpdateDisplay then
                                     LMAHI.UpdateDisplay()
                                 end
@@ -1730,7 +1839,9 @@ function LMAHI.CreateLockoutSelectionFrame()
                                         checkbox.Text:SetText(lockout.name)
                                         checkbox.Text:SetPoint("LEFT", checkbox, "RIGHT", 7, 1)
                                         checkbox.Text:SetFontObject("GameFontNormal")
-                                        checkbox.Text:SetWidth(300)
+                                        checkbox.Text:SetWidth(220)
+										checkbox.Text:SetWordWrap(false)
+                                        checkbox.Text:SetMaxLines(1)
                                         checkbox.Text:SetJustifyH("LEFT")
                                         checkbox.Text:SetTextColor(0.9, 0.7, 0.1)
                                         checkbox:SetChecked(LMAHI_SavedData.lockoutVisibility[lockoutKey] == true)
@@ -1740,23 +1851,23 @@ function LMAHI.CreateLockoutSelectionFrame()
                                         if not checkboxes[lockoutKey] then
                                             checkboxes[lockoutKey] = checkbox
                                             checkbox:SetScript("OnClick", function(self)
-                                                LMAHI_SavedData.lockoutVisibility[lockoutKey] = self:GetChecked() or nil
+                                                LMAHI_SavedData.lockoutVisibility[lockoutKey] = self:GetChecked()
                                                 if LMAHI.UpdateDisplay then
                                                     LMAHI.UpdateDisplay()
                                                 end
                                             end)
                                         end
                                         checkbox:Show()
-                                        yOffset = yOffset - 22   -- moves each lockout in each expansion r d q r c apart
+                                        yOffset = yOffset - 22
                                     end
                                 end
                             end
-                            yOffset = yOffset - 5   -- moves each expansion r d q r c apart
+                            yOffset = yOffset - 5
                         end
                     end
                 end
             end
-            yOffset = yOffset - 10   -- moves each expansion apart
+            yOffset = yOffset - 10
         end
 
         content:SetHeight(-yOffset + 20)
@@ -1766,9 +1877,10 @@ function LMAHI.CreateLockoutSelectionFrame()
         frame.expCheckboxes = expCheckboxes
     end
 
-    -- Ensure initial checkbox states are set correctly after frame creation
     frame:SetScript("OnShow", function()
-        -- Reinitialize expansionVisibility only if not modified by user
+        if LMAHI.lockoutSelectionFrame and LMAHI.lockoutSelectionFrame.UpdateContentLayout then
+            LMAHI.lockoutSelectionFrame.UpdateContentLayout()
+        end
         local expansions = {
             "TWW", "DF", "SL", "BFA", "LGN", "WOD", "MOP", "CAT", "WLK", "TBC", "WOW"
         }
@@ -1783,9 +1895,12 @@ function LMAHI.CreateLockoutSelectionFrame()
                 checkbox:SetChecked(LMAHI_SavedData.expansionVisibility[expId] == true)
             end
         end
-        UpdateContentLayout() -- Refresh layout to ensure consistency
+        if LMAHI.lockoutSelectionFrame and LMAHI.lockoutSelectionFrame.UpdateContentLayout then
+            LMAHI.lockoutSelectionFrame.UpdateContentLayout()
+        end
     end)
 
+    frame.UpdateContentLayout = UpdateContentLayout
     UpdateContentLayout()
     return frame
 end
@@ -1793,50 +1908,23 @@ end
 -- Throttle timers
 local lastClearTime = 0
 local lastInstanceCheckTime = 0
-local clearThrottle = 5 -- Seconds between ClearExpiredLockouts calls
-local instanceThrottle = 10 -- Increased to 10s to catch multiple UPDATE_INSTANCE_INFO
-local lastNumSavedInstances = 0 -- Track number of saved instances
-local lastMythicRunCount = 0 -- Track Mythic+ run count
+local lastCurrencyCheckTime = 0
+local clearThrottle = 5
+local instanceThrottle = 10
+local currencyThrottle = 900 -- 15 minutes for currency updates
+local lastNumSavedInstances = 0
+local lastMythicRunCount = 0
+local skipDebugPrinted = false -- Track skip debug print across event calls
 
--- Utility function to clear expired lockouts
-local function ClearExpiredLockouts(charName, fullCheck)
-    local currentTime = time()
-    if currentTime - lastClearTime < clearThrottle and not fullCheck then
-        print("LMAHI Debug: Skipped ClearExpiredLockouts due to throttle")
-        return
-    end
-    lastClearTime = currentTime
-    if not LMAHI_SavedData.lockouts then
-        LMAHI_SavedData.lockouts = {}
-        print("LMAHI Debug: Initialized empty LMAHI_SavedData.lockouts")
-        return
-    end
-    local charactersToCheck = charName and { [charName] = LMAHI_SavedData.lockouts[charName] } or LMAHI_SavedData.lockouts
-    print("LMAHI Debug: Running ClearExpiredLockouts at", date("%Y-%m-%d %H:%M:%S", currentTime), "for", charName or "all characters", "FullCheck:", fullCheck or false)
-    local checkedCount, clearedCount = 0, 0
-    for char, lockouts in pairs(charactersToCheck) do
-        if not lockouts or next(lockouts) == nil then
-            -- Skip empty lockouts silently
-            break
-        end
-        local hasRaidOrDungeon = false
-        for diffLockoutId, lockoutData in pairs(lockouts) do
-            if type(lockoutData) == "table" and lockoutData.type and (lockoutData.type == "raid" or lockoutData.type == "dungeon") and lockoutData.reset and lockoutData.difficultyLabel ~= "M+" then
-                hasRaidOrDungeon = true
-                checkedCount = checkedCount + 1
-                local expirationTime = lockoutData.reset
-                if currentTime >= expirationTime then
-                    LMAHI_SavedData.lockouts[char][diffLockoutId] = nil
-                    clearedCount = clearedCount + 1
-                    print("LMAHI Debug: Cleared expired lockout for", char, lockoutData.name, lockoutData.difficultyLabel, "LockoutID:", diffLockoutId, "Reset:", date("%Y-%m-%d %H:%M:%S", expirationTime))
-                end
-            end
-        end
-        if not hasRaidOrDungeon and charName then
-            print("LMAHI Debug: No raid/dungeon lockouts for", char)
+-- Helper function to get lockout name by ID
+local function GetLockoutName(lockoutId, lockoutType)
+    local lockouts = LMAHI.lockoutData[lockoutType] or {}
+    for _, lockout in ipairs(lockouts) do
+        if lockout.id == lockoutId then
+            return lockout.name
         end
     end
-    print("LMAHI Debug: Checked", checkedCount, "lockouts, cleared", clearedCount)
+    return "Unknown (" .. lockoutId .. ")" -- Fallback if not found
 end
 
 -- Event handling
@@ -1849,8 +1937,10 @@ eventFrame:RegisterEvent("ENCOUNTER_END")
 eventFrame:RegisterEvent("QUEST_TURNED_IN")
 eventFrame:RegisterEvent("LFG_LOCK_INFO_RECEIVED")
 eventFrame:RegisterEvent("UPDATE_INSTANCE_INFO")
+eventFrame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
 eventFrame:SetScript("OnEvent", function(self, event, arg1)
     local charName = UnitName("player") .. "-" .. GetRealmName()
+    local currentTime = time()
 
     if event == "ADDON_LOADED" and arg1 == addonName then
         if LMAHI.InitializeData then
@@ -1913,7 +2003,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         if LMAHI.InitializeLockouts then LMAHI.InitializeLockouts() end
         if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
         if LMAHI.CheckLockouts then LMAHI.CheckLockouts() end
-
+        LMAHI.CheckResetTimers() -- Check resets on addon load
         LMAHI.currentPage = LMAHI_SavedData.currentPage
         mainFrame:SetScale(LMAHI_SavedData.zoomLevel)
         settingsFrame:SetScale(LMAHI_SavedData.zoomLevel)
@@ -1925,6 +2015,8 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         UpdateButtonPosition()
         if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
         if LMAHI.CheckLockouts then LMAHI.CheckLockouts() end
+        if LMAHI.UpdateCurrencyData then LMAHI.UpdateCurrencyData() end
+        LMAHI.CheckResetTimers() -- Check resets on login
 
         -- Get sorted character list
         local charList = {}
@@ -1959,11 +2051,13 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         end
 
         mainFrame:Hide()
-        -- Check current character's lockouts on login
-        ClearExpiredLockouts(currentChar)
 
     elseif event == "PLAYER_LOGOUT" then
-        LMAHI_SavedData.currentPage = LMAHI.currentPage
+        if LMAHI_SavedData then
+            LMAHI_SavedData.currentPage = LMAHI.currentPage
+        else
+            print("LMAHI Error: LMAHI_SavedData is nil on PLAYER_LOGOUT")
+        end
         if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
 
     elseif event == "PLAYER_ENTERING_WORLD" or event == "ENCOUNTER_END" or event == "QUEST_TURNED_IN" or event == "LFG_LOCK_INFO_RECEIVED" then
@@ -1973,6 +2067,20 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
             ThrottledUpdateDisplay()
         end
 
+    elseif event == "CURRENCY_DISPLAY_UPDATE" then
+        local debugPrinted = false -- Track currency debug print
+        if currentTime - lastCurrencyCheckTime >= currencyThrottle then
+            if LMAHI.UpdateCurrencyData then LMAHI.UpdateCurrencyData() end
+            if mainFrame:IsShown() then
+                ThrottledUpdateDisplay()
+            end
+            lastCurrencyCheckTime = currentTime
+            if not debugPrinted then
+                -- print("LMAHI Debug: Currency data updated at", date("%Y-%m-%d %H:%M:%S", currentTime))
+                debugPrinted = true
+            end
+        end
+
     elseif event == "UPDATE_INSTANCE_INFO" then
         if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
         if LMAHI.CheckLockouts then LMAHI.CheckLockouts() end
@@ -1980,52 +2088,40 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         LMAHI_SavedData.lockouts = LMAHI_SavedData.lockouts or {}
         LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
 
-        -- Update reset timers
-        local currentTime = time()
-        local serverTime = GetServerTime()
-        local dailyReset = C_DateAndTime.GetSecondsUntilDailyReset() + serverTime
-        local weeklyReset = C_DateAndTime.GetSecondsUntilWeeklyReset() + serverTime
-        local dailyResetChanged = LMAHI_SavedData.lastDailyReset < currentTime and dailyReset > LMAHI_SavedData.lastDailyReset
-        local weeklyResetChanged = LMAHI_SavedData.lastWeeklyReset < currentTime and weeklyReset > LMAHI_SavedData.lastWeeklyReset
-        if dailyResetChanged then
-            LMAHI_SavedData.lastDailyReset = dailyReset
-            print("LMAHI Debug: Updated lastDailyReset to", date("%Y-%m-%d %H:%M:%S", dailyReset))
-        end
-        if weeklyResetChanged then
-            LMAHI_SavedData.lastWeeklyReset = weeklyReset
-            print("LMAHI Debug: Updated lastWeeklyReset to", date("%Y-%m-%d %H:%M:%S", weeklyReset))
-        end
-
-        -- Run ClearExpiredLockouts only if reset occurred or first check
-        if dailyResetChanged or weeklyResetChanged then
-            ClearExpiredLockouts(nil, true)
-        elseif not LMAHI_SavedData.lockouts[charName] or next(LMAHI_SavedData.lockouts[charName]) == nil then
-            ClearExpiredLockouts(charName)
-        end
-
         -- Check if instance data has changed
         local numSaved = GetNumSavedInstances()
         local mythicRunCount = C_MythicPlus and C_MythicPlus.GetRunHistory and #C_MythicPlus.GetRunHistory(false, true) or 0
-        if numSaved == lastNumSavedInstances and mythicRunCount == lastMythicRunCount then
-            print("LMAHI Debug: Skipped instance check; no new instances or Mythic+ runs")
+        local debugPrinted = false -- Track debug prints for this event
+        if numSaved == lastNumSavedInstances and mythicRunCount == lastMythicRunCount and currentTime - lastInstanceCheckTime < instanceThrottle then
+            if not skipDebugPrinted then
+                print("LMAHI Debug: Skipped instance check for", charName, "due to no new instances or Mythic+ runs and throttle")
+                skipDebugPrinted = true
+            end
             if mainFrame:IsShown() then
                 ThrottledUpdateDisplay()
+            end
+            -- Reset skipDebugPrinted after throttle period
+            if currentTime - lastInstanceCheckTime >= instanceThrottle then
+                skipDebugPrinted = false
             end
             return
         end
         lastNumSavedInstances = numSaved
         lastMythicRunCount = mythicRunCount
+        skipDebugPrinted = false -- Reset when processing instances
 
-        -- Throttle instance checks
         if currentTime - lastInstanceCheckTime < instanceThrottle then
-            print("LMAHI Debug: Skipped instance check due to throttle")
+            if not skipDebugPrinted then
+                print("LMAHI Debug: Skipped instance check for", charName, "due to throttle")
+                skipDebugPrinted = true
+            end
             if mainFrame:IsShown() then
                 ThrottledUpdateDisplay()
             end
             return
         end
         lastInstanceCheckTime = currentTime
-		
+        skipDebugPrinted = false -- Reset when processing instances
 
         -- Preserve non-raid/dungeon lockouts
         local nonRaidLockouts = {}
@@ -2050,6 +2146,8 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
 
         -- Process saved instances
         local instanceProcessed = false
+        local instanceDebugPrinted = {} -- Track printed instances
+        local difficultiesByInstance = {} -- Track difficulties per instance
         for i = 1, numSaved do
             local name, instanceId, reset, difficultyId, locked, _, _, _, _, _, numEncounters = GetSavedInstanceInfo(i)
             if locked and reset > 0 then
@@ -2079,21 +2177,38 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
                             lockoutData.encounters[j] = { name = bossName or ("Boss " .. j), isKilled = isKilled }
                         end
                         LMAHI_SavedData.lockouts[charName][diffLockoutId] = lockoutData
-                        print("LMAHI Debug: Saved", lockoutType, "lockout for", charName, name, "LockoutID:", diffLockoutId, "DifficultyID:", difficultyId, "InstanceID:", instanceId, "Reset:", date("%Y-%m-%d %H:%M:%S", resetTimer))
+                        -- Collect difficulties for this instance
+                        difficultiesByInstance[lockoutId] = difficultiesByInstance[lockoutId] or {}
+                        table.insert(difficultiesByInstance[lockoutId], difficultyLabel)
                         instanceProcessed = true
                     end
                 end
             end
         end
 
+        -- Print consolidated debug for saved instances
+        for lockoutId, difficulties in pairs(difficultiesByInstance) do
+            local lockoutType = raidNameToId[lockoutId] and "raid" or "dungeon"
+            local name = GetLockoutName(lockoutId, lockoutType)
+            if not instanceDebugPrinted[lockoutId] then
+                print("LMAHI Debug: Saved", lockoutType, "lockout for", charName, name, "Difficulties:", table.concat(difficulties, ", "), "LockoutID:", lockoutId)
+                instanceDebugPrinted[lockoutId] = true
+            end
+        end
+
         -- Process Mythic+ data for current character
         if C_MythicPlus and C_MythicPlus.GetRunHistory then
             local runHistory = C_MythicPlus.GetRunHistory(false, true) or {}
+            local mythicDebugPrinted = false -- Track Mythic+ found debug
+            local mythicDungeonPrinted = {} -- Track printed Mythic+ dungeons
             if #runHistory > 0 then
-                print("LMAHI Debug: Found", #runHistory, "Mythic+ runs")
+                if not mythicDebugPrinted then
+                    print("LMAHI Debug: Found", #runHistory, "Mythic+ runs for", charName)
+                    mythicDebugPrinted = true
+                end
                 for _, run in ipairs(runHistory) do
                     local lockoutId = dungeonNameToId[run.mapChallengeModeID]
-                    if lockoutId then
+                    if lockoutId and not mythicDungeonPrinted[lockoutId] then
                         local diffLockoutId = tostring(lockoutId) .. "-M+"
                         LMAHI_SavedData.lockouts[charName][diffLockoutId] = {
                             name = run.mapName,
@@ -2105,14 +2220,16 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
                             reset = nil, -- No reset timer for Mythic+
                         }
                         print("LMAHI Debug: Saved Mythic+ lockout for", charName, run.mapName, "LockoutID:", diffLockoutId, "Level:", run.level)
+                        mythicDungeonPrinted[lockoutId] = true
                         instanceProcessed = true
                     end
                 end
             end
         end
 
-        if not instanceProcessed then
+        if not instanceProcessed and not debugPrinted then
             print("LMAHI Debug: No new instances or Mythic+ runs processed for", charName)
+            debugPrinted = true
         end
 
         LMAHI_SavedData.currentPage = LMAHI.currentPage
@@ -2122,19 +2239,6 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         end
     end
 end)
---[[
--- Optional: reset check timer
-eventFrame:SetScript("OnUpdate", function(self, elapsed)
-    lastResetCheckTime = lastResetCheckTime + elapsed
-    if lastResetCheckTime >= resetCheckThrottle then
-        if LMAHI.CheckResetTimers then
-            LMAHI.CheckResetTimers()
-        end
-        lastResetCheckTime = 0
-    end
-end)
-]]--
-
 
 -- Expose frames to namespace
 LMAHI.mainFrame = mainFrame
