@@ -241,6 +241,11 @@ minimapButton:SetScript("OnLeave", GameTooltip_Hide)
 -- Create main frame
 mainFrame = CreateFrame("Frame", "LMAHI_Frame", UIParent, "BasicFrameTemplateWithInset")
 tinsert(UISpecialFrames, "LMAHI_Frame")
+mainFrame:SetScript("OnHide", function()
+    LMAHI_Disable()  -- This now handles its own duplication check
+end)
+
+
 mainFrame:SetSize(1260, LMAHI_SavedData.frameHeight or 402)
 mainFrame:SetPoint(LMAHI_SavedData.framePos.point, UIParent, LMAHI_SavedData.framePos.relativePoint, LMAHI_SavedData.framePos.x, LMAHI_SavedData.framePos.y)
 mainFrame:SetFrameStrata("HIGH")
@@ -255,12 +260,11 @@ mainFrame:SetScript("OnDragStop", function(self)
     LMAHI_SavedData.framePos = { point = point, relativeTo = "UIParent", relativePoint = relativePoint, x = x, y = y }
 end)
 mainFrame.CloseButton:SetScript("OnClick", function()
-    if LMAHI_Disable then
-        LMAHI_Disable()
-    end
+    mainFrame:Hide()  -- This will trigger OnHide and call LMAHI_Disable()
     settingsFrame:Hide()
     customInputFrame:Hide()
 end)
+
 
 local titleLabel = mainFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
 titleLabel:SetPoint("TOP", mainFrame, "TOP", 0, -3)
@@ -2438,14 +2442,18 @@ function LMAHI_Enable()
 end
 
 function LMAHI_Disable()
+    if _G.LMAHI_Sleeping then return end  -- Already sleeping, skip
+
     if LMAHI.mainFrame then
         LMAHI.mainFrame:Hide()
     end
     if LMAHI.lockoutSelectionFrame then
         LMAHI.lockoutSelectionFrame:Hide()
     end
+
     _G.LMAHI_Sleeping = true
     print("LMAHI sleep mode enabled")
+
     if GameTooltip:IsOwned(LMAHI_MinimapButton) then
         GameTooltip:Hide()
         GameTooltip:SetOwner(LMAHI_MinimapButton, "ANCHOR_LEFT")
@@ -2455,6 +2463,7 @@ function LMAHI_Disable()
         GameTooltip:Show()
     end
 end
+
 
 -- Force sleep mode on login every time
 C_Timer.After(1, function()
