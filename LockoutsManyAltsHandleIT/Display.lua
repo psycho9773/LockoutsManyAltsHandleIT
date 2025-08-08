@@ -1,5 +1,3 @@
--- Display.lua
-
 local addonName, addon = ...
 if not _G.LMAHI then
     _G.LMAHI = addon
@@ -303,44 +301,102 @@ function LMAHI.UpdateDisplay()
         table.insert(displayChars, charList[i])
     end
 
-    -- Get current character
-    local currentChar = UnitName("player") .. "-" .. GetRealmName()
-    local currentCharIndex = nil
-    for i, charName in ipairs(charList) do
-        if charName == currentChar then
-            currentCharIndex = i
-            break
+-- Get current character
+local currentChar = UnitName("player") .. "-" .. GetRealmName()
+local currentCharIndex = nil
+for i, charName in ipairs(charList) do
+    if charName == currentChar then
+        currentCharIndex = i
+        break
+    end
+end
+
+-- Update character and realm labels
+LMAHI.cachedCharLabels = {}
+local charLabelCount = 0
+for i, charName in ipairs(displayChars) do
+    local playerName = charName:match("^(.-)-") or charName
+    local realmName = charName:match("-(.+)$") or "Unknown"
+
+    local charLabel = LMAHI.charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    charLabel:SetPoint("TOPLEFT", LMAHI.charFrame, "TOPLEFT", 8 + (i-1) * 100, -8)
+    charLabel:SetText(playerName)
+    charLabel:SetWidth(101)
+    charLabel:SetHeight(22)
+    charLabel:SetJustifyV("TOP")
+    local classColor = LMAHI_SavedData.classColors[charName] or { r = 1, g = 1, b = 1 }
+    charLabel:SetTextColor(classColor.r, classColor.g, classColor.b)
+    charLabel:Show()
+    table.insert(LMAHI.lockoutLabels, charLabel)
+    LMAHI.cachedCharLabels[i] = charLabel
+
+local function getItemLevelColor(ilvl)
+    -- This still defines color logic, but we’ll only use green for the number
+    return 0.12, 1.0, 0.0 -- green
+end
+
+charLabel:EnableMouse(true)
+charLabel:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -8)
+
+    local charKey = charName
+
+    -- Gold display
+    local copper = LMAHI_SavedData.goldByChar and LMAHI_SavedData.goldByChar[charKey]
+    if copper then
+        local gold = floor(copper / (100 * 100))
+
+        local function formatWithCommas(amount)
+            local formatted = tostring(amount)
+            while true do
+                formatted, k = formatted:gsub("^(-?%d+)(%d%d%d)", "%1,%2")
+                if k == 0 then break end
+            end
+            return formatted
         end
+
+        local goldFormatted = formatWithCommas(gold)
+        local goldIcon = "|TInterface\\MoneyFrame\\UI-GoldIcon:0:0:5:0|t"
+        GameTooltip:AddLine(goldFormatted .. " " .. goldIcon, 1, 0.82, 0)
+    else
+        GameTooltip:AddLine("No gold data available", 0.5, 0.5, 0.5)
     end
 
-    -- Update character and realm labels
-    LMAHI.cachedCharLabels = {}
-    local charLabelCount = 0
-    for i, charName in ipairs(displayChars) do
-        local playerName = charName:match("^(.-)-") or charName
-        local realmName = charName:match("-(.+)$") or "Unknown"
+    -- Item level display
+    local itemLevelData = LMAHI_SavedData.itemLevelByChar and LMAHI_SavedData.itemLevelByChar[charKey]
+    if itemLevelData then
+        local r, g, b = getItemLevelColor(itemLevelData.total)
+        local itemLevelText = string.format("Item Level  |cff%02x%02x%02x%.0f|r", r * 255, g * 255, b * 255, itemLevelData.total)
 
-        local charLabel = LMAHI.charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-        charLabel:SetPoint("TOPLEFT", LMAHI.charFrame, "TOPLEFT", 8 + (i-1) * 100, -8)
-        charLabel:SetText(playerName)
-        charLabel:SetWidth(101) -- was 96
-        charLabel:SetHeight(22) -- was 20
-        charLabel:SetJustifyV("TOP")
-        local classColor = LMAHI_SavedData.classColors[charName] or { r = 1, g = 1, b = 1 }
-        charLabel:SetTextColor(classColor.r, classColor.g, classColor.b)
-        charLabel:Show()
-        table.insert(LMAHI.lockoutLabels, charLabel)
-        LMAHI.cachedCharLabels[i] = charLabel
+        local r2, g2, b2 = getItemLevelColor(itemLevelData.equipped)
+        local equippedText = string.format("Equipped   |cff%02x%02x%02x%.0f|r", r2 * 255, g2 * 255, b2 * 255, itemLevelData.equipped)
 
-        local realmLabel = LMAHI.charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-        realmLabel:SetPoint("BOTTOM", charLabel, "BOTTOM", 0, -2)
-        realmLabel:SetText(realmName)
-        local faction = LMAHI_SavedData.factions[charName] or "Neutral"
-        local factionColor = LMAHI.FACTION_COLORS[faction] or { r = 0.8, g = 0.8, b = 0.8 }
-        realmLabel:SetTextColor(factionColor.r, factionColor.g, factionColor.b)
-        realmLabel:Show()
-        table.insert(LMAHI.lockoutLabels, realmLabel)
-        LMAHI.cachedCharLabels[i + #displayChars] = realmLabel
+        GameTooltip:AddLine(itemLevelText, 1, 1, 1)
+        GameTooltip:AddLine(equippedText, 1, 1, 1)
+    else
+        GameTooltip:AddLine("No item level data available", 0.5, 0.5, 0.5)
+    end
+
+    GameTooltip:Show()
+ end)
+charLabel:SetScript("OnLeave", function(self)
+    GameTooltip:Hide()
+end)
+
+
+
+
+    local realmLabel = LMAHI.charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    realmLabel:SetPoint("BOTTOM", charLabel, "BOTTOM", 0, -2)
+    realmLabel:SetText(realmName)
+    local faction = LMAHI_SavedData.factions[charName] or "Neutral"
+    local factionColor = LMAHI.FACTION_COLORS[faction] or { r = 0.8, g = 0.8, b = 0.8 }
+    realmLabel:SetTextColor(factionColor.r, factionColor.g, factionColor.b)
+    realmLabel:Show()
+    table.insert(LMAHI.lockoutLabels, realmLabel)
+    LMAHI.cachedCharLabels[i + #displayChars] = realmLabel
+
+
 
         -- Highlight current character
         if currentCharIndex and currentCharIndex == startIndex + i - 1 and LMAHI.currentCharHighlight then
