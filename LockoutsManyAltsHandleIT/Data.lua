@@ -161,8 +161,6 @@ LMAHI.InitializeData = function()
 		{ id = 755, name = "Lost City of the Tol'vir", reset = "daily", expansion = "CAT" },
 		{ id = 644, name = "Halls of Origination", reset = "daily", expansion = "CAT" },
 		{ id = 670, name = "Grim Batol", reset = "daily", expansion = "CAT" },
-
-
 		{ id = 859.1, name = "Zul'Aman", reset = "daily", expansion = "CAT" },
 		{ id = 859, name = "Zul'Gurub", reset = "daily", expansion = "CAT" },
 		{ id = 938, name = "End Time", reset = "daily", expansion = "CAT" },
@@ -223,6 +221,13 @@ LMAHI.InitializeData = function()
 
     -- Quests
     LMAHI.lockoutData.quests = {
+	    { id = 86464, name = "11.2  Devourer Attack: The Atrium", reset = "weekly", expansion = "TWW" },
+	    { id = 91855, name = "11.2  Worldsoul: K'aresh World Quests", reset = "weekly", expansion = "TWW" },
+		{ id = 88902, name = "11.2  Phase Diving: Restless Souls", reset = "weekly", expansion = "TWW" },
+		{ id = 91093, name = "11.2  More Than Just a Phase", reset = "weekly", expansion = "TWW" },
+		{ id = 89294, name = "11.2  Special Assignment: Aligned Views", reset = "weekly", expansion = "TWW" },
+		{ id = 86447, name = "11.2  Devourer Attack: Eco-dome: Primus", reset = "weekly", expansion = "TWW" },
+		{ id = 85863, name = "11.2  Phase Diving: Strange Storms", reset = "weekly", expansion = "TWW" },
         { id = 86775, name = "11.1  Urge to Surge", reset = "weekly", expansion = "TWW" },
         { id = 85879, name = "11.1  Reduce, Reuse, Resell", reset = "weekly", expansion = "TWW" },
         { id = 85869, name = "11.1  Many Jobs, Handle It!", reset = "weekly", expansion = "TWW" },
@@ -231,6 +236,10 @@ LMAHI.InitializeData = function()
 
     -- Rares
     LMAHI.lockoutData.rares = {
+		{ id = 90593, name = "11.2 Urmag", reset = "weekly", expansion = "TWW" },
+		{ id = 90699, name = "11.2 Grubber", reset = "weekly", expansion = "TWW" },
+	    { id = 90693, name = "11.2 Shadowguard Portalseer", reset = "weekly", expansion = "TWW" },
+	   -- { id = 90692, name = "11.2 Shadowguard Portalseer", reset = "weekly", expansion = "TWW" }, --both show up true ?
         { id = 90488, name = "11.1  M.A.G.N.O.", reset = "weekly", expansion = "TWW" },
         { id = 90489, name = "11.1  Giovante", reset = "weekly", expansion = "TWW" },
         { id = 90490, name = "11.1  Voltstrike the Charged", reset = "weekly", expansion = "TWW" },
@@ -276,16 +285,25 @@ LMAHI.lockoutData.currencies = {
 	{ id = 3093, name = "Nerub-ar Finery", expansion = "TWW", isAccountWide = true },
 	{ id = 3089, name = "Residual Memories", expansion = "TWW", isAccountWide = true },
 	{ id = 2815, name = "Resonance Crystals", expansion = "TWW", isAccountWide = true },
+	{ id = 3303, name = "Untethered Coin", expansion = "TWW", isAccountWide = true },
     { id = 3220, name = "Vintage Kaja'Cola Can", expansion = "TWW", isAccountWide = true },
-	{ id = 3028, name = "Restored Coffer Key", expansion = "TWW" },
 	{ id = 3008, name = "Valorstones", expansion = "TWW", isAccountWide = true },
-	-- season 2
 	{ id = 2803, name = "Undercoin", expansion = "TWW", isAccountWide = true },
-	{ id = 3116, name = "Essence of Kaja'mite", expansion = "TWW" },
-    { id = 3107, name = "Weathered Undermine Crest", expansion = "TWW" },
-    { id = 3108, name = "Carved Undermine Crest", expansion = "TWW" },
-    { id = 3109, name = "Runed Undermine Crest", expansion = "TWW" },
-	{ id = 3110, name = "Gilded Undermine Crest", expansion = "TWW" },
+	{ id = 3278, name = "Ethereal Strands", expansion = "TWW", isAccountWide = true },
+	-- season 3
+	{ id = 3028, name = "Restored Coffer Key", expansion = "TWW" },
+	{ id = 3284, name = "11.2 Weathered Ethereal Crest", expansion = "TWW" },
+	{ id = 3286, name = "11.2 Carved Ethereal Crest", expansion = "TWW" },
+	{ id = 3289, name = "11.2 Runed Ethereal Crest", expansion = "TWW" },
+	{ id = 3290, name = "11.2 Gilded Ethereal Crest", expansion = "TWW" },	
+	{ id = 3141, name = "11.2 Starlight Spark Dust", expansion = "TWW" },		
+
+	-- season 2
+    { id = 3107, name = "11.1 Weathered Undermine Crest", expansion = "TWW" },
+    { id = 3108, name = "11.1 Carved Undermine Crest", expansion = "TWW" },
+    { id = 3109, name = "11.1 Runed Undermine Crest", expansion = "TWW" },
+	{ id = 3110, name = "11.1 Gilded Undermine Crest", expansion = "TWW" },
+	{ id = 3116, name = "11.1 Essence of Kaja'mite", expansion = "TWW" },
 
 
 
