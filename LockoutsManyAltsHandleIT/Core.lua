@@ -26,6 +26,9 @@ LMAHI_SavedData = LMAHI_SavedData or {
     frameHeight = 402,
     selectionFrameCollapsed = {},
     lockoutVisibility = {},
+	goldByChar = {},
+	sessionStartGold = {},
+	itemLevelByChar = {},
     previousLockoutVisibility = {
         WLK = {}, DF = {}, LGN = {}, CAT = {}, WOD = {},
         WOW = {}, TBC = {}, SL = {}, BFA = {}, MOP = {}
@@ -1942,6 +1945,10 @@ eventFrame:RegisterEvent("QUEST_TURNED_IN")
 eventFrame:RegisterEvent("LFG_LOCK_INFO_RECEIVED")
 eventFrame:RegisterEvent("UPDATE_INSTANCE_INFO")
 eventFrame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
+eventFrame:RegisterEvent("PLAYER_MONEY")
+eventFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+
+
 eventFrame:SetScript("OnEvent", function(self, event, arg1)
     local charName = UnitName("player") .. "-" .. GetRealmName()
     local currentTime = time()
@@ -2014,13 +2021,78 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         customInputFrame:SetScale(LMAHI_SavedData.zoomLevel)
         mainFrame:Hide()
         Utilities.StartGarbageCollector()
+elseif event == "PLAYER_LOGIN" then
+    UpdateButtonPosition()
 
-    elseif event == "PLAYER_LOGIN" then
-        UpdateButtonPosition()
-        if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
-        if LMAHI.CheckLockouts then LMAHI.CheckLockouts() end
-        if LMAHI.UpdateCurrencyData then LMAHI.UpdateCurrencyData() end
-        LMAHI.CheckResetTimers() -- Check resets on login
+    if LMAHI.SaveCharacterData then
+        LMAHI.SaveCharacterData()
+    end
+
+    if LMAHI.CheckLockouts then
+        LMAHI.CheckLockouts()
+    end
+
+    if LMAHI.UpdateCurrencyData then
+        LMAHI.UpdateCurrencyData()
+    end
+
+    LMAHI.CheckResetTimers() -- Check resets on login
+
+    -- Save gold on login
+    local charKey = UnitName("player") .. "-" .. GetRealmName()
+    local copper = GetMoney()
+    LMAHI_SavedData.goldByChar = LMAHI_SavedData.goldByChar or {}
+
+    if copper and copper > 0 then
+        LMAHI_SavedData.goldByChar[charKey] = copper
+        print("Saved gold on login for", charKey, ":", copper)
+    else
+        print("Warning: GetMoney() returned 0 or nil on login for", charKey)
+    end
+
+    -- Save item level on login
+    local totalILvl, equippedILvl = GetAverageItemLevel()
+
+    LMAHI_SavedData.itemLevelByChar = LMAHI_SavedData.itemLevelByChar or {}
+    LMAHI_SavedData.itemLevelByChar[charKey] = {
+        equipped = equippedILvl,
+        total = totalILvl
+    }
+
+    print("Saved item level on login for", charKey, "Equipped:", equippedILvl, "Total:", totalILvl)
+
+elseif event == "PLAYER_MONEY" then
+    local currentGold = GetMoney()
+    local delta = currentGold - (LMAHI.sessionStartGold or currentGold)
+
+    if delta ~= 0 then
+        local sign = delta > 0 and "+" or "-"
+        local gold = floor(math.abs(delta) / (100 * 100))
+        local silver = floor((math.abs(delta) / 100) % 100)
+        local copper = math.abs(delta) % 100
+
+        print(format("Session gold change: %s%dg %ds %dc", sign, gold, silver, copper))
+    end
+
+    -- Update saved gold
+    local charKey = UnitName("player") .. "-" .. GetRealmName()
+    LMAHI_SavedData.goldByChar = LMAHI_SavedData.goldByChar or {}
+    LMAHI_SavedData.goldByChar[charKey] = currentGold
+
+elseif event == "PLAYER_EQUIPMENT_CHANGED" then
+    local totalILvl, equippedILvl = GetAverageItemLevel()
+    local charKey = UnitName("player") .. "-" .. GetRealmName()
+
+    LMAHI_SavedData.itemLevelByChar = LMAHI_SavedData.itemLevelByChar or {}
+    LMAHI_SavedData.itemLevelByChar[charKey] = {
+        equipped = equippedILvl,
+        total = totalILvl
+    }
+
+    print("Updated item level for", charKey, "Equipped:", equippedILvl, "Total:", totalILvl)
+
+
+
 
         -- Get sorted character list
         local charList = {}
@@ -2056,13 +2128,30 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
 
         mainFrame:Hide()
 
-    elseif event == "PLAYER_LOGOUT" then
-        if LMAHI_SavedData then
-            LMAHI_SavedData.currentPage = LMAHI.currentPage
+elseif event == "PLAYER_LOGOUT" then
+    if LMAHI_SavedData then
+        LMAHI_SavedData.currentPage = LMAHI.currentPage
+
+        -- Save gold on logout
+        local charKey = UnitName("player") .. "-" .. GetRealmName()
+        local copper = GetMoney()
+        LMAHI_SavedData.goldByChar = LMAHI_SavedData.goldByChar or {}
+
+        if copper and copper > 0 then
+            LMAHI_SavedData.goldByChar[charKey] = copper
+            print("Saved gold on logout for", charKey, ":", copper)
         else
-            print("LMAHI Error: LMAHI_SavedData is nil on PLAYER_LOGOUT")
+            print("Warning: GetMoney() returned 0 or nil on logout for", charKey)
         end
-        if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
+    else
+        print("LMAHI Error: LMAHI_SavedData is nil on PLAYER_LOGOUT")
+    end
+
+    if LMAHI.SaveCharacterData then
+        LMAHI.SaveCharacterData()
+    end
+
+
 
     elseif event == "PLAYER_ENTERING_WORLD" or event == "ENCOUNTER_END" or event == "QUEST_TURNED_IN" or event == "LFG_LOCK_INFO_RECEIVED" then
         if LMAHI.SaveCharacterData then LMAHI.SaveCharacterData() end
