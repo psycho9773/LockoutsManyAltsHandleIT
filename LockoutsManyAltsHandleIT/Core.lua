@@ -1,7 +1,6 @@
 -- Core.lua
 
 -- Keep ALL HEADERS HEX and everything else r, g, b for colors of text
-
 local addonName, addon = ...
 _G.LMAHI = addon -- Expose addon namespace globally
 
@@ -26,9 +25,10 @@ LMAHI_SavedData = LMAHI_SavedData or {
     frameHeight = 402,
     selectionFrameCollapsed = {},
     lockoutVisibility = {},
-	goldByChar = {},
-	sessionStartGold = {},
-	itemLevelByChar = {},
+    goldByChar = {},
+    sessionStartGold = {},
+    itemLevelByChar = {},
+    gear = {}, -- Initialize gear data
     previousLockoutVisibility = {
         WLK = {}, DF = {}, LGN = {}, CAT = {}, WOD = {},
         WOW = {}, TBC = {}, SL = {}, BFA = {}, MOP = {}
@@ -52,9 +52,49 @@ local lockoutLabels = {}
 local collapseButtons = {}
 local resizeButton
 
+-- Gear slots definition
+local gearSlots = {
+    { slot = INVSLOT_HEAD, name = "Head" },
+    { slot = INVSLOT_NECK, name = "Neck" },
+    { slot = INVSLOT_SHOULDER, name = "Shoulders" },
+    { slot = INVSLOT_BACK, name = "Back" },
+    { slot = INVSLOT_CHEST, name = "Chest" },
+    { slot = INVSLOT_SHIRT or 4, name = "Shirt" },
+    { slot = INVSLOT_TABARD, name = "Tabard" },
+    { slot = INVSLOT_WRIST, name = "Wrists" },
+    { slot = INVSLOT_HAND, name = "Hands" },
+    { slot = INVSLOT_WAIST, name = "Waist" },
+    { slot = INVSLOT_LEGS, name = "Legs" },
+    { slot = INVSLOT_FEET, name = "Feet" },
+    { slot = INVSLOT_FINGER1, name = "Finger 1" },
+    { slot = INVSLOT_FINGER2, name = "Finger 2" },
+    { slot = INVSLOT_TRINKET1, name = "Trinket 1" },
+    { slot = INVSLOT_TRINKET2, name = "Trinket 2" },
+    { slot = INVSLOT_MAINHAND, name = "Main Hand" },
+    { slot = INVSLOT_OFFHAND, name = "Off Hand" }
+}
+
+-- Function to save gear data
+local function SaveGearData()
+    local charName = UnitName("player") .. "-" .. GetRealmName()
+    LMAHI_SavedData.gear = LMAHI_SavedData.gear or {}
+    LMAHI_SavedData.gear[charName] = LMAHI_SavedData.gear[charName] or {}
+    for _, slotInfo in ipairs(gearSlots) do
+        local slotID = slotInfo.slot or (slotInfo.name == "Shirt" and 4 or nil)
+        if slotID then
+            LMAHI_SavedData.gear[charName][tostring(slotID)] = GetInventoryItemLink("player", slotID) or nil
+        end
+    end
+    if LMAHI.UpdateDisplay then
+        LMAHI.UpdateDisplay()
+    end
+end
+
 -- Initialize for first time account logged in to current expansion
 LMAHI.eventFrame = LMAHI.eventFrame or CreateFrame("Frame")
 LMAHI.eventFrame:RegisterEvent("ADDON_LOADED")
+LMAHI.eventFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+LMAHI.eventFrame:RegisterEvent("PLAYER_LOGIN")
 LMAHI.eventFrame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
         LMAHI_SavedData = LMAHI_SavedData or { initialized = false }
@@ -101,11 +141,14 @@ LMAHI.eventFrame:SetScript("OnEvent", function(self, event, arg1)
             }
             LMAHI_SavedData.zoomLevel = LMAHI_SavedData.zoomLevel or 1
             LMAHI_SavedData.expansionVisibilityModified = LMAHI_SavedData.expansionVisibilityModified or false
+            LMAHI_SavedData.gear = LMAHI_SavedData.gear or {}
         end
 
         if LMAHI.UpdateDisplay then
             LMAHI.UpdateDisplay()
         end
+    elseif event == "PLAYER_EQUIPMENT_CHANGED" or event == "PLAYER_LOGIN" then
+        SaveGearData()
     end
 end)
 
@@ -280,7 +323,7 @@ authorLabel:SetText("|cffADADADBy: Psycho|r")
 -- Zoom buttons
 local zoomStep = 0.01
 local function ApplyZoom(level)
-    level = math.min(1.18, math.max(0.9, level))
+    level = math.min(1.17, math.max(0.9, level))
     LMAHI_SavedData.zoomLevel = math.floor(level * 100 + 0.5) / 100
     mainFrame:SetScale(LMAHI_SavedData.zoomLevel)
     settingsFrame:SetScale(LMAHI_SavedData.zoomLevel)
@@ -327,14 +370,17 @@ zoomOutButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
 -- Custom lockout input button
 local customInputButton = CreateFrame("Button", nil, mainFrame)
 customInputButton:SetSize(27, 32)
-customInputButton:SetPoint("TOPLEFT", zoomInButton, "TOPRIGHT", 45, -35)
+customInputButton:SetPoint("TOPLEFT", zoomInButton, "TOPRIGHT", 4, -35)
 
-customInputButton:SetNormalTexture("Interface\\Buttons\\UI-GuildButton-PublicNote-Up")
-customInputButton:SetPushedTexture("Interface\\Buttons\\UI-GuildButton-PublicNote-Disabled")
+customInputButton:SetNormalTexture("Interface\\GossipFrame\\AvailableQuestIcon")
+customInputButton:SetPushedTexture("Interface\\GossipFrame\\AvailableQuestIcon")
 customInputButton:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
 
+local normalTex = customInputButton:GetNormalTexture()
+normalTex:SetDesaturated(true)
+
 local goldOverlay = customInputButton:CreateTexture(nil, "ARTWORK", nil, 1)
-goldOverlay:SetColorTexture(0.6, 0.8, 1, 0.15)
+goldOverlay:SetColorTexture(1, 0.8, 0.2, 0.35)
 goldOverlay:SetAllPoints(customInputButton:GetNormalTexture())
 
 local borderFrame = CreateFrame("Frame", nil, customInputButton, "BackdropTemplate")
@@ -371,8 +417,11 @@ settingsButton:SetNormalTexture("Interface\\FriendsFrame\\UI-Toast-ChatInviteIco
 settingsButton:SetPushedTexture("Interface\\FriendsFrame\\UI-Toast-ChatInviteIcon")
 settingsButton:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
 
+local normalTex = settingsButton:GetNormalTexture()
+normalTex:SetDesaturated(true)
+
 local settingsOverlay = settingsButton:CreateTexture(nil, "ARTWORK", nil, 1)
-settingsOverlay:SetColorTexture(0.6, 0.8, 1, 0.15)
+settingsOverlay:SetColorTexture(1, 0.8, 0.2, 0.35)
 settingsOverlay:SetAllPoints(settingsButton:GetNormalTexture())
 
 local borderFrame = CreateFrame("Frame", nil, settingsButton, "BackdropTemplate")
@@ -408,12 +457,15 @@ local selectionButton = CreateFrame("Button", nil, mainFrame)
 selectionButton:SetSize(27, 32)
 selectionButton:SetPoint("TOPLEFT", settingsButton, "TOPRIGHT", -108, 0)
 
-selectionButton:SetNormalTexture("Interface\\Buttons\\UI-OptionsButton")
-selectionButton:SetPushedTexture("Interface\\Buttons\\UI-OptionsButton")
+selectionButton:SetNormalTexture("Interface\\Buttons\\UI-GuildButton-PublicNote-Disabled")
+selectionButton:SetPushedTexture("Interface\\Buttons\\UI-GuildButton-PublicNote-Disabled")
 selectionButton:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
 
+local normalTex = selectionButton:GetNormalTexture()
+normalTex:SetDesaturated(true)
+
 local selectionOverlay = selectionButton:CreateTexture(nil, "ARTWORK", nil, 1)
-selectionOverlay:SetColorTexture(0.6, 0.8, 1, 0.15)
+selectionOverlay:SetColorTexture(1, 0.8, 0.2, 0.35)
 selectionOverlay:SetAllPoints(selectionButton:GetNormalTexture())
 
 local borderFrame = CreateFrame("Frame", nil, selectionButton, "BackdropTemplate")
@@ -429,7 +481,7 @@ borderFrame:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)
 
 selectionButton:SetScript("OnClick", function()
     if _G.LMAHI_Sleeping then
-        print("LMAHI: Addon is in sleep mode. Click the minimap button or use /lmahi to activate.")
+        --print("LMAHI: Addon is in sleep mode. Click the minimap button or use /lmahi to activate.")
         return
     end
     if not LMAHI.lockoutSelectionFrame then
@@ -446,6 +498,47 @@ end)
 
 selectionButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+-- Gear viewer toggle button
+local gearToggleButton = CreateFrame("Button", nil, mainFrame)
+gearToggleButton:SetSize(27, 32)
+gearToggleButton:SetPoint("TOPLEFT", customInputButton, "TOPRIGHT", 55, 0)
+
+gearToggleButton:SetNormalTexture("Interface\\Buttons\\UI-OptionsButton")
+gearToggleButton:SetPushedTexture("Interface\\Buttons\\UI-OptionsButton")
+gearToggleButton:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
+
+local normalTex = gearToggleButton:GetNormalTexture()
+normalTex:SetDesaturated(true)
+
+local gearOverlay = gearToggleButton:CreateTexture(nil, "ARTWORK", nil, 1)
+gearOverlay:SetColorTexture(1, 0.8, 0.2, 0.35)
+gearOverlay:SetAllPoints(gearToggleButton:GetNormalTexture())
+
+local gearBorder = CreateFrame("Frame", nil, gearToggleButton, "BackdropTemplate")
+gearBorder:SetPoint("TOPLEFT", gearToggleButton, "TOPLEFT", -3, 3)
+gearBorder:SetPoint("BOTTOMRIGHT", gearToggleButton, "BOTTOMRIGHT", 3, -3)
+gearBorder:SetFrameLevel(gearToggleButton:GetFrameLevel() + 2)
+gearBorder:SetBackdrop({
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    edgeSize = 16,
+    insets = { left = 0, right = 0, top = 0, bottom = 0 },
+})
+gearBorder:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)
+
+gearToggleButton:SetScript("OnClick", function()
+    GearViewerFrame:SetShown(not GearViewerFrame:IsShown())
+end)
+
+
+gearToggleButton:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_TOP")
+    GameTooltip:SetText("|cff99ccffGear|r |cffADADADViewer|r|cff99ccffDisplay|r")
+    GameTooltip:Show()
+end)
+
+gearToggleButton:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+end)
 
 
 
@@ -1912,6 +2005,106 @@ function LMAHI.CreateLockoutSelectionFrame()
     return frame
 end
 
+-- Gear slots definition
+local gearSlots = {
+    { slot = INVSLOT_HEAD, name = "Head" },
+    { slot = INVSLOT_NECK, name = "Neck" },
+    { slot = INVSLOT_SHOULDER, name = "Shoulders" },
+    { slot = INVSLOT_BACK, name = "Back" },
+    { slot = INVSLOT_CHEST, name = "Chest" },
+    { slot = INVSLOT_SHIRT or 4, name = "Shirt" },
+    { slot = INVSLOT_TABARD, name = "Tabard" },
+    { slot = INVSLOT_WRIST, name = "Wrists" },
+    { slot = INVSLOT_HAND, name = "Hands" },
+    { slot = INVSLOT_WAIST, name = "Waist" },
+    { slot = INVSLOT_LEGS, name = "Legs" },
+    { slot = INVSLOT_FEET, name = "Feet" },
+    { slot = INVSLOT_FINGER1, name = "Finger 1" },
+    { slot = INVSLOT_FINGER2, name = "Finger 2" },
+    { slot = INVSLOT_TRINKET1, name = "Trinket 1" },
+    { slot = INVSLOT_TRINKET2, name = "Trinket 2" },
+    { slot = INVSLOT_MAINHAND, name = "Main Hand" },
+    { slot = INVSLOT_OFFHAND, name = "Off Hand" }
+}
+
+-- Function to get item quality color
+local function getItemQualityColor(itemLink)
+    local _, _, quality = GetItemInfo(itemLink)
+    if quality then
+        local r, g, b = GetItemQualityColor(quality)
+        return r, g, b
+    end
+    return 1, 1, 1 -- Fallback to white
+end
+
+-- Gear viewer frame
+GearViewerFrame = CreateFrame("Frame", "GearViewerFrame", mainFrame, "InsetFrameTemplate")
+local gearFrame = GearViewerFrame
+tinsert(UISpecialFrames, "GearViewerFrame")
+gearFrame:SetSize(1120, 590)
+gearFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 138, -68)
+gearFrame:SetFrameStrata("DIALOG")
+gearFrame:EnableMouse(true)
+gearFrame:EnableMouseWheel(true)
+gearFrame:SetScript("OnMouseWheel", function() end)
+
+-- Content frame for gear rows
+local content = CreateFrame("Frame", nil, gearFrame)
+content:SetSize(150, #gearSlots * 32)
+content:SetPoint("TOPLEFT", gearFrame, "TOPLEFT", 10, -10)
+
+-- Gear rows with labels only (display logic moved to display.lua)
+local rows = {}
+for i, slotInfo in ipairs(gearSlots) do
+    local row = CreateFrame("Frame", nil, content)
+    row:SetSize(180, 30)
+    row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -(i - 1) * 32)
+
+    -- Slot label
+    row.Label = row:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    row.Label:SetPoint("LEFT", row, "LEFT", 5, 0)
+    row.Label:SetText(slotInfo.name)
+    row.Label:SetTextColor(1, 1, 1)
+
+    -- Force slot ID for Shirt
+    if slotInfo.name == "Shirt" and not slotInfo.slot then
+        slotInfo.slot = INVSLOT_SHIRT or 4
+    end
+
+    -- Store row for updates
+    rows[i] = row
+end
+
+-- Event for item data caching
+gearFrame:SetScript("OnEvent", function(self, event)
+    if event == "GET_ITEM_INFO_RECEIVED" then
+        for i, slotInfo in ipairs(gearSlots) do
+            local row = rows[i]
+            if row then
+                if slotInfo.name == "Shirt" and not slotInfo.slot then
+                    slotInfo.slot = INVSLOT_SHIRT or 4
+                end
+                -- Trigger display update in display.lua
+                if LMAHI and LMAHI.UpdateGearDisplay then
+                    LMAHI.UpdateGearDisplay()
+                end
+            end
+        end
+    end
+end)
+-- new stuff for display
+local function SaveGearData()
+    local charName = UnitName("player") .. "-" .. GetRealmName()
+    LMAHI_SavedData.gear = LMAHI_SavedData.gear or {}
+    LMAHI_SavedData.gear[charName] = LMAHI_SavedData.gear[charName] or {}
+    for _, slotInfo in ipairs(gearSlots) do
+        local slotID = slotInfo.slot or (slotInfo.name == "Shirt" and 4 or nil)
+        if slotID then
+            LMAHI_SavedData.gear[charName][tostring(slotID)] = GetInventoryItemLink("player", slotID) or nil
+        end
+    end
+end
+
 -- Throttle timers
 local lastClearTime = 0
 local lastInstanceCheckTime = 0
@@ -1947,7 +2140,7 @@ eventFrame:RegisterEvent("UPDATE_INSTANCE_INFO")
 eventFrame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
 eventFrame:RegisterEvent("PLAYER_MONEY")
 eventFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
-
+eventFrame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 
 eventFrame:SetScript("OnEvent", function(self, event, arg1)
     local charName = UnitName("player") .. "-" .. GetRealmName()
@@ -2038,6 +2231,9 @@ elseif event == "PLAYER_LOGIN" then
 
     LMAHI.CheckResetTimers() -- Check resets on login
 
+    -- Save gear on login
+    SaveGearData()
+
     -- Save gold on login
     local charKey = UnitName("player") .. "-" .. GetRealmName()
     local copper = GetMoney()
@@ -2045,9 +2241,9 @@ elseif event == "PLAYER_LOGIN" then
 
     if copper and copper > 0 then
         LMAHI_SavedData.goldByChar[charKey] = copper
-        print("Saved gold on login for", charKey, ":", copper)
+        --print("Saved gold on login for", charKey, ":", copper)
     else
-        print("Warning: GetMoney() returned 0 or nil on login for", charKey)
+        --print("Warning: GetMoney() returned 0 or nil on login for", charKey)
     end
 
     -- Save item level on login
@@ -2059,7 +2255,11 @@ elseif event == "PLAYER_LOGIN" then
         total = totalILvl
     }
 
-    print("Saved item level on login for", charKey, "Equipped:", equippedILvl, "Total:", totalILvl)
+    -- Update display after login
+    LMAHI.UpdateDisplay()
+
+
+    --print("Saved item level on login for", charKey, "Equipped:", equippedILvl, "Total:", totalILvl)
 
 elseif event == "PLAYER_MONEY" then
     local currentGold = GetMoney()
@@ -2080,16 +2280,29 @@ elseif event == "PLAYER_MONEY" then
     LMAHI_SavedData.goldByChar[charKey] = currentGold
 
 elseif event == "PLAYER_EQUIPMENT_CHANGED" then
-    local totalILvl, equippedILvl = GetAverageItemLevel()
-    local charKey = UnitName("player") .. "-" .. GetRealmName()
+    SaveGearData()
 
+    local totalILvl, equippedILvl = GetAverageItemLevel()
+    if not totalILvl or not equippedILvl then
+        print("Item level data not available yet")
+        return
+    end
+
+    LMAHI_SavedData = LMAHI_SavedData or {}
     LMAHI_SavedData.itemLevelByChar = LMAHI_SavedData.itemLevelByChar or {}
+
+    local name = UnitName("player") or "Unknown"
+    local realm = GetRealmName() or "Realm"
+    local charKey = name .. "-" .. realm
+
     LMAHI_SavedData.itemLevelByChar[charKey] = {
         equipped = equippedILvl,
         total = totalILvl
     }
 
     print("Updated item level for", charKey, "Equipped:", equippedILvl, "Total:", totalILvl)
+
+    LMAHI.UpdateDisplay()
 
 
 
@@ -2333,6 +2546,23 @@ elseif event == "PLAYER_LOGOUT" then
     end
 end)
 
+-- Event for item data caching
+gearFrame:SetScript("OnEvent", function(self, event)
+    if event == "GET_ITEM_INFO_RECEIVED" then
+        for i, slotInfo in ipairs(gearSlots) do
+            local row = rows[i]
+            if row then
+                if slotInfo.name == "Shirt" and not slotInfo.slot then
+                    slotInfo.slot = INVSLOT_SHIRT or 4
+                end
+                UpdateRow(row, slotInfo)
+            end
+        end
+    end
+end)
+
+
+
 -- Expose frames to namespace
 LMAHI.mainFrame = mainFrame
 LMAHI.charFrame = charFrame
@@ -2348,6 +2578,13 @@ LMAHI.customInputScrollContent = customInputScrollContent
 LMAHI.sectionHeaders = sectionHeaders
 LMAHI.lockoutLabels = lockoutLabels
 LMAHI.collapseButtons = collapseButtons
+
+
+
+
+
+
+
 
 -- Memory Tracker Frame
 
