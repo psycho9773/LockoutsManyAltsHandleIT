@@ -1,4 +1,4 @@
-  --Display.lua
+-- Display.lua
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -256,7 +256,7 @@ function LMAHI.UpdateCurrencyData()
             -- print("LMAHI Debug: Updated currency", currency.name, "for", charName, "Amount:", currencyAmount or "nil")
         else
             if not debugPrinted[currency.id] then
-                print("LMAHI Debug: No info for currency", currency.name, "for", charName)
+                --print("LMAHI Debug: No info for currency", currency.name, "for", charName)
                 debugPrinted[currency.id] = true
             end
             LMAHI_SavedData.currencyInfo[charName][lockoutId] = nil
@@ -877,7 +877,7 @@ function LMAHI.UpdateDisplay()
                                                     colorCode = "|cff808080" -- Partial
                                                 end
                                                 if not debugPrinted then
-                                                    print("LMAHI Debug: Displayed live lockout for", charName, lockout.name, "Difficulties:", table.concat(difficulties, ", "), "Bosses:", bossesKilled, "/", numEncounters)
+                                                    --print("LMAHI Debug: Displayed live lockout for", charName, lockout.name, "Difficulties:", table.concat(difficulties, ", "), "Bosses:", bossesKilled, "/", numEncounters)
                                                     debugPrinted = true
                                                 end
                                             elseif difficulty == "M+" and lockout.expansion == "TWW" then
@@ -889,7 +889,7 @@ function LMAHI.UpdateDisplay()
                                                         colorCode = "|cffa335ee" -- Purple for M+
                                                         isLocked = false -- M+ is not locked
                                                         if not debugPrinted then
-                                                            print("LMAHI Debug: Displayed M+ for", charName, lockout.name, "Level:", run.level)
+                                                            --print("LMAHI Debug: Displayed M+ for", charName, lockout.name, "Level:", run.level)
                                                             debugPrinted = true
                                                         end
                                                         break
@@ -904,7 +904,7 @@ function LMAHI.UpdateDisplay()
                                                     LMAHI_SavedData.lockouts[charName][diffLockoutId] = nil
                                                     isLocked = false
                                                     if not expireDebugPrinted then
-                                                        print("LMAHI Debug: Cleared expired lockout in display for", charName, lockoutData.name, "Difficulties:", table.concat(difficulties, ", "), "LockoutID:", diffLockoutId)
+                                                        --print("LMAHI Debug: Cleared expired lockout in display for", charName, lockoutData.name, "Difficulties:", table.concat(difficulties, ", "), "LockoutID:", diffLockoutId)
                                                         expireDebugPrinted = true
                                                     end
                                                 else
@@ -930,7 +930,7 @@ function LMAHI.UpdateDisplay()
                                                 mythicPlusLevel = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][diffLockoutId] and LMAHI_SavedData.lockouts[charName][diffLockoutId].mythicPlusLevel or nil
                                                 isLocked = false -- M+ is not locked
                                                 if mythicPlusLevel and not debugPrinted then
-                                                    print("LMAHI Debug: Displayed M+ for", charName, lockout.name, "Level:", mythicPlusLevel)
+                                                    --print("LMAHI Debug: Displayed M+ for", charName, lockout.name, "Level:", mythicPlusLevel)
                                                     debugPrinted = true
                                                 end
                                             end
@@ -969,7 +969,7 @@ function LMAHI.UpdateDisplay()
                                                 if lockoutData.reset and time() >= lockoutData.reset then
 												LMAHI_SavedData.lockouts[tostring(self.charName)][savedLockoutId] = nil
 												if not expireDebugPrinted then
-												print("LMAHI Debug: Cleared expired lockout in tooltip for", self.charName, lockoutData.name, "Difficulties:", table.concat(difficulties, ", "), "LockoutID:", savedLockoutId)
+												--print("LMAHI Debug: Cleared expired lockout in tooltip for", self.charName, lockoutData.name, "Difficulties:", table.concat(difficulties, ", "), "LockoutID:", savedLockoutId)
 												expireDebugPrinted = true
 											end
 												GameTooltip:Hide()
@@ -1056,10 +1056,7 @@ function LMAHI.UpdateDisplay()
     LMAHI.lockoutContent:SetHeight(math.abs(offsetY) + 20)
     LMAHI.lockoutScrollFrame:UpdateScrollChildRect()
 
--- (Previous content of Display.lua remains unchanged until the gear retry section in LMAHI.UpdateDisplay)
-
--- Update gear display with retry if data is missing
-if GearViewerFrame and GearViewerFrame:IsShown() then
+    -- Update gear display with retry if data is missing
     local needsRetry = false
     for i, charName in ipairs(displayChars) do
         if charName ~= currentChar and (not LMAHI_SavedData.gear or not LMAHI_SavedData.gear[charName]) then
@@ -1084,23 +1081,30 @@ if GearViewerFrame and GearViewerFrame:IsShown() then
         end
         if needsRetry then break end
     end
-    LMAHI.UpdateGearDisplay()
+    LMAHI.UpdateGearDisplay(displayChars, true) -- Pass isLogin=true to force update on login
     if needsRetry then
         C_Timer.After(1, function()
+            -- Store current page to prevent reset during retry
+            local savedPage = LMAHI.currentPage
             LMAHI.UpdateDisplay()
+            LMAHI.currentPage = savedPage
+            LMAHI_SavedData.currentPage = savedPage
         end)
     end
-end
 
--- Update paging button states
-UpdatePagingButtons()
+    -- Update paging button states
+    UpdatePagingButtons()
 
-local endTime = debugprofilestop()
+    local endTime = debugprofilestop()
 end
 
 -- Gear display function
-function LMAHI.UpdateGearDisplay()
-    if not GearViewerFrame or not GearViewerFrame:IsShown() then
+function LMAHI.UpdateGearDisplay(displayChars, isLogin)
+    if not GearViewerFrame then
+        return
+    end
+    -- Skip visibility check during login to ensure gear frame is initialized
+    if not isLogin and not GearViewerFrame:IsShown() then
         return
     end
 
@@ -1110,42 +1114,39 @@ function LMAHI.UpdateGearDisplay()
     end
     LMAHI.gearUpdateTime = currentTime
 
-    -- Clear existing gear icons
+    -- Access gearFrame.content from core.lua
+    local content = GearViewerFrame:GetChildren() -- Get the content frame
+    if not content then
+        --print("LMAHI Debug: GearViewerFrame content not found")
+        return
+    end
+
+    -- Clear existing gear icons and all content frame children
     for _, frame in ipairs(LMAHI.gearLabels) do
         ReleaseGearIconFrame(frame)
     end
     LMAHI.gearLabels = {}
 
-    -- Get sorted character list and pagination
-    local charList = {}
-    for charName, _ in pairs(LMAHI_SavedData.characters or {}) do
-        if charName and type(charName) == "string" then
-            table.insert(charList, charName)
+    -- Hide all content frame children to prevent overlap from previous pages
+    for _, child in ipairs({content:GetChildren()}) do
+        child:Hide()
+        child:ClearAllPoints()
+        if child:IsObjectType("FontString") then
+            child:SetText("")
         end
     end
-    if #charList == 0 then return end
 
-    table.sort(charList, function(a, b)
-        local aIndex = LMAHI_SavedData.charOrder[a] or 999
-        local bIndex = LMAHI_SavedData.charOrder[b] or 1000
-        return aIndex < bIndex or (aIndex == bIndex and a < b)
-    end)
-
-    local charsPerPage = LMAHI.maxCharsPerPage or 10
-    local startIndex = (LMAHI.currentPage - 1) * charsPerPage + 1
-    local endIndex = math.min(startIndex + charsPerPage - 1, #charList)
-
-    local displayChars = {}
-    for i = startIndex, endIndex do
-        table.insert(displayChars, charList[i])
+    -- Use provided displayChars to ensure correct page
+    if not displayChars or #displayChars == 0 then
+        --print("LMAHI Debug: No displayChars provided to UpdateGearDisplay, page:", LMAHI.currentPage)
+        return
     end
+
+    -- Debug print to verify page and characters
+    --print("LMAHI Debug: UpdateGearDisplay called with page", LMAHI.currentPage, "displayChars:", table.concat(displayChars, ", "))
 
     -- Get current character for live gear data
     local currentChar = UnitName("player") .. "-" .. GetRealmName()
-
-    -- Access gearFrame.content and rows from core.lua
-    local content = GearViewerFrame:GetChildren() -- Get the content frame
-    if not content then return end
 
     -- Display gear for each character
     for i, charName in ipairs(displayChars) do
@@ -1155,6 +1156,7 @@ function LMAHI.UpdateGearDisplay()
             noGearLabel:SetPoint("TOPLEFT", content, "TOPLEFT", 115 + (i-1) * 100, -10)
             noGearLabel:SetText("No gear data")
             noGearLabel:SetTextColor(0.5, 0.5, 0.5)
+            noGearLabel:Show()
             table.insert(LMAHI.gearLabels, noGearLabel)
         else
             for j, slotInfo in ipairs(gearSlots) do
@@ -1183,7 +1185,7 @@ function LMAHI.UpdateGearDisplay()
                 if itemTexture then
                     gearIconFrame.icon:SetTexture(itemTexture)
                 else
-                    gearIconFrame.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+                    gearIconFrame.icon:SetTexture("Interface\\PaperDoll\\UI-Backpack-EmptySlot")
                 end
 
                 -- Quality border
@@ -1202,7 +1204,7 @@ function LMAHI.UpdateGearDisplay()
                     local r, g, b = getItemQualityColor(itemLink)
                     gearIconFrame.text:SetTextColor(r, g, b)
                 else
-                    gearIconFrame.text:SetText("-N/A")
+                    gearIconFrame.text:SetText("-Empty")
                     gearIconFrame.text:SetTextColor(1, 1, 1)
                 end
 
@@ -1210,7 +1212,7 @@ function LMAHI.UpdateGearDisplay()
                 gearIconFrame:SetScript("OnEnter", function(self)
                     if self.itemLink then
                         GameTooltip:SetOwner(self, "ANCHOR_NONE")
-						GameTooltip:SetPoint("RIGHT", self, "LEFT", -10, 0)
+                        GameTooltip:SetPoint("RIGHT", self, "LEFT", -10, 0)
                         GameTooltip:SetHyperlink(self.itemLink)
                         GameTooltip:Show()
                     end
@@ -1220,10 +1222,14 @@ function LMAHI.UpdateGearDisplay()
                     GameTooltip:Hide()
                 end)
 
+                gearIconFrame:Show()
                 table.insert(LMAHI.gearLabels, gearIconFrame)
             end
         end
     end
+
+    -- Update content frame size
+    content:SetSize(150, #gearSlots * 32)
 end
 
 -- Reset caches on UI open to prevent corruption
