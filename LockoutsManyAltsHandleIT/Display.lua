@@ -1,4 +1,4 @@
-  -- Display.lua
+  --Display.lua
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -39,42 +39,21 @@ LMAHI.collapseButtons = LMAHI.collapseButtons or {}
 LMAHI.hoverRegions = LMAHI.hoverRegions or {}
 LMAHI.lastUpdateTime = LMAHI.lastUpdateTime or 0
 LMAHI.updateThrottle = 0.5 -- Throttle updates to every 0.5 seconds
+LMAHI.gearUpdateTime = LMAHI.gearUpdateTime or 0
+LMAHI.gearUpdateThrottle = 1.0 -- Throttle gear updates to every 1 second
 LMAHI.cachedCharList = LMAHI.cachedCharList or {}
 LMAHI.cachedCharLabels = LMAHI.cachedCharLabels or {}
 LMAHI.cachedSectionHeaders = LMAHI.cachedSectionHeaders or {}
 LMAHI.lastDisplayChars = LMAHI.lastDisplayChars or {}
 LMAHI.canPagePrevious = false -- Flag for Core.lua to disable Previous button
 LMAHI.canPageNext = false -- Flag for Core.lua to disable Next button
+LMAHI.gearLabels = LMAHI.gearLabels or {} -- Store gear UI elements
 
--- Function to update currency data for the current character
-function LMAHI.UpdateCurrencyData()
-    local charName = UnitName("player") .. "-" .. GetRealmName()
-    LMAHI_SavedData.currencyInfo = LMAHI_SavedData.currencyInfo or {}
-    LMAHI_SavedData.currencyInfo[charName] = LMAHI_SavedData.currencyInfo[charName] or {}
-
-    local currencies = LMAHI.lockoutData["currencies"] or {}
-    local debugPrinted = {} -- Track printed currencies to prevent duplicates
-    for _, currency in ipairs(currencies) do
-        local lockoutId = tostring(currency.id)
-        local info = C_CurrencyInfo.GetCurrencyInfo(currency.id)
-        if info then
-            local currencyAmount = info.quantity ~= 0 and info.quantity or nil
-            LMAHI_SavedData.currencyInfo[charName][lockoutId] = currencyAmount
-            -- print("LMAHI Debug: Updated currency", currency.name, "for", charName, "Amount:", currencyAmount or "nil")
-        else
-            if not debugPrinted[currency.id] then
-                print("LMAHI Debug: No info for currency", currency.name, "for", charName)
-                debugPrinted[currency.id] = true
-            end
-            LMAHI_SavedData.currencyInfo[charName][lockoutId] = nil
-        end
-    end
-end
-
--- Object pools for reusing UI elements (excluding character labels)
+-- Object pools for reusing UI elements
 local buttonPool = {} -- Used for collapse buttons
 local checkButtonPool = {}
 local hoverRegionPool = {} -- Pool for hover regions
+local gearIconPool = {} -- Pool for gear icon frames
 
 -- Pool management functions
 local function AcquireButton(parent)
@@ -167,6 +146,57 @@ local function ReleaseHoverRegion(region)
     hoverRegionPool[region] = true
 end
 
+local function AcquireGearIconFrame(parent)
+    local frame = next(gearIconPool)
+    if frame then
+        gearIconPool[frame] = nil
+        frame:SetParent(parent)
+        frame:ClearAllPoints()
+        frame:SetSize(30, 30)
+        frame:EnableMouse(true)
+        frame:Show()
+        -- Reset children
+        frame.icon:SetTexture(nil)
+        frame.border:SetVertexColor(1, 1, 1)
+        frame.border:Hide()
+        frame.text:SetText("")
+        frame.text:SetTextColor(1, 1, 1)
+        frame.itemLink = nil
+        frame:SetScript("OnEnter", nil)
+        frame:SetScript("OnLeave", nil)
+        return frame
+    end
+    frame = CreateFrame("Frame", nil, parent)
+    frame:SetSize(30, 30)
+    frame:EnableMouse(true)
+    frame.icon = frame:CreateTexture(nil, "ARTWORK")
+    frame.icon:SetSize(30, 30)
+    frame.icon:SetPoint("CENTER")
+    frame.border = frame:CreateTexture(nil, "OVERLAY")
+    frame.border:SetAllPoints(frame)
+    frame.border:SetTexture("Interface\\Common\\WhiteIconFrame")
+    frame.text = frame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    frame.text:SetPoint("LEFT", frame, "RIGHT", 2, 0)
+    return frame
+end
+
+local function ReleaseGearIconFrame(frame)
+    frame:Hide()
+    frame:SetParent(nil)
+    frame:ClearAllPoints()
+    frame:SetSize(31, 31)
+    frame:EnableMouse(false)
+    frame.itemLink = nil
+    frame.icon:SetTexture(nil)
+    frame.border:SetVertexColor(1, 1, 1)
+    frame.border:Hide()
+    frame.text:SetText("")
+    frame.text:SetTextColor(1, 1, 1)
+    frame:SetScript("OnEnter", nil)
+    frame:SetScript("OnLeave", nil)
+    gearIconPool[frame] = true
+end
+
 -- Function to update paging button states
 local function UpdatePagingButtons()
     local leftArrow = LMAHI.leftArrow -- Use stored reference
@@ -174,6 +204,63 @@ local function UpdatePagingButtons()
     if leftArrow and rightArrow then
         leftArrow:SetEnabled(LMAHI.canPagePrevious)
         rightArrow:SetEnabled(LMAHI.canPageNext)
+    end
+end
+
+-- Gear slots definition
+local gearSlots = {
+    { slot = INVSLOT_HEAD, name = "Head" },
+    { slot = INVSLOT_NECK, name = "Neck" },
+    { slot = INVSLOT_SHOULDER, name = "Shoulders" },
+    { slot = INVSLOT_BACK, name = "Back" },
+    { slot = INVSLOT_CHEST, name = "Chest" },
+    { slot = INVSLOT_SHIRT or 4, name = "Shirt" },
+    { slot = INVSLOT_TABARD, name = "Tabard" },
+    { slot = INVSLOT_WRIST, name = "Wrists" },
+    { slot = INVSLOT_HAND, name = "Hands" },
+    { slot = INVSLOT_WAIST, name = "Waist" },
+    { slot = INVSLOT_LEGS, name = "Legs" },
+    { slot = INVSLOT_FEET, name = "Feet" },
+    { slot = INVSLOT_FINGER1, name = "Finger 1" },
+    { slot = INVSLOT_FINGER2, name = "Finger 2" },
+    { slot = INVSLOT_TRINKET1, name = "Trinket 1" },
+    { slot = INVSLOT_TRINKET2, name = "Trinket 2" },
+    { slot = INVSLOT_MAINHAND, name = "Main Hand" },
+    { slot = INVSLOT_OFFHAND, name = "Off Hand" }
+}
+
+-- Function to get item quality color
+local function getItemQualityColor(itemLink)
+    local _, _, quality = GetItemInfo(itemLink)
+    if quality then
+        local r, g, b = GetItemQualityColor(quality)
+        return r, g, b
+    end
+    return 1, 1, 1 -- Fallback to white
+end
+
+-- Function to update currency data for the current character
+function LMAHI.UpdateCurrencyData()
+    local charName = UnitName("player") .. "-" .. GetRealmName()
+    LMAHI_SavedData.currencyInfo = LMAHI_SavedData.currencyInfo or {}
+    LMAHI_SavedData.currencyInfo[charName] = LMAHI_SavedData.currencyInfo[charName] or {}
+
+    local currencies = LMAHI.lockoutData["currencies"] or {}
+    local debugPrinted = {} -- Track printed currencies to prevent duplicates
+    for _, currency in ipairs(currencies) do
+        local lockoutId = tostring(currency.id)
+        local info = C_CurrencyInfo.GetCurrencyInfo(currency.id)
+        if info then
+            local currencyAmount = info.quantity ~= 0 and info.quantity or nil
+            LMAHI_SavedData.currencyInfo[charName][lockoutId] = currencyAmount
+            -- print("LMAHI Debug: Updated currency", currency.name, "for", charName, "Amount:", currencyAmount or "nil")
+        else
+            if not debugPrinted[currency.id] then
+                print("LMAHI Debug: No info for currency", currency.name, "for", charName)
+                debugPrinted[currency.id] = true
+            end
+            LMAHI_SavedData.currencyInfo[charName][lockoutId] = nil
+        end
     end
 end
 
@@ -246,9 +333,13 @@ function LMAHI.UpdateDisplay()
     for _, region in ipairs(LMAHI.hoverRegions) do
         ReleaseHoverRegion(region)
     end
+    for _, frame in ipairs(LMAHI.gearLabels) do
+        ReleaseGearIconFrame(frame)
+    end
     LMAHI.lockoutLabels = {}
     LMAHI.collapseButtons = {}
     LMAHI.hoverRegions = {}
+    LMAHI.gearLabels = {}
 
     -- Clear all children from charFrame except currentCharHighlight
     for _, child in ipairs({LMAHI.charFrame:GetChildren()}) do
@@ -303,102 +394,101 @@ function LMAHI.UpdateDisplay()
         table.insert(displayChars, charList[i])
     end
 
--- Get current character
-local currentChar = UnitName("player") .. "-" .. GetRealmName()
-local currentCharIndex = nil
-for i, charName in ipairs(charList) do
-    if charName == currentChar then
-        currentCharIndex = i
-        break
+    -- Get current character
+    local currentChar = UnitName("player") .. "-" .. GetRealmName()
+    local currentCharIndex = nil
+    for i, charName in ipairs(charList) do
+        if charName == currentChar then
+            currentCharIndex = i
+            break
+        end
     end
-end
 
--- Update character and realm labels
-LMAHI.cachedCharLabels = {}
-local charLabelCount = 0
-for i, charName in ipairs(displayChars) do
-    local playerName = charName:match("^(.-)-") or charName
-    local realmName = charName:match("-(.+)$") or "Unknown"
+    -- Update character and realm labels
+    LMAHI.cachedCharLabels = {}
+    local charLabelCount = 0
+    for i, charName in ipairs(displayChars) do
+        local playerName = charName:match("^(.-)-") or charName
+        local realmName = charName:match("-(.+)$") or "Unknown"
 
-    local charLabel = LMAHI.charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    charLabel:SetPoint("TOPLEFT", LMAHI.charFrame, "TOPLEFT", 8 + (i-1) * 100, -8)
-    charLabel:SetText(playerName)
-    charLabel:SetWidth(101)
-    charLabel:SetHeight(22)
-    charLabel:SetJustifyV("TOP")
-    local classColor = LMAHI_SavedData.classColors[charName] or { r = 1, g = 1, b = 1 }
-    charLabel:SetTextColor(classColor.r, classColor.g, classColor.b)
-    charLabel:Show()
-    table.insert(LMAHI.lockoutLabels, charLabel)
-    LMAHI.cachedCharLabels[i] = charLabel
+        local charLabel = LMAHI.charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+        charLabel:SetPoint("TOPLEFT", LMAHI.charFrame, "TOPLEFT", 8 + (i-1) * 100, -8)
+        charLabel:SetText(playerName)
+        charLabel:SetWidth(101)
+        charLabel:SetHeight(22)
+        charLabel:SetJustifyV("TOP")
+        local classColor = LMAHI_SavedData.classColors[charName] or { r = 1, g = 1, b = 1 }
+        charLabel:SetTextColor(classColor.r, classColor.g, classColor.b)
+        charLabel:Show()
+        table.insert(LMAHI.lockoutLabels, charLabel)
+        LMAHI.cachedCharLabels[i] = charLabel
 
-local function getItemLevelColor(ilvl)
-    -- This still defines color logic, but we’ll only use green for the number
-    return 0.12, 1.0, 0.0 -- green
-end
-
-charLabel:EnableMouse(true)
-charLabel:SetScript("OnEnter", function(self)
-    GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -8)
-
-    local charKey = charName
-
-    -- Gold display
-    local copper = LMAHI_SavedData.goldByChar and LMAHI_SavedData.goldByChar[charKey]
-    if copper then
-        local gold = floor(copper / (100 * 100))
-
-        local function formatWithCommas(amount)
-            local formatted = tostring(amount)
-            while true do
-                formatted, k = formatted:gsub("^(-?%d+)(%d%d%d)", "%1,%2")
-                if k == 0 then break end
+        -- Gold and Item Level display under character frame
+        local function getItemLevelColor(ilvl)
+            if ilvl < 645 then
+                return 0.6, 0.6, 0.6 -- light gray
+            elseif ilvl < 655 then
+                return 0.0, 1.0, 0.0 -- green
+            elseif ilvl < 665 then
+                return 0.0, 0.5, 1.0 -- blue
+            elseif ilvl < 694 then
+                return 0.6, 0.2, 0.8 -- purple
+            elseif ilvl < 710 then
+                return 1.0, 0.5, 0.0 -- orange
+            else
+                return 1.0, 0.8, 0.0 -- gold
             end
-            return formatted
         end
 
-        local goldFormatted = formatWithCommas(gold)
-        local goldIcon = "|TInterface\\MoneyFrame\\UI-GoldIcon:0:0:5:0|t"
-        GameTooltip:AddLine(goldFormatted .. " " .. goldIcon, 1, 0.82, 0)
-    else
-        GameTooltip:AddLine("No gold data available", 0.5, 0.5, 0.5)
-    end
+        charLabel:EnableMouse(true)
+        charLabel:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -5)
+            local charKey = charName
+            -- Gold display
+            local copper = LMAHI_SavedData.goldByChar and LMAHI_SavedData.goldByChar[charKey]
+            if copper then
+                local gold = floor(copper / (100 * 100))
+                local function formatWithCommas(amount)
+                    local formatted = tostring(amount)
+                    while true do
+                        formatted, k = formatted:gsub("^(-?%d+)(%d%d%d)", "%1,%2")
+                        if k == 0 then break end
+                    end
+                    return formatted
+                end
+                local goldFormatted = formatWithCommas(gold)
+                local goldIcon = "|TInterface\\MoneyFrame\\UI-GoldIcon:0:0:5:0|t"
+                GameTooltip:AddLine(goldFormatted .. " " .. goldIcon, 1, 0.82, 0)
+            else
+                GameTooltip:AddLine("No gold data available", 0.5, 0.5, 0.5)
+            end
+            -- Item level display
+            local itemLevelData = LMAHI_SavedData.itemLevelByChar and LMAHI_SavedData.itemLevelByChar[charKey]
+            if itemLevelData then
+                local r, g, b = getItemLevelColor(itemLevelData.total)
+                local itemLevelText = string.format("Item Level  |cff%02x%02x%02x%.0f|r", r * 255, g * 255, b * 255, itemLevelData.total)
+                local r2, g2, b2 = getItemLevelColor(itemLevelData.equipped)
+                local equippedText = string.format("Equipped   |cff%02x%02x%02x%.0f|r", r2 * 255, g2 * 255, b2 * 255, itemLevelData.equipped)
+                GameTooltip:AddLine(itemLevelText, 1, 1, 1)
+                GameTooltip:AddLine(equippedText, 1, 1, 1)
+            else
+                GameTooltip:AddLine("No item level data available", 0.5, 0.5, 0.5)
+            end
+            GameTooltip:Show()
+        end)
+        charLabel:SetScript("OnLeave", function(self)
+            GameTooltip:Hide()
+        end)
 
-    -- Item level display
-    local itemLevelData = LMAHI_SavedData.itemLevelByChar and LMAHI_SavedData.itemLevelByChar[charKey]
-    if itemLevelData then
-        local r, g, b = getItemLevelColor(itemLevelData.total)
-        local itemLevelText = string.format("Item Level  |cff%02x%02x%02x%.0f|r", r * 255, g * 255, b * 255, itemLevelData.total)
-
-        local r2, g2, b2 = getItemLevelColor(itemLevelData.equipped)
-        local equippedText = string.format("Equipped   |cff%02x%02x%02x%.0f|r", r2 * 255, g2 * 255, b2 * 255, itemLevelData.equipped)
-
-        GameTooltip:AddLine(itemLevelText, 1, 1, 1)
-        GameTooltip:AddLine(equippedText, 1, 1, 1)
-    else
-        GameTooltip:AddLine("No item level data available", 0.5, 0.5, 0.5)
-    end
-
-    GameTooltip:Show()
- end)
-charLabel:SetScript("OnLeave", function(self)
-    GameTooltip:Hide()
-end)
-
-
-
-
-    local realmLabel = LMAHI.charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-    realmLabel:SetPoint("BOTTOM", charLabel, "BOTTOM", 0, -2)
-    realmLabel:SetText(realmName)
-    local faction = LMAHI_SavedData.factions[charName] or "Neutral"
-    local factionColor = LMAHI.FACTION_COLORS[faction] or { r = 0.8, g = 0.8, b = 0.8 }
-    realmLabel:SetTextColor(factionColor.r, factionColor.g, factionColor.b)
-    realmLabel:Show()
-    table.insert(LMAHI.lockoutLabels, realmLabel)
-    LMAHI.cachedCharLabels[i + #displayChars] = realmLabel
-
-
+        local realmLabel = LMAHI.charFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+        realmLabel:SetPoint("BOTTOM", charLabel, "BOTTOM", 0, -2)
+        realmLabel:SetText(realmName)
+        local faction = LMAHI_SavedData.factions[charName] or "Neutral"
+        local factionColor = LMAHI.FACTION_COLORS[faction] or { r = 0.8, g = 0.8, b = 0.8 }
+        realmLabel:SetTextColor(factionColor.r, factionColor.g, factionColor.b)
+        realmLabel:Show()
+        table.insert(LMAHI.lockoutLabels, realmLabel)
+        LMAHI.cachedCharLabels[i + #displayChars] = realmLabel
 
         -- Highlight current character
         if currentCharIndex and currentCharIndex == startIndex + i - 1 and LMAHI.currentCharHighlight then
@@ -806,37 +896,36 @@ end)
                                                     end
                                                 end
                                             end
-                                       else   --Alternate character views
-    isLocked = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][diffLockoutId] and difficulty ~= "M+" or false
-    if isLocked then
-        local lockoutData = LMAHI_SavedData.lockouts[charName][diffLockoutId]
-        if lockoutData.reset and time() >= lockoutData.reset then
-            LMAHI_SavedData.lockouts[charName][diffLockoutId] = nil
-            isLocked = false
-            if not expireDebugPrinted then
-                print("LMAHI Debug: Cleared expired lockout in display for", charName, lockoutData.name, "Difficulties:", table.concat(difficulties, ", "), "LockoutID:", diffLockoutId)
-                expireDebugPrinted = true
-            end
-        else
-            local numEncounters = lockoutData.numEncounters or #lockoutData.encounters or 0
-            local bossesKilled = 0
-            for k = 1, numEncounters do
-                if lockoutData.encounters[k] and lockoutData.encounters[k].isKilled then
-                    bossesKilled = bossesKilled + 1
-                end
-            end
-            if bossesKilled == numEncounters then
-                colorCode = "|cffff0000" -- Completed
-            elseif bossesKilled > 0 then
-                colorCode = "|cff808080" -- Partial
-            end
-            if not debugPrinted then
-                print("LMAHI Debug: Displayed saved lockout for", charName, lockoutData.name, "Difficulties:", table.concat(difficulties, ", "), "Bosses:", bossesKilled, "/", numEncounters)
-                debugPrinted = true
-            end
-        end
-    end
-
+                                        else
+                                            isLocked = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][diffLockoutId] and difficulty ~= "M+" or false
+                                            if isLocked then
+                                                local lockoutData = LMAHI_SavedData.lockouts[charName][diffLockoutId]
+                                                if lockoutData.reset and time() >= lockoutData.reset then
+                                                    LMAHI_SavedData.lockouts[charName][diffLockoutId] = nil
+                                                    isLocked = false
+                                                    if not expireDebugPrinted then
+                                                        print("LMAHI Debug: Cleared expired lockout in display for", charName, lockoutData.name, "Difficulties:", table.concat(difficulties, ", "), "LockoutID:", diffLockoutId)
+                                                        expireDebugPrinted = true
+                                                    end
+                                                else
+                                                    local numEncounters = lockoutData.numEncounters or #lockoutData.encounters or 0
+                                                    local bossesKilled = 0
+                                                    for k = 1, numEncounters do
+                                                        if lockoutData.encounters[k] and lockoutData.encounters[k].isKilled then
+                                                            bossesKilled = bossesKilled + 1
+                                                        end
+                                                    end
+                                                    if bossesKilled == numEncounters then
+                                                        colorCode = "|cffff0000" -- Completed
+                                                    elseif bossesKilled > 0 then
+                                                        colorCode = "|cff808080" -- Partial
+                                                    end
+                                                    if not debugPrinted then
+                                                        print("LMAHI Debug: Displayed saved lockout for", charName, lockoutData.name, "Difficulties:", table.concat(difficulties, ", "), "Bosses:", bossesKilled, "/", numEncounters)
+                                                        debugPrinted = true
+                                                    end
+                                                end
+                                            end
                                             if difficulty == "M+" then
                                                 mythicPlusLevel = LMAHI_SavedData.lockouts[charName] and LMAHI_SavedData.lockouts[charName][diffLockoutId] and LMAHI_SavedData.lockouts[charName][diffLockoutId].mythicPlusLevel or nil
                                                 isLocked = false -- M+ is not locked
@@ -870,23 +959,22 @@ end)
                                                 if not IsElementInView(self, LMAHI.lockoutScrollFrame) or not self:IsVisible() or not MouseIsOver(self) or LMAHI_SavedData.collapsedSections[self.lockoutType] or LMAHI_SavedData.lockoutVisibility[self.lockoutKey] ~= true then
                                                     return
                                                 end
-
                                                 GameTooltip:SetOwner(self, "ANCHOR_TOP")
                                                 GameTooltip:AddLine(self.lockoutName .. " (" .. self.difficultyData.difficulty .. ")", 1, 1, 1)
-
-                                                local savedLockoutId = self.difficultyData.lockoutId
-                                                local lockoutData = LMAHI_SavedData.lockouts[tostring(self.charName)] and LMAHI_SavedData.lockouts[tostring(self.charName)][savedLockoutId]
-
-                                                if lockoutData and type(lockoutData) == "table" and self.difficultyData.difficulty ~= "M+" then
-                                                    if lockoutData.reset and time() >= lockoutData.reset then
-                                                        LMAHI_SavedData.lockouts[tostring(self.charName)][savedLockoutId] = nil
-                                                        if not expireDebugPrinted then
-                                                            print("LMAHI Debug: Cleared expired lockout in tooltip for", self.charName, lockoutData.name, "Difficulties:", table.concat(difficulties, ", "), "LockoutID:", savedLockoutId)
-                                                            expireDebugPrinted = true
-                                                        end
-                                                        GameTooltip:Hide()
-                                                        return
-                                                    end
+                                               local savedLockoutId = self.difficultyData.lockoutId
+                                               local lockoutData = LMAHI_SavedData.lockouts[tostring(self.charName)] and LMAHI_SavedData.lockouts[tostring(self.charName)][savedLockoutId]
+                                               print("Debug: Line ~962, charName:", self.charName, "lockoutData:", lockoutData and "exists" or "nil", "difficulty:", self.difficultyData.difficulty)
+                                                if lockoutData and type(lockoutData) == "table" and self.difficultyData.difficulty ~= "M+" then -- Line 964
+                                                print("Debug: Line 964, Processing non-M+ tooltip for", self.charName, "lockout:", self.lockoutName)
+                                                if lockoutData.reset and time() >= lockoutData.reset then
+												LMAHI_SavedData.lockouts[tostring(self.charName)][savedLockoutId] = nil
+												if not expireDebugPrinted then
+												print("LMAHI Debug: Cleared expired lockout in tooltip for", self.charName, lockoutData.name, "Difficulties:", table.concat(difficulties, ", "), "LockoutID:", savedLockoutId)
+												expireDebugPrinted = true
+											end
+												GameTooltip:Hide()
+										return
+									end
                                                     local bossesKilled = 0
                                                     for k = 1, lockoutData.numEncounters do
                                                         local bossName = lockoutData.encounters[k] and lockoutData.encounters[k].name or ("Boss " .. k)
@@ -953,15 +1041,6 @@ end)
                                     indicator:SetScript("OnLeave", function()
                                         GameTooltip:Hide()
                                     end)
-                                    --[[indicator:SetScript("OnClick", function()
-                                        LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
-                                        if isLocked then
-                                            LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = nil
-                                        else
-                                            LMAHI_SavedData.lockouts[charName][tostring(lockout.id)] = true
-                                        end
-                                        LMAHI.UpdateDisplay()
-                                    end)]]-- Blocked as per original
                                     table.insert(LMAHI.lockoutLabels, indicator)
                                 end
                             end
@@ -977,10 +1056,174 @@ end)
     LMAHI.lockoutContent:SetHeight(math.abs(offsetY) + 20)
     LMAHI.lockoutScrollFrame:UpdateScrollChildRect()
 
-    -- Update paging button states
-    UpdatePagingButtons()
+-- (Previous content of Display.lua remains unchanged until the gear retry section in LMAHI.UpdateDisplay)
 
-    local endTime = debugprofilestop()
+-- Update gear display with retry if data is missing
+if GearViewerFrame and GearViewerFrame:IsShown() then
+    local needsRetry = false
+    for i, charName in ipairs(displayChars) do
+        if charName ~= currentChar and (not LMAHI_SavedData.gear or not LMAHI_SavedData.gear[charName]) then
+            needsRetry = true
+            break
+        end
+        for _, slotInfo in ipairs(gearSlots) do
+            local slotID = slotInfo.slot or (slotInfo.name == "Shirt" and 4 or nil)
+            local itemLink = nil
+            if charName == currentChar then
+                itemLink = slotID and GetInventoryItemLink("player", slotID) or nil
+            else
+                itemLink = LMAHI_SavedData.gear and LMAHI_SavedData.gear[charName] and LMAHI_SavedData.gear[charName][tostring(slotID)] or nil
+            end
+            if itemLink and type(itemLink) == "string" then
+                local _, _, _, _, _, _, _, _, _, texture = GetItemInfo(itemLink)
+                if not texture then
+                    needsRetry = true
+                    break
+                end
+            end
+        end
+        if needsRetry then break end
+    end
+    LMAHI.UpdateGearDisplay()
+    if needsRetry then
+        C_Timer.After(1, function()
+            LMAHI.UpdateDisplay()
+        end)
+    end
+end
+
+-- Update paging button states
+UpdatePagingButtons()
+
+local endTime = debugprofilestop()
+end
+
+-- Gear display function
+function LMAHI.UpdateGearDisplay()
+    if not GearViewerFrame or not GearViewerFrame:IsShown() then
+        return
+    end
+
+    local currentTime = GetTime()
+    if currentTime - LMAHI.gearUpdateTime < LMAHI.gearUpdateThrottle then
+        return
+    end
+    LMAHI.gearUpdateTime = currentTime
+
+    -- Clear existing gear icons
+    for _, frame in ipairs(LMAHI.gearLabels) do
+        ReleaseGearIconFrame(frame)
+    end
+    LMAHI.gearLabels = {}
+
+    -- Get sorted character list and pagination
+    local charList = {}
+    for charName, _ in pairs(LMAHI_SavedData.characters or {}) do
+        if charName and type(charName) == "string" then
+            table.insert(charList, charName)
+        end
+    end
+    if #charList == 0 then return end
+
+    table.sort(charList, function(a, b)
+        local aIndex = LMAHI_SavedData.charOrder[a] or 999
+        local bIndex = LMAHI_SavedData.charOrder[b] or 1000
+        return aIndex < bIndex or (aIndex == bIndex and a < b)
+    end)
+
+    local charsPerPage = LMAHI.maxCharsPerPage or 10
+    local startIndex = (LMAHI.currentPage - 1) * charsPerPage + 1
+    local endIndex = math.min(startIndex + charsPerPage - 1, #charList)
+
+    local displayChars = {}
+    for i = startIndex, endIndex do
+        table.insert(displayChars, charList[i])
+    end
+
+    -- Get current character for live gear data
+    local currentChar = UnitName("player") .. "-" .. GetRealmName()
+
+    -- Access gearFrame.content and rows from core.lua
+    local content = GearViewerFrame:GetChildren() -- Get the content frame
+    if not content then return end
+
+    -- Display gear for each character
+    for i, charName in ipairs(displayChars) do
+        if charName ~= currentChar and (not LMAHI_SavedData.gear or not LMAHI_SavedData.gear[charName]) then
+            -- Skip characters without gear data (except current character)
+            local noGearLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+            noGearLabel:SetPoint("TOPLEFT", content, "TOPLEFT", 115 + (i-1) * 100, -10)
+            noGearLabel:SetText("No gear data")
+            noGearLabel:SetTextColor(0.5, 0.5, 0.5)
+            table.insert(LMAHI.gearLabels, noGearLabel)
+        else
+            for j, slotInfo in ipairs(gearSlots) do
+                local slotID = slotInfo.slot or (slotInfo.name == "Shirt" and 4 or nil)
+                local itemLink = nil
+                if charName == currentChar then
+                    itemLink = slotID and GetInventoryItemLink("player", slotID) or nil
+                else
+                    itemLink = LMAHI_SavedData.gear and LMAHI_SavedData.gear[charName] and LMAHI_SavedData.gear[charName][tostring(slotID)] or nil
+                end
+                local itemTexture = nil
+                local itemQuality = nil
+
+                if itemLink and type(itemLink) == "string" then
+                    local _, _, quality, _, _, _, _, _, _, texture = GetItemInfo(itemLink)
+                    itemQuality = quality
+                    itemTexture = texture
+                end
+
+                -- Create or acquire gear icon frame
+                local gearIconFrame = AcquireGearIconFrame(content)
+                gearIconFrame:SetPoint("TOPLEFT", content, "TOPLEFT", 115 + (i-1) * 100, -10 - (j-1) * 32)
+                gearIconFrame.itemLink = itemLink
+
+                -- Gear icon
+                if itemTexture then
+                    gearIconFrame.icon:SetTexture(itemTexture)
+                else
+                    gearIconFrame.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+                end
+
+                -- Quality border
+                if itemLink and itemQuality then
+                    local color = ITEM_QUALITY_COLORS[itemQuality]
+                    gearIconFrame.border:SetVertexColor(color.r, color.g, color.b)
+                    gearIconFrame.border:Show()
+                else
+                    gearIconFrame.border:Hide()
+                end
+
+                -- Item level text
+                if itemLink and type(itemLink) == "string" then
+                    local itemLevel = GetDetailedItemLevelInfo(itemLink)
+                    gearIconFrame.text:SetText("-" .. (itemLevel or "???"))
+                    local r, g, b = getItemQualityColor(itemLink)
+                    gearIconFrame.text:SetTextColor(r, g, b)
+                else
+                    gearIconFrame.text:SetText("-N/A")
+                    gearIconFrame.text:SetTextColor(1, 1, 1)
+                end
+
+                -- Tooltip handling
+                gearIconFrame:SetScript("OnEnter", function(self)
+                    if self.itemLink then
+                        GameTooltip:SetOwner(self, "ANCHOR_NONE")
+						GameTooltip:SetPoint("RIGHT", self, "LEFT", -10, 0)
+                        GameTooltip:SetHyperlink(self.itemLink)
+                        GameTooltip:Show()
+                    end
+                end)
+
+                gearIconFrame:SetScript("OnLeave", function()
+                    GameTooltip:Hide()
+                end)
+
+                table.insert(LMAHI.gearLabels, gearIconFrame)
+            end
+        end
+    end
 end
 
 -- Reset caches on UI open to prevent corruption
@@ -989,48 +1232,5 @@ function LMAHI:ResetCaches()
     LMAHI.cachedCharLabels = {}
     LMAHI.cachedSectionHeaders = {}
     LMAHI.lastDisplayChars = {}
+    LMAHI.gearLabels = {}
 end
-
--- Update highlight on login or character switch
---[[
-local function HandleLogin()
-    LMAHI:ResetCaches()
-
-    -- Get sorted character list
-    local charList = {}
-    for charName, _ in pairs(LMAHI_SavedData.characters or {}) do
-        if charName and type(charName) == "string" then
-            table.insert(charList, charName)
-        end
-    end
-
-    if #charList > 0 then
-        table.sort(charList, function(a, b)
-            local aIndex = LMAHI_SavedData.charOrder[a] or 999
-            local bIndex = LMAHI_SavedData.charOrder[b] or 1000
-            return aIndex < bIndex or (aIndex == bIndex and a < b)
-        end)
-
-        -- Find current character's page
-        local currentChar = UnitName("player") .. "-" .. GetRealmName()
-        local currentCharIndex = nil
-        for i, charName in ipairs(charList) do
-            if charName == currentChar then
-                currentCharIndex = i
-                break
-            end
-        end
-
-        if currentCharIndex then
-            local charsPerPage = LMAHI.maxCharsPerPage or 10
-            LMAHI.currentPage = math.max(1, math.ceil(currentCharIndex / charsPerPage))
-        else
-            LMAHI.currentPage = 1
-        end
-    else
-        LMAHI.currentPage = 1
-    end
-
-    LMAHI.UpdateDisplay()
-end
-]]--
