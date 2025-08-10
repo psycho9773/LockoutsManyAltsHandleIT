@@ -12,10 +12,13 @@ A World of Warcraft Retail addon to manage and view lockouts across multiple cha
 - Moveable, zoomable, scrollable with settings saved across all character's
 - Simple, clean interface with no dependencies
 - Persistent saved variables for lockouts
-
+- Pageable gear section now implemented
+- 
 ![Pageable lockout screen](https://imgur.com/Y4xm4Gs.png) )
 
 ![Custom input and character sorting frames](https://imgur.com/dAR9uo1.png))
+
+![Pageable gear section](https://imgur.com/GWP09x0.png))
 
 ## 🚀 Getting Started
 
