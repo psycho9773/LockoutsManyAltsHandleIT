@@ -7,7 +7,7 @@ A World of Warcraft Retail addon to manage and view lockouts across multiple cha
 
 ## 🔧 Features
 
-- Display custom, raid, dungeon, quest, or rare lockouts across all of your alternate character's.
+- Display custom, raid, dungeon, quest, or rare lockouts across all of your alternate     character's. Currency has also been added.
 - Paged display showing 10 characters at a time up to 100 character's (max is 64 currently)
 - Moveable, zoomable, scrollable and also the height can be adjusted
 - Simple, clean interface with no dependencies
