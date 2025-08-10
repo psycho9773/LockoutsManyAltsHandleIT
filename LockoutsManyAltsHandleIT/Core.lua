@@ -550,6 +550,8 @@ leftArrow:SetNormalTexture("Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up")
 leftArrow:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
 leftArrow:SetScript("OnClick", function()
     LMAHI.currentPage = math.max(1, LMAHI.currentPage - 1)
+    LMAHI_SavedData.currentPage = LMAHI.currentPage
+    --print("LMAHI Debug: Previous page clicked, currentPage set to", LMAHI.currentPage)
     ThrottledUpdateDisplay()
 end)
 leftArrow:SetScript("OnEnter", function(self)
@@ -559,7 +561,6 @@ leftArrow:SetScript("OnEnter", function(self)
 end)
 leftArrow:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-
 local rightArrow = CreateFrame("Button", nil, mainFrame)
 rightArrow:SetSize(35, 50)
 rightArrow:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -2, -23)
@@ -567,6 +568,8 @@ rightArrow:SetNormalTexture("Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up")
 rightArrow:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
 rightArrow:SetScript("OnClick", function()
     LMAHI.currentPage = math.min(LMAHI.maxPages or 1, LMAHI.currentPage + 1)
+    LMAHI_SavedData.currentPage = LMAHI.currentPage
+    --print("LMAHI Debug: Next page clicked, currentPage set to", LMAHI.currentPage)
     ThrottledUpdateDisplay()
 end)
 rightArrow:SetScript("OnEnter", function(self)
@@ -2052,6 +2055,7 @@ gearFrame:SetScript("OnMouseWheel", function() end)
 local content = CreateFrame("Frame", nil, gearFrame)
 content:SetSize(150, #gearSlots * 32)
 content:SetPoint("TOPLEFT", gearFrame, "TOPLEFT", 10, -10)
+gearFrame.content = content -- Store content for access in display.lua
 
 -- Gear rows with labels only (display logic moved to display.lua)
 local rows = {}
@@ -2086,13 +2090,25 @@ gearFrame:SetScript("OnEvent", function(self, event)
                 end
                 -- Trigger display update in display.lua
                 if LMAHI and LMAHI.UpdateGearDisplay then
-                    LMAHI.UpdateGearDisplay()
+                    LMAHI.UpdateGearDisplay(LMAHI.lastDisplayChars, false)
                 end
             end
         end
     end
 end)
--- new stuff for display
+
+-- OnShow script to update gear display when frame is shown
+gearFrame:SetScript("OnShow", function()
+    if LMAHI.lastDisplayChars and #LMAHI.lastDisplayChars > 0 then
+        --print("LMAHI Debug: GearViewerFrame shown, updating with displayChars:", table.concat(LMAHI.lastDisplayChars, ", "))
+        LMAHI.UpdateGearDisplay(LMAHI.lastDisplayChars, false)
+    else
+        --print("LMAHI Debug: GearViewerFrame shown, but no displayChars available, forcing UpdateDisplay")
+        LMAHI.UpdateDisplay()
+    end
+end)
+
+-- Function to save gear data
 local function SaveGearData()
     local charName = UnitName("player") .. "-" .. GetRealmName()
     LMAHI_SavedData.gear = LMAHI_SavedData.gear or {}
@@ -2248,15 +2264,50 @@ elseif event == "PLAYER_LOGIN" then
 
     -- Save item level on login
     local totalILvl, equippedILvl = GetAverageItemLevel()
-
     LMAHI_SavedData.itemLevelByChar = LMAHI_SavedData.itemLevelByChar or {}
     LMAHI_SavedData.itemLevelByChar[charKey] = {
         equipped = equippedILvl,
         total = totalILvl
     }
 
+    -- Get sorted character list
+    local charList = {}
+    for charName, _ in pairs(LMAHI_SavedData.characters) do
+        table.insert(charList, charName)
+    end
+    table.sort(charList, function(a, b)
+        local aIndex = LMAHI_SavedData.charOrder[a] or 999
+        local bIndex = LMAHI_SavedData.charOrder[b] or 1000
+        if aIndex == bIndex then return a < b end
+        return aIndex < bIndex
+    end)
+
+    -- Find current character index
+    local currentChar = UnitName("player") .. "-" .. GetRealmName()
+    local currentCharIndex = nil
+    for i, charName in ipairs(charList) do
+        if charName == currentChar then
+            currentCharIndex = i
+            break
+        end
+    end
+
+    -- Calculate and set the correct page
+    if currentCharIndex then
+        local charsPerPage = LMAHI.maxCharsPerPage or 10
+        local targetPage = math.ceil(currentCharIndex / charsPerPage)
+        LMAHI.currentPage = targetPage
+        LMAHI_SavedData.currentPage = targetPage
+        --print("LMAHI Debug: Set page to", targetPage, "for character", currentChar, "at index", currentCharIndex)
+    else
+        LMAHI.currentPage = LMAHI_SavedData.currentPage or 1
+        --print("LMAHI Debug: Current character not found, defaulting to page", LMAHI.currentPage)
+    end
+
     -- Update display after login
     LMAHI.UpdateDisplay()
+
+    --print("Saved item level on login for", charKey, "Equipped:", equippedILvl, "Total:", totalILvl)
 
 
     --print("Saved item level on login for", charKey, "Equipped:", equippedILvl, "Total:", totalILvl)
@@ -2400,7 +2451,7 @@ elseif event == "PLAYER_LOGOUT" then
         local debugPrinted = false -- Track debug prints for this event
         if numSaved == lastNumSavedInstances and mythicRunCount == lastMythicRunCount and currentTime - lastInstanceCheckTime < instanceThrottle then
             if not skipDebugPrinted then
-                print("LMAHI Debug: Skipped instance check for", charName, "due to no new instances or Mythic+ runs and throttle")
+                --print("LMAHI Debug: Skipped instance check for", charName, "due to no new instances or Mythic+ runs and throttle")
                 skipDebugPrinted = true
             end
             if mainFrame:IsShown() then
@@ -2418,7 +2469,7 @@ elseif event == "PLAYER_LOGOUT" then
 
         if currentTime - lastInstanceCheckTime < instanceThrottle then
             if not skipDebugPrinted then
-                print("LMAHI Debug: Skipped instance check for", charName, "due to throttle")
+                --print("LMAHI Debug: Skipped instance check for", charName, "due to throttle")
                 skipDebugPrinted = true
             end
             if mainFrame:IsShown() then
@@ -2534,7 +2585,7 @@ elseif event == "PLAYER_LOGOUT" then
         end
 
         if not instanceProcessed and not debugPrinted then
-            print("LMAHI Debug: No new instances or Mythic+ runs processed for", charName)
+            --print("LMAHI Debug: No new instances or Mythic+ runs processed for", charName)
             debugPrinted = true
         end
 
