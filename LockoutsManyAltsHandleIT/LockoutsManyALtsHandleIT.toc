@@ -1,4 +1,4 @@
-## Interface: 110107
+## Interface: 110200
 ## Title: LockoutsManyAltsHandleIT
 ## Notes: Tracks raid, dungeon, quest, and rare lockouts across multiple characters.
 ## Author: Psycho -
