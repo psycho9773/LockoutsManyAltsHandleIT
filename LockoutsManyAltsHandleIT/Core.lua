@@ -45,6 +45,7 @@ LMAHI.FACTION_COLORS = {
 
 -- Frame variables
 local mainFrame, charFrame, lockoutScrollFrame, lockoutContent, settingsFrame, customInputFrame
+local lockoutSelectionFrame, GearViewerFrame
 local highlightFrame
 local charListScrollFrame, charListContent, customInputScrollFrame, customInputScrollContent
 local sectionHeaders = {}
@@ -298,6 +299,7 @@ mainFrame:SetFrameStrata("HIGH")
 mainFrame:SetFrameLevel(100)
 mainFrame:EnableMouse(true)
 mainFrame:SetMovable(true)
+mainFrame:SetClampedToScreen(true)
 mainFrame:RegisterForDrag("LeftButton")
 mainFrame:SetScript("OnDragStart", mainFrame.StartMoving)
 mainFrame:SetScript("OnDragStop", function(self)
@@ -309,6 +311,7 @@ mainFrame.CloseButton:SetScript("OnClick", function()
     mainFrame:Hide()  -- This will trigger OnHide and call LMAHI_Disable()
     settingsFrame:Hide()
     customInputFrame:Hide()
+	GearViewerFrame:Hide()
 end)
 
 
@@ -435,15 +438,12 @@ borderFrame:SetBackdrop({
 })
 borderFrame:SetBackdropBorderColor(0.5, 0.5, 0.5, 1) 
 
-
 settingsButton:SetScript("OnClick", function()
     settingsFrame:SetShown(not settingsFrame:IsVisible())
     if settingsFrame:IsVisible() and LMAHI.UpdateSettingsDisplay then
         LMAHI.UpdateSettingsDisplay()
     end
 end)
-
-
 
 settingsButton:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -480,10 +480,6 @@ borderFrame:SetBackdrop({
 borderFrame:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)
 
 selectionButton:SetScript("OnClick", function()
-    if _G.LMAHI_Sleeping then
-        --print("LMAHI: Addon is in sleep mode. Click the minimap button or use /lmahi to activate.")
-        return
-    end
     if not LMAHI.lockoutSelectionFrame then
         LMAHI.lockoutSelectionFrame = LMAHI.CreateLockoutSelectionFrame()
     end
@@ -813,6 +809,9 @@ customInputFrame:SetFrameStrata("DIALOG")
 customInputFrame:SetFrameLevel(150)
 customInputFrame:EnableMouse(true)
 customInputFrame:SetMovable(true)
+customInputFrame:SetClampedToScreen(true)
+customInputFrame:EnableMouseWheel(true)
+customInputFrame:SetScript("OnMouseWheel", function() end)
 customInputFrame:RegisterForDrag("LeftButton")
 customInputFrame:SetScript("OnDragStart", customInputFrame.StartMoving)
 customInputFrame:SetScript("OnDragStop", function(self)
@@ -1157,10 +1156,13 @@ settingsFrame:SetPoint(
     LMAHI_SavedData.settingsFramePos.x,
     LMAHI_SavedData.settingsFramePos.y
 )
-settingsFrame:SetFrameStrata("DIALOG")
+settingsFrame:SetFrameStrata("FULLSCREEN")
 settingsFrame:SetFrameLevel(100)
 settingsFrame:EnableMouse(true)
 settingsFrame:SetMovable(true)
+settingsFrame:SetClampedToScreen(true)
+settingsFrame:EnableMouseWheel(true)
+settingsFrame:SetScript("OnMouseWheel", function() end)
 settingsFrame:RegisterForDrag("LeftButton")
 settingsFrame:SetScript("OnDragStart", settingsFrame.StartMoving)
 settingsFrame:SetScript("OnDragStop", function(self)
@@ -1377,6 +1379,9 @@ function LMAHI.CreateLockoutSelectionFrame()
     frame:SetFrameLevel(300)
     frame:EnableMouse(true)
     frame:SetMovable(true)
+	frame:SetClampedToScreen(true)
+    frame:EnableMouseWheel(true)
+    frame:SetScript("OnMouseWheel", function() end)
     frame:RegisterForDrag("LeftButton")
     frame:SetScript("OnDragStart", frame.StartMoving)
     frame:SetScript("OnDragStop", function(self)
@@ -2008,6 +2013,72 @@ function LMAHI.CreateLockoutSelectionFrame()
     return frame
 end
 
+-- Total Gold Display
+
+-- Create display frame
+local goldDisplayFrame = CreateFrame("Frame", "AccountGoldFrame", mainFrame)
+goldDisplayFrame:SetSize(220, 20)
+goldDisplayFrame:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -44, -2)
+
+local goldText = goldDisplayFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+goldText:SetPoint("RIGHT")
+
+local function formatWithCommas(amount)
+    local formatted = tostring(amount)
+    while true do
+        formatted, k = formatted:gsub("^(-?%d+)(%d%d%d)", "%1,%2")
+        if k == 0 then break end
+    end
+    return formatted
+end
+
+-- Get total account-wide gold
+local function GetAccountWideGold()
+    local totalCopper = 0
+    if LMAHI_SavedData and LMAHI_SavedData.goldByChar then
+        for _, copper in pairs(LMAHI_SavedData.goldByChar) do
+            totalCopper = totalCopper + (copper or 0)
+        end
+    end
+    return totalCopper
+end
+
+-- Format copper into gold/silver/copper string
+local function FormatGold(copper)
+    local gold = math.floor(copper / 10000)
+    local silver = math.floor((copper % 10000) / 100)
+    local copperOnly = copper % 100
+    return string.format("%dg %ds %dc", gold, silver, copperOnly)
+end
+
+-- Update the gold display
+local function UpdateGoldDisplay()
+    local totalCopper = GetAccountWideGold()
+    local formattedGold = formatWithCommas(math.floor(totalCopper / 10000))
+    local goldIcon = "|TInterface\\MoneyFrame\\UI-GoldIcon:0:0:5:0|t"
+    goldText:SetText("|cff99ccffAccount|r |cffADADADWide|r |cff99ccffTotal|r |cffADADAD= |r" .. formattedGold .. " " .. goldIcon)
+end
+
+-- Save current character's gold
+local function SaveGold()
+    local charKey = UnitName("player") .. "-" .. GetRealmName()
+    local copper = GetMoney()
+
+    LMAHI_SavedData = LMAHI_SavedData or {}
+    LMAHI_SavedData.goldByChar = LMAHI_SavedData.goldByChar or {}
+
+    LMAHI_SavedData.goldByChar[charKey] = copper
+end
+
+-- Event handler to update on login and money change
+local eventFrame = CreateFrame("Frame")
+eventFrame:RegisterEvent("PLAYER_LOGIN")
+eventFrame:RegisterEvent("PLAYER_MONEY")
+eventFrame:SetScript("OnEvent", function()
+    SaveGold()
+    UpdateGoldDisplay()
+end)
+
 -- Gear slots definition
 local gearSlots = {
     { slot = INVSLOT_HEAD, name = "Head" },
@@ -2061,8 +2132,16 @@ gearFrame.content = content -- Store content for access in display.lua
 local rows = {}
 for i, slotInfo in ipairs(gearSlots) do
     local row = CreateFrame("Frame", nil, content)
-    row:SetSize(180, 30)
+    row:SetSize(1100, 30)
     row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -(i - 1) * 32)
+
+    -- Add alternating background
+    if i % 2 == 0 then
+        local bg = row:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints(row)
+        bg:SetTexture("Interface\\Buttons\\WHITE8x8")
+        bg:SetVertexColor(0.9, 0.9, 0.9, 0.03) -- very light gray, low opacity
+    end
 
     -- Slot label
     row.Label = row:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
@@ -2078,6 +2157,7 @@ for i, slotInfo in ipairs(gearSlots) do
     -- Store row for updates
     rows[i] = row
 end
+
 
 -- Event for item data caching
 gearFrame:SetScript("OnEvent", function(self, event)
@@ -2351,7 +2431,7 @@ elseif event == "PLAYER_EQUIPMENT_CHANGED" then
         total = totalILvl
     }
 
-    print("Updated item level for", charKey, "Equipped:", equippedILvl, "Total:", totalILvl)
+    --print("Updated item level for", charKey, "Equipped:", equippedILvl, "Total:", totalILvl)
 
     LMAHI.UpdateDisplay()
 
