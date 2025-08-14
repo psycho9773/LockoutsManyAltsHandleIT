@@ -617,7 +617,7 @@ function LMAHI.UpdateDisplay()
                         if lockout.name and lockout.id and lockout.id > 0 and LMAHI_SavedData.lockoutVisibility[lockoutKey] == true then
                             local lockoutLabel = LMAHI.lockoutContent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
                             lockoutLabel:SetPoint("TOPLEFT", LMAHI.lockoutContent, "TOPLEFT", 21, offsetY)
-                            lockoutLabel:SetWidth(200)
+                            lockoutLabel:SetWidth(225)
                             lockoutLabel:SetText(lockout.name)
                             lockoutLabel:SetTextColor(0.9, 0.7, 0.1)
                             lockoutLabel:SetWordWrap(false)
