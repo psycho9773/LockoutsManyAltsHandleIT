@@ -1,4 +1,4 @@
---Utilities.lua
+----Utilities.lua
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -167,7 +167,7 @@ LMAHI.CheckResetTimers = function()
     -- Daily reset
     if currentTime >= LMAHI_SavedData.lastDailyReset + 86400 then
         for charName, lockouts in pairs(LMAHI_SavedData.lockouts or {}) do
-            for _, lockoutType in ipairs({"custom", "dungeons", "rares"}) do
+            for _, lockoutType in ipairs({"custom", "dungeons", "quests", "rares"}) do
                 for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
                     if lockout.reset == "daily" then
                         local lockoutId = tostring(lockout.id)
