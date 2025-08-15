@@ -1,4 +1,4 @@
--- Core.lua
+---- Core.lua
 
 -- Keep ALL HEADERS HEX and everything else r, g, b for colors of text
 local addonName, addon = ...
@@ -2628,7 +2628,7 @@ elseif event == "PLAYER_LOGOUT" then
             local lockoutType = raidNameToId[lockoutId] and "raid" or "dungeon"
             local name = GetLockoutName(lockoutId, lockoutType)
             if not instanceDebugPrinted[lockoutId] then
-                print("LMAHI Debug: Saved", lockoutType, "lockout for", charName, name, "Difficulties:", table.concat(difficulties, ", "), "LockoutID:", lockoutId)
+                --print("LMAHI Debug: Saved", lockoutType, "lockout for", charName, name, "Difficulties:", table.concat(difficulties, ", "), "LockoutID:", lockoutId)
                 instanceDebugPrinted[lockoutId] = true
             end
         end
@@ -2656,7 +2656,7 @@ elseif event == "PLAYER_LOGOUT" then
                             mythicPlusLevel = run.level,
                             reset = nil, -- No reset timer for Mythic+
                         }
-                        print("LMAHI Debug: Saved Mythic+ lockout for", charName, run.mapName, "LockoutID:", diffLockoutId, "Level:", run.level)
+                        --print("LMAHI Debug: Saved Mythic+ lockout for", charName, run.mapName, "LockoutID:", diffLockoutId, "Level:", run.level)
                         mythicDungeonPrinted[lockoutId] = true
                         instanceProcessed = true
                     end
