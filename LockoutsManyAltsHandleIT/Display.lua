@@ -921,7 +921,7 @@ function LMAHI.UpdateDisplay()
                                                         colorCode = "|cff808080" -- Partial
                                                     end
                                                     if not debugPrinted then
-                                                        print("LMAHI Debug: Displayed saved lockout for", charName, lockoutData.name, "Difficulties:", table.concat(difficulties, ", "), "Bosses:", bossesKilled, "/", numEncounters)
+                                                        --print("LMAHI Debug: Displayed saved lockout for", charName, lockoutData.name, "Difficulties:", table.concat(difficulties, ", "), "Bosses:", bossesKilled, "/", numEncounters)
                                                         debugPrinted = true
                                                     end
                                                 end
@@ -963,9 +963,9 @@ function LMAHI.UpdateDisplay()
                                                 GameTooltip:AddLine(self.lockoutName .. " (" .. self.difficultyData.difficulty .. ")", 1, 1, 1)
                                                local savedLockoutId = self.difficultyData.lockoutId
                                                local lockoutData = LMAHI_SavedData.lockouts[tostring(self.charName)] and LMAHI_SavedData.lockouts[tostring(self.charName)][savedLockoutId]
-                                               print("Debug: Line ~962, charName:", self.charName, "lockoutData:", lockoutData and "exists" or "nil", "difficulty:", self.difficultyData.difficulty)
+                                               --print("Debug: Line ~962, charName:", self.charName, "lockoutData:", lockoutData and "exists" or "nil", "difficulty:", self.difficultyData.difficulty)
                                                 if lockoutData and type(lockoutData) == "table" and self.difficultyData.difficulty ~= "M+" then -- Line 964
-                                                print("Debug: Line 964, Processing non-M+ tooltip for", self.charName, "lockout:", self.lockoutName)
+                                                --print("Debug: Line 964, Processing non-M+ tooltip for", self.charName, "lockout:", self.lockoutName)
                                                 if lockoutData.reset and time() >= lockoutData.reset then
 												LMAHI_SavedData.lockouts[tostring(self.charName)][savedLockoutId] = nil
 												if not expireDebugPrinted then
