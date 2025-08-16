@@ -1,9 +1,21 @@
-----Utilities.lua
+--Utilities.lua
 
 local addonName, addon = ...
 if not _G.LMAHI then
     _G.LMAHI = addon
 end
+
+-- Initialize saved variables
+LMAHI_SavedData = LMAHI_SavedData or {
+    lastWeeklyReset = 0,
+    lastDailyReset = 0,
+    characters = {},
+    lockouts = {},
+    classColors = {},
+    factions = {},
+    charOrder = {},
+    customLockoutOrder = {}
+}
 
 LMAHI.SaveCharacterData = function()
     local charName = UnitName("player") .. "-" .. GetRealmName()
@@ -160,12 +172,8 @@ LMAHI.CheckResetTimers = function()
     local nextDailyReset = currentTime + dailyResetIn
     local nextWeeklyReset = currentTime + weeklyResetIn
 
-    -- Initialize saved data if missing
-    LMAHI_SavedData.lastDailyReset = LMAHI_SavedData.lastDailyReset or 0
-    LMAHI_SavedData.lastWeeklyReset = LMAHI_SavedData.lastWeeklyReset or 0
-
     -- Daily reset
-    if currentTime >= LMAHI_SavedData.lastDailyReset + 86400 then
+    if LMAHI_SavedData.lastDailyReset < currentTime and LMAHI_SavedData.lastDailyReset ~= nextDailyReset then
         for charName, lockouts in pairs(LMAHI_SavedData.lockouts or {}) do
             for _, lockoutType in ipairs({"custom", "dungeons", "quests", "rares"}) do
                 for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
@@ -184,10 +192,14 @@ LMAHI.CheckResetTimers = function()
         end
         LMAHI_SavedData.lastDailyReset = nextDailyReset
         print("|cFFFF0000LMAHI: Daily reset performed at " .. date("%Y-%m-%d %H:%M:%S", currentTime) .. "|r")
+		if LMAHI.UpdateDisplay then
+        LMAHI.UpdateDisplay()
+        end
+
     end
 
     -- Weekly reset
-    if currentTime >= LMAHI_SavedData.lastWeeklyReset + (7 * 86400) then
+    if LMAHI_SavedData.lastWeeklyReset < currentTime and LMAHI_SavedData.lastWeeklyReset ~= nextWeeklyReset then
         for charName, lockouts in pairs(LMAHI_SavedData.lockouts or {}) do
             for _, lockoutType in ipairs({"custom", "raids", "dungeons", "quests", "rares", "currencies"}) do
                 for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
@@ -197,7 +209,7 @@ LMAHI.CheckResetTimers = function()
                     end
                 end
             end
-            -- Clear dungeon/raid lockouts with expired timestamps
+            -- Clear dungeon/raid lockouts with expired timestamps 
             for lockoutId, lockoutData in pairs(lockouts) do
                 if type(lockoutData) == "table" and lockoutData.type and (lockoutData.type == "dungeon" or lockoutData.type == "raid") and lockoutData.reset and lockoutData.reset < currentTime then
                     lockouts[lockoutId] = nil
@@ -206,6 +218,10 @@ LMAHI.CheckResetTimers = function()
         end
         LMAHI_SavedData.lastWeeklyReset = nextWeeklyReset
         print("|cFFFF0000LMAHI: Weekly reset performed at " .. date("%Y-%m-%d %H:%M:%S", currentTime) .. "|r")
+		 if LMAHI.UpdateDisplay then
+         LMAHI.UpdateDisplay()
+        end
+
     end
 end
 
@@ -220,9 +236,20 @@ resetCheckFrame:SetScript("OnUpdate", function(self, elapsed)
         lastResetCheckTime = 0
     end
 end)
+--Update display on login
+local loginFrame = CreateFrame("Frame")
+loginFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+loginFrame:SetScript("OnEvent", function()
+    if LMAHI.CheckResetTimers then
+        LMAHI.CheckResetTimers()
+    end
+    if LMAHI.UpdateDisplay then
+        LMAHI.UpdateDisplay()
+    end
+end)
+print("LMAHI: Login-time reset check and display update triggered")
 
 Utilities = Utilities or {}
-
 
 -- Run garbage collection after 10s, then every 300s
 Utilities.StartGarbageCollector = function(initialDelay, repeatInterval)
@@ -249,30 +276,13 @@ end
 
 -- Slash commands
 SLASH_LMAHI1 = "/lmahi"
-SlashCmdList["LMAHI"] = function(msg)
-    local command, arg = strsplit(" ", msg:lower(), 2)
-    if command == "reset" then
-        if arg == "weekly" then
-            LMAHI_SavedData.lastWeeklyReset = time() - (7 * 24 * 60 * 60) -- 7 days ago
-            print("LMAHI Debug: Simulated weekly reset for", UnitName("player") .. "-" .. GetRealmName())
-            LMAHI.CheckResetTimers()
-        elseif arg == "daily" then
-            LMAHI_SavedData.lastDailyReset = time() - (24 * 60 * 60) -- 1 day ago
-            print("LMAHI Debug: Simulated daily reset for", UnitName("player") .. "-" .. GetRealmName())
-            LMAHI.CheckResetTimers()
-        else
-            print("LMAHI: Usage: /lmahi reset [weekly|daily]")
-        end
+SlashCmdList["LMAHI"] = function()
+    if _G.LMAHI_Sleeping then
+        if LMAHI_Enable then LMAHI_Enable() end
+        _G.LMAHI_Sleeping = false
     else
-        if _G.LMAHI_Sleeping then
-            if LMAHI_Enable then LMAHI_Enable() end
-            _G.LMAHI_Sleeping = false
-            print("LMAHI: Addon enabled")
-        else
-            if LMAHI_Disable then LMAHI_Disable() end
-            _G.LMAHI_Sleeping = true
-            print("LMAHI: Addon disabled")
-        end
+        if LMAHI_Disable then LMAHI_Disable() end
+        _G.LMAHI_Sleeping = true
     end
 end
 
@@ -318,8 +328,6 @@ SlashCmdList["LMAHIWEEKLYRESET"] = function()
     LMAHI_SavedData.lastWeeklyReset = currentTime
     print("|cFFFF0000LMAHI: Weekly reset performed at " .. date("%Y-%m-%d %H:%M:%S", currentTime) .. "|r")
 end
-
-
 
 SLASH_LMAHIDAILYRESET1 = "/lmahidailyreset"
 SlashCmdList["LMAHIDAILYRESET"] = function()
