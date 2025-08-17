@@ -1,4 +1,4 @@
--- Data.lua
+---- Data.lua
 
 local addonName, addon = ...
 if not _G.LMAHI then
@@ -221,16 +221,16 @@ LMAHI.InitializeData = function()
 
     -- Quests
     LMAHI.lockoutData.quests = {
+	    { id = 91093, name = "11.2  More Than Just a Phase", reset = "weekly", expansion = "TWW" },
 		{ id = 85460, name = "11.2  Ecological Succession", reset = "weekly", expansion = "TWW" },
-		{ id = 91093, name = "11.2  More Than Just a Phase", reset = "weekly", expansion = "TWW" },
+		{ id = 84993, name = "11.2  Devourer Attack: The Oasis", reset = "weekly", expansion = "TWW" },
+		{ id = 86447, name = "11.2  Devourer Attack: Eco-dome: Primus", reset = "weekly", expansion = "TWW" },
+		{ id = 86464, name = "11.2  Devourer Attack: The Atrium", reset = "weekly", expansion = "TWW" },
+		{ id = 86465, name = "11.2  Devourer Attack: Tazavesh", reset = "weekly", expansion = "TWW" },
 		{ id = 89294, name = "11.2  Special Assignment: Aligned Views", reset = "weekly", expansion = "TWW" },
 		{ id = 89293, name = "11.2  Special Assignment: Overshadowed", reset = "weekly", expansion = "TWW" },
 		{ id = 91193, name = "11.2  Special Assignment: Capstone 1", reset = "weekly", expansion = "TWW" },
 		{ id = 91203, name = "11.2  Special Assignment: Capstone 2", reset = "weekly", expansion = "TWW" },
-        { id = 86465, name = "11.2  Devourer Attack: Tazavesh", reset = "weekly", expansion = "TWW" },
-		{ id = 84993, name = "11.2  Devourer Attack: The Oasis", reset = "weekly", expansion = "TWW" },
-		{ id = 86464, name = "11.2  Devourer Attack: The Atrium", reset = "weekly", expansion = "TWW" },
-		{ id = 86447, name = "11.2  Devourer Attack: Eco-dome: Primus", reset = "weekly", expansion = "TWW" },
 		{ id = 90125, name = "11.2  Eliminate Purple Peat", reset = "weekly", expansion = "TWW" },
 		{ id = 90122, name = "11.2  Eliminate Xy'vox the Twisted", reset = "weekly", expansion = "TWW" },
 		{ id = 90123, name = "11.2  Eliminate Hollowbane", reset = "weekly", expansion = "TWW" },
@@ -299,32 +299,36 @@ LMAHI.InitializeData = function()
     LMAHI.lockoutData.rares = {
 	     --Weekly
 		{ id = 90783, name = "11.2 Reshanor", reset = "weekly", expansion = "TWW" },
-		{ id = 91293, name = "11.2 Sthaarbs", reset = "weekly", expansion = "TWW" },				
-	    { id = 90692, name = "11.2 Purple Peat", reset = "weekly", expansion = "TWW" },
-		{ id = 90694, name = "11.2 Xy'vox the Twisted", reset = "weekly", expansion = "TWW" },
-		{ id = 90582, name = "11.2 Hollowbane", reset = "weekly", expansion = "TWW" },
-		{ id = 90577, name = "11.2 Shatterpulse", reset = "weekly", expansion = "TWW" },
-		{ id = 90698, name = "11.2 Grubber", reset = "weekly", expansion = "TWW" },
-		{ id = 90696, name = "11.2 Arcana-Monger So'zer", reset = "weekly", expansion = "TWW" },
+		{ id = 91293, name = "11.2 Sthaarbs", reset = "weekly", expansion = "TWW" },--91431?
+	    { id = 90692, name = "11.2 Purple Peat", reset = "weekly", expansion = "TWW" },--90693? warrant rare
+		{ id = 90694, name = "11.2 Xy'vox the Twisted", reset = "weekly", expansion = "TWW" },--90695? warrant rare
+		{ id = 90582, name = "11.2 Hollowbane", reset = "weekly", expansion = "TWW" },--warrant rare
+		{ id = 90577, name = "11.2 Shatterpulse", reset = "weekly", expansion = "TWW" },--warrant rare
+		{ id = 90698, name = "11.2 Grubber", reset = "weekly", expansion = "TWW" },--90699?--warrant rare
+		{ id = 90696, name = "11.2 Arcana-Monger So'zer", reset = "weekly", expansion = "TWW" },--warrant rare
+		
 		--Daily
+		--DA{ id = 84993, name = "11.2 Korgoth the Hungerer", reset = "daily", expansion = "TWW" },--91286? The Oasis
+		--DA{ id = 86447, name = "11.2 Miasmawrath", reset = "daily", expansion = "TWW" },--91287? Eco-Dome Primus
+		--DA{ id = 86464, name = "11.2 The Harvester", reset = "daily", expansion = "TWW" },--91289? The Atrium
+		--DA{ id = 86465, name = "11.2 The Wallbreaker", reset = "daily", expansion = "TWW" },--91290? D attack Tazavesh
 		{ id = 90593, name = "11.2 Urmag", reset = "daily", expansion = "TWW" },
 		{ id = 90584, name = "11.2 Xarran the Binder", reset = "daily", expansion = "TWW" },
-		{ id = 90675, name = "11.2 Korgorath the Ravager", reset = "daily", expansion = "TWW" },
-		{ id = 84993, name = "11.2 Korgoth the Hungerer", reset = "daily", expansion = "TWW" },
-		{ id = 90588, name = "11.2 Morgil the Netherspawn", reset = "daily", expansion = "TWW" },
-		{ id = 90679, name = "11.2 Prototype Mk-V", reset = "daily", expansion = "TWW" },
-		{ id = 90591, name = "11.2 Revenant of the Wasteland", reset = "daily", expansion = "TWW" },
-		{ id = 90674, name = "11.2 Shadowhowl", reset = "daily", expansion = "TWW" },
-		{ id = 86447, name = "11.2 Miasmawrath", reset = "daily", expansion = "TWW" },		
-		{ id = 90681, name = "11.2 Stalker of the Wastes", reset = "daily", expansion = "TWW" },
-		{ id = 90678, name = "11.2 The Nightreaver", reset = "daily", expansion = "TWW" },
+		{ id = 90586, name = "11.2 Korgorath the Ravager", reset = "daily", expansion = "TWW" },--90675?
+		{ id = 90588, name = "11.2 Morgil the Netherspawn", reset = "daily", expansion = "TWW" },--90677?
+		{ id = 90590, name = "11.2 Prototype Mk-V", reset = "daily", expansion = "TWW" },--90679?
+		{ id = 90591, name = "11.2 Revenant of the Wasteland", reset = "daily", expansion = "TWW" },--90680?
+		{ id = 90583, name = "11.2 Shadowhowl", reset = "daily", expansion = "TWW" },--90674?		
+		{ id = 90592, name = "11.2 Stalker of the Wastes", reset = "daily", expansion = "TWW" },--90681?
+		{ id = 90589, name = "11.2 The Nightreaver", reset = "daily", expansion = "TWW" },--90678?
 		{ id = 90587, name = "11.2 Chowdar", reset = "daily", expansion = "TWW" },--90676 other?
 		{ id = 91275, name = "11.2 Malek'ta", reset = "daily", expansion = "TWW" },
-		{ id = 91276, name = "11.2 Heka'tamos", reset = "daily", expansion = "TWW" },
+		{ id = 91276, name = "11.2 Heka'tamos", reset = "daily", expansion = "TWW" },--91422?
 		{ id = 90596, name = "11.2 Ixthar the Unblinking", reset = "daily", expansion = "TWW" },
-		{ id = 90594, name = "11.2 Maw of the Sands", reset = "daily", expansion = "TWW" },
+		{ id = 90594, name = "11.2 Maw of the Sands", reset = "daily", expansion = "TWW" },--90683?
 		{ id = 90595, name = "11.2 Orith the Dreadful", reset = "daily", expansion = "TWW" },
 		{ id = 90585, name = "11.2 Sha'ryth the Cursed", reset = "daily", expansion = "TWW" },
+
 	   
         { id = 90488, name = "11.1  M.A.G.N.O.", reset = "weekly", expansion = "TWW" },
         { id = 90489, name = "11.1  Giovante", reset = "weekly", expansion = "TWW" },
