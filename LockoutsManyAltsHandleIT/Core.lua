@@ -1,4 +1,4 @@
----- Core.lua
+-- Core.lua
 
 -- Keep ALL HEADERS HEX and everything else r, g, b for colors of text
 local addonName, addon = ...
@@ -963,7 +963,7 @@ addButton:SetScript("OnClick", function()
 end)
 
 customInputScrollFrame = CreateFrame("ScrollFrame", "LMAHI_CustomInputScrollFrame", customInputFrame, "UIPanelScrollFrameTemplate")
-customInputScrollFrame:SetSize(450, 305)
+customInputScrollFrame:SetSize(450, 320)
 customInputScrollFrame:SetPoint("TOPLEFT", customInputFrame, "TOPLEFT", 30, -185)
 customInputScrollFrame:EnableMouseWheel(true)
 customInputScrollFrame:SetFrameLevel(customInputFrame:GetFrameLevel() + 2)
@@ -1147,7 +1147,7 @@ end
 
 -- Settings Frame Main
 settingsFrame = CreateFrame("Frame", "LMAHI_SettingsFrame", UIParent, "BasicFrameTemplateWithInset")
-tinsert(UISpecialFrames, settingsFrame)
+tinsert(UISpecialFrames, "LMAHI_SettingsFrame")
 settingsFrame:SetSize(415, 500)
 settingsFrame:SetPoint(
     LMAHI_SavedData.settingsFramePos.point,
@@ -1176,6 +1176,7 @@ settingsFrame:SetScript("OnDragStop", function(self)
         y = y
     }
 end)
+
 settingsFrame:Hide()
 settingsFrame:SetScale(LMAHI_SavedData.zoomLevel or 1)
 
@@ -1211,7 +1212,7 @@ local lines = {
 infoText:SetText(table.concat(lines, "\n"))
 
 charListScrollFrame = CreateFrame("ScrollFrame", "LMAHI_CharListScrollFrame", settingsFrame, "UIPanelScrollFrameTemplate")
-charListScrollFrame:SetSize(380, 365)
+charListScrollFrame:SetSize(380, 380)
 charListScrollFrame:SetPoint("TOP", settingsFrame, "TOP", -18, -110)
 charListScrollFrame:SetFrameLevel(settingsFrame:GetFrameLevel() + 2)
 charListScrollFrame:Show()
@@ -1472,8 +1473,8 @@ function LMAHI.CreateLockoutSelectionFrame()
     lockoutSelectionContent.sectionCheckboxes = sectionCheckboxes
 
     local scrollFrame = CreateFrame("ScrollFrame", "LMAHI_SelectionScrollFrame", frame, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", lockoutSelectionContent, "BOTTOMLEFT", 20, -400)
-    scrollFrame:SetPoint("BOTTOMRIGHT", lockoutSelectionContent, "BOTTOMRIGHT", -8, -10)
+    scrollFrame:SetPoint("TOPLEFT", lockoutSelectionContent, "BOTTOMLEFT", 20, -415)
+    scrollFrame:SetPoint("BOTTOMRIGHT", lockoutSelectionContent, "BOTTOMRIGHT", -8, -5)
     scrollFrame:EnableMouseWheel(true)
     scrollFrame:SetFrameLevel(frame:GetFrameLevel() + 1)
     scrollFrame:SetScript("OnMouseWheel", function(self, delta)
