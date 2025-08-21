@@ -1,7 +1,6 @@
 # LockoutsManyAltsHandleIT
 
-> ⚠️ This addon is currently in **ALPHA**. Features and data WILL change!
-    Getting closer to release.
+⚠️ This addon is currently in **BETA**. Features and data are still changing ! Getting closer to release.
 
 A World of Warcraft Retail addon to manage and view lockouts across multiple characters.
 
