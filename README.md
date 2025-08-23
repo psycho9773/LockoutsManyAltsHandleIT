@@ -1,6 +1,8 @@
 # LockoutsManyAltsHandleIT
 
-⚠️ This addon is currently in **BETA**. Features and data are still changing ! Getting closer to release.
+:stop_sign: Life Happens... Addon development on HOLD.
+
+⚠️ This addon is currently in **BETA**. Features and data are still changing !
 
 A World of Warcraft Retail addon to manage and view lockouts across multiple characters.
 
