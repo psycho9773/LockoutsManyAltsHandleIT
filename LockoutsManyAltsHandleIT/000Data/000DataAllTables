@@ -1,0 +1,51 @@
+---- 000DataAllTables.lua
+
+local addonName, addon = ...
+_G.LMAHI = addon -- Expose addon namespace globally
+
+-- Define lockout types
+LMAHI.lockoutTypes = {
+    "custom",
+    "raids",
+    "dungeons",
+    "quests",
+    "rares",
+    "currencies",
+}
+
+-- Initialize lockout data
+LMAHI.InitializeData = function()
+    LMAHI.lockoutData = LMAHI.lockoutData or {}
+    for _, lockoutType in ipairs(LMAHI.lockoutTypes) do
+        LMAHI.lockoutData[lockoutType] = LMAHI.lockoutData[lockoutType] or {}
+    end
+
+    -- Load data from separate modules
+    LMAHI.lockoutData.raids = LMAHI.RaidData or {}
+    LMAHI.lockoutData.dungeons = LMAHI.DungeonData or {}
+    LMAHI.lockoutData.quests = LMAHI.QuestData or {}
+    LMAHI.lockoutData.rares = LMAHI.RareData or {}
+    LMAHI.lockoutData.currencies = LMAHI.CurrencyData or {}
+    LMAHI.ReagentQualityTable = LMAHI.ReagentData or {}
+
+    -- Build static mapping from dungeon ID to mapChallengeModeID
+    LMAHI.TWW_DUNGEON_MAP_IDS = {}
+    for _, dungeon in ipairs(LMAHI.lockoutData.dungeons) do
+        if dungeon.expansion == "TWW" and dungeon.mapChallengeModeID then
+            LMAHI.TWW_DUNGEON_MAP_IDS[dungeon.id] = dungeon.mapChallengeModeID
+        end
+    end
+
+    -- Initialize saved variables
+    LMAHI_SavedData = LMAHI_SavedData or { keystoneData = {}, lockouts = {} }
+
+    -- Custom lockouts
+    LMAHI.lockoutData.custom = LMAHI_SavedData.customLockouts or {}
+
+    -- Initialize lockouts for all characters
+    if LMAHI.InitializeLockouts then
+        LMAHI.InitializeLockouts()
+    end
+end
+
+--  Expansion Abreviations  "MDN", "TWW", "DF", "SL", "BFA", "LGN", "WOD", "MOP", "CAT", "WLK", "TBC", "WOW"
