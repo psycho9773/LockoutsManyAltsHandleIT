@@ -1,0 +1,253 @@
+----715SlashCommands.lua
+
+local addonName, addon = ...
+
+--Slash commands
+
+SLASH_LMAHI1 = "/lmahi"
+SlashCmdList["LMAHI"] = function()
+    if _G.LMAHI_Sleeping then
+        if LMAHI_Enable then LMAHI_Enable() end
+        _G.LMAHI_Sleeping = false
+    else
+        if LMAHI_Disable then LMAHI_Disable() end
+        _G.LMAHI_Sleeping = true
+    end
+end
+
+SLASH_LMAHIWIPE1 = "/lmahiwipe"
+SlashCmdList["LMAHIWIPE"] = function()
+    StaticPopupDialogs["LMAHIWIPE_CONFIRM"] = {
+        text = "Are you sure you want to wipe all saved data?",
+        button1 = "Yes",
+        button2 = "Cancel",
+        OnAccept = function()
+            LMAHI_SavedData = nil
+            ReloadUI()
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+    }
+    StaticPopup_Show("LMAHIWIPE_CONFIRM")
+end
+
+SLASH_LMAHIWEEKLYRESET1 = "/lmahiweeklyreset"
+SlashCmdList["LMAHIWEEKLYRESET"] = function()
+    print("|cFF00FF00LMAHI: Manual weekly reset triggered.|r")
+
+    local currentTime = time()
+
+    for charName, lockouts in pairs(LMAHI_SavedData.lockouts or {}) do
+        for _, lockoutType in ipairs({"custom", "raids", "dungeons", "quests", "rares", "currencies"}) do
+            for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
+                if lockout.reset == "weekly" then
+                    local lockoutId = tostring(lockout.id)
+                    lockouts[lockoutId] = nil
+                end
+            end
+        end
+        for lockoutId, lockoutData in pairs(lockouts) do
+            if type(lockoutData) == "table" and lockoutData.type and (lockoutData.type == "dungeon" or lockoutData.type == "raid") and lockoutData.reset and lockoutData.reset < currentTime then
+                lockouts[lockoutId] = nil
+            end
+        end
+    end
+
+    LMAHI_SavedData.lastWeeklyReset = currentTime
+    print("|cFFFF0000LMAHI: Weekly reset performed at " .. date("%Y-%m-%d %H:%M:%S", currentTime) .. "|r")
+end
+
+SLASH_LMAHIDAILYRESET1 = "/lmahidailyreset"
+SlashCmdList["LMAHIDAILYRESET"] = function()
+    print("|cFF00FF00LMAHI: Manual daily reset triggered.|r")
+
+    local currentTime = time()
+
+    for charName, lockouts in pairs(LMAHI_SavedData.lockouts or {}) do
+        for _, lockoutType in ipairs({"custom", "dungeons", "rares"}) do
+            for _, lockout in ipairs(LMAHI.lockoutData[lockoutType] or {}) do
+                if lockout.reset == "daily" then
+                    local lockoutId = tostring(lockout.id)
+                    lockouts[lockoutId] = nil
+                end
+            end
+        end
+        for lockoutId, lockoutData in pairs(lockouts) do
+            if type(lockoutData) == "table" and lockoutData.type and (lockoutData.type == "dungeon" or lockoutData.type == "raid") and lockoutData.reset and lockoutData.reset < currentTime then
+                lockouts[lockoutId] = nil
+            end
+        end
+    end
+
+    LMAHI_SavedData.lastDailyReset = currentTime
+    print("|cFFFF0000LMAHI: Daily reset performed at " .. date("%Y-%m-%d %H:%M:%S", currentTime) .. "|r")
+end
+
+
+-- /lmahifakekeystone command
+SLASH_LMAHI_FAKEKEYSTONE1 = "/lmahifakekeystone"
+SlashCmdList["LMAHI_FAKEKEYSTONE"] = function(msg)
+    if _G.LMAHI_Sleeping then
+--print("LMAHI: Addon is in sleep mode. Use /lmahi to enable.")
+        return
+    end
+    local charName = UnitName("player") .. "-" .. GetRealmName()
+    msg = msg:trim()
+    if msg:lower() == "clear" then
+        LMAHI_SavedData.keystoneData = LMAHI_SavedData.keystoneData or {}
+        LMAHI_SavedData.keystoneData[charName] = nil
+        print("LMAHI: Cleared fake keystone for", charName)
+        if LMAHI.UpdateDisplay then
+            LMAHI.UpdateDisplay()
+        end
+        return
+    end
+
+    local dungeonName, level = msg:match("^(.+)%s+(%d+)$")
+    level = tonumber(level)
+
+    if not dungeonName or not level or level < 1 then
+        print("Usage: /lmahifakekeystone <dungeon name> <level>")
+        print("Example: /lmahifakekeystone Ara-Kara, City of Echoes 10")
+        print("To clear: /lmahifakekeystone clear")
+        print("Available TWW dungeons:")
+        for _, dungeon in ipairs(LMAHI.lockoutData["dungeons"] or {}) do
+            if dungeon.expansion == "TWW" then
+                print("- " .. dungeon.name)
+            end
+        end
+        return
+    end
+
+    local normalizedInput = dungeonName:lower():gsub("[^%w,]", ""):gsub(",", " ")
+    local lockoutId, matchedDungeonName
+    for _, dungeon in ipairs(LMAHI.lockoutData["dungeons"] or {}) do
+        local normalizedDungeon = dungeon.name:lower():gsub("[^%w,]", ""):gsub(",", " ")
+        if normalizedDungeon == normalizedInput then
+            lockoutId = dungeon.id
+            matchedDungeonName = dungeon.name
+            break
+        end
+    end
+
+    if not lockoutId then
+        print("Error: Dungeon '" .. dungeonName .. "' not found. Available TWW dungeons:")
+        for _, dungeon in ipairs(LMAHI.lockoutData["dungeons"] or {}) do
+            if dungeon.expansion == "TWW" then
+                print("- " .. dungeon.name)
+            end
+        end
+        return
+    end
+
+    local mapChallengeModeID = LMAHI.TWW_DUNGEON_MAP_IDS[lockoutId]
+    if not mapChallengeModeID then
+        print("Error: Could not map dungeon '" .. matchedDungeonName .. "' to a Mythic+ ID.")
+        return
+    end
+
+    LMAHI_SavedData.keystoneData = LMAHI_SavedData.keystoneData or {}
+    LMAHI_SavedData.keystoneData[charName] = {
+        mapChallengeModeID = mapChallengeModeID,
+        level = level,
+        lockoutID = lockoutId
+    }
+    print("LMAHI: Set fake keystone for", charName, "to", matchedDungeonName, "Level", level)
+
+    if LMAHI.UpdateDisplay then
+        LMAHI.UpdateDisplay()
+    end
+end
+
+-- /lmahifakem0 command
+SLASH_LMAHI_FAKEM01 = "/lmahifakem0"
+SlashCmdList["LMAHI_FAKEM0"] = function(msg)
+    if _G.LMAHI_Sleeping then
+        print("LMAHI: Addon is in sleep mode. Use /lmahi to enable.")
+        return
+    end
+    local charName = UnitName("player") .. "-" .. GetRealmName()
+    msg = msg:trim()
+    if msg:lower() == "clear" then
+        LMAHI_SavedData.lockouts = LMAHI_SavedData.lockouts or {}
+        LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
+        for lockoutId, lockoutData in pairs(LMAHI_SavedData.lockouts[charName]) do
+            if lockoutData.difficultyId == 8 then
+                LMAHI_SavedData.lockouts[charName][lockoutId] = nil
+            end
+        end
+        print("LMAHI: Cleared fake M0 lockouts for", charName)
+        if LMAHI.UpdateDisplay then
+            LMAHI.UpdateDisplay()
+        end
+        return
+    end
+
+    local dungeonName, bossesKilled = msg:match("^(.+)%s+(%d+)$")
+    bossesKilled = bossesKilled and tonumber(bossesKilled) or 4
+    dungeonName = dungeonName or msg
+
+    if not dungeonName or dungeonName == "" or (bossesKilled and (bossesKilled < 0 or bossesKilled > 4)) then
+        print("Usage: /lmahifakem0 <dungeon name> [bossesKilled]")
+        print("Example: /lmahifakem0 Ara-Kara, City of Echoes 2")
+        print("To clear: /lmahifakem0 clear")
+        print("Available TWW dungeons:")
+        for _, dungeon in ipairs(LMAHI.lockoutData["dungeons"] or {}) do
+            if dungeon.expansion == "TWW" then
+                print("- " .. dungeon.name)
+            end
+        end
+        return
+    end
+
+    local normalizedInput = dungeonName:lower():gsub("[^%w,]", ""):gsub(",", " ")
+    local lockoutId, matchedDungeonName
+    for _, dungeon in ipairs(LMAHI.lockoutData["dungeons"] or {}) do
+        local normalizedDungeon = dungeon.name:lower():gsub("[^%w,]", ""):gsub(",", " ")
+        if normalizedDungeon == normalizedInput then
+            lockoutId = dungeon.id
+            matchedDungeonName = dungeon.name
+            break
+        end
+    end
+
+    if not lockoutId then
+        print("Error: Dungeon '" .. dungeonName .. "' not found. Available TWW dungeons:")
+        for _, dungeon in ipairs(LMAHI.lockoutData["dungeons"] or {}) do
+            if dungeon.expansion == "TWW" then
+                print("- " .. dungeon.name)
+            end
+        end
+        return
+    end
+
+    local mapChallengeModeID = LMAHI.TWW_DUNGEON_MAP_IDS[lockoutId]
+    if not mapChallengeModeID then
+        print("Error: Could not map dungeon '" .. matchedDungeonName .. "' to a Mythic+ ID.")
+        return
+    end
+
+    LMAHI_SavedData.lockouts = LMAHI_SavedData.lockouts or {}
+    LMAHI_SavedData.lockouts[charName] = LMAHI_SavedData.lockouts[charName] or {}
+    local diffLockoutId = tostring(lockoutId) .. "-M0"
+    local encounters = {
+        { name = "Boss 1", isKilled = bossesKilled >= 1 },
+        { name = "Boss 2", isKilled = bossesKilled >= 2 },
+        { name = "Boss 3", isKilled = bossesKilled >= 3 },
+        { name = "Boss 4", isKilled = bossesKilled >= 4 }
+    }
+    LMAHI_SavedData.lockouts[charName][diffLockoutId] = {
+        name = matchedDungeonName,
+        difficultyId = 8,
+        reset = time() + 604800,
+        numEncounters = 4,
+        encounters = encounters,
+        mapChallengeModeID = mapChallengeModeID
+    }
+    print("LMAHI: Set fake M0 lockout for", charName, "to", matchedDungeonName, "(" .. bossesKilled .. "/4 bosses)")
+
+    if LMAHI.UpdateDisplay then
+        LMAHI.UpdateDisplay()
+    end
+end
