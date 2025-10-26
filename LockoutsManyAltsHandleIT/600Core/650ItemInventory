@@ -1,0 +1,1038 @@
+-- 600Core/650ItemInventory.lua
+local addonName, addon = ...
+
+-- Always create the frame, but add runtime checks for functionality
+local ItemInventory = CreateFrame("Frame", "ItemInventory", UIParent)
+
+-- Register events unconditionally, but check setting in handlers
+ItemInventory:RegisterEvent("ADDON_LOADED")
+ItemInventory:RegisterEvent("BAG_UPDATE_DELAYED")
+ItemInventory:RegisterEvent("BANKFRAME_OPENED")
+ItemInventory:RegisterEvent("BANKFRAME_CLOSED")
+ItemInventory:RegisterEvent("PLAYERBANKSLOTS_CHANGED")
+ItemInventory:RegisterEvent("PLAYER_LOGIN")
+ItemInventory:RegisterEvent("PLAYER_LOGOUT")
+ItemInventory:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
+ItemInventory:RegisterEvent("MERCHANT_SHOW")
+
+ItemInventory.data = {}
+ItemInventory.playerName = nil
+ItemInventory.bankOpen = false
+ItemInventory.lastScanTimes = { inventory = 0, bank = 0, warband = 0, currency = 0 }
+ItemInventory.tooltipProcessed = {}
+local scanCooldown = 2.0 
+local MAX_TOOLTIP_CHARACTERS = 5 -- Maximum characters shown in item/currency tooltips
+
+-- Bag and bank indexes for WoW 11.2
+local BAG_INDEXES = {
+    BACKPACK_CONTAINER, -- 0
+    1, 2, 3, 4, -- Bag slots
+    Enum.BagIndex.ReagentBag or -3, -- Reagent bag
+}
+local BANK_INDEXES = {
+    BANK_CONTAINER, -- -1
+}
+local WARBAND_INDEXES = {
+    Enum.BagIndex.AccountBankTab_1, -- 12
+    Enum.BagIndex.AccountBankTab_2, -- 13
+    Enum.BagIndex.AccountBankTab_3, -- 14
+    Enum.BagIndex.AccountBankTab_4, -- 15
+    Enum.BagIndex.AccountBankTab_5, -- 16
+}
+
+-- Custom quality colors for reagents when using search
+local CUSTOM_QUALITY_COLORS = {
+    [1] = { r = 0.78, g = 0.35, b = 0.2 }, -- Quality 1: Brown/Copperish
+    [2] = { r = 0.7, g = 0.7, b = 0.7 }, -- Quality 2: Silver
+    [3] = { r = 1, g = 0.8, b = 0 } -- Quality 3: Gold
+}
+
+-- Reusable function for character and realm name formatting
+function LMAHI:FormatCharacterName(charName)
+    local name, realm = strsplit("-", charName or "Unknown-Unknown")
+    local classColor = LMAHI_SavedData.classColors[charName] or { r = 1, g = 1, b = 1 }
+    local factionColor = LMAHI.FACTION_COLORS[LMAHI_SavedData.factions[charName] or "Neutral"] or { r = 0.8, g = 0.8, b = 0.8 }
+    local nameHex = string.format("%02x%02x%02x", classColor.r * 255, classColor.g * 255, classColor.b * 255)
+    local realmHex = string.format("%02x%02x%02x", factionColor.r * 255, factionColor.g * 255, factionColor.b * 255)
+    return "|cff" .. nameHex .. name .. "|r|cff999999 - |r|cff" .. realmHex .. realm .. "|r"
+end
+
+-- Search frame (created always, but hidden if disabled)
+local searchFrame = CreateFrame("Frame", "ItemInventorySearchFrame", LMAHI.mainFrame, "BackdropTemplate") -- Restored parent to LMAHI.mainFrame
+searchFrame:SetPoint("TOPLEFT", LMAHI.mainFrame, "TOPLEFT", 165, 2)
+searchFrame:SetSize(290, 25)
+searchFrame:SetFrameStrata("DIALOG")
+searchFrame:SetBackdrop({
+    bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    tile = true,
+    tileSize = 10,
+    edgeSize = 21,
+    insets = { left = 2, right = 2, top = 2, bottom = 2 },
+})
+searchFrame:SetBackdropColor(1, 1, 1, 1)
+searchFrame:SetBackdropBorderColor(0.8, 0.8, 0.8, 1)
+searchFrame:Hide()
+
+-- Edit box
+local editBox = CreateFrame("EditBox", "ItemInventorySearchEditBox", searchFrame, "InputBoxTemplate")
+editBox:SetSize(275, 25)
+editBox:SetPoint("RIGHT", searchFrame, "RIGHT", -5 , -1)
+editBox:SetAutoFocus(false)
+editBox:SetFontObject(GameFontNormal)
+editBox:SetTextColor(0.6, 0.8, 1)
+local placeholderText = "Letter's and Space's Only"
+
+editBox:SetText(placeholderText)
+editBox:SetTextColor(0.6, 0.8, 1)
+editBox:SetMaxLetters(50)
+
+editBox:SetScript("OnEditFocusGained", function(self)
+    if LMAHI_SavedData.enableItemInventory then
+        if self:GetText() == placeholderText then
+            self:SetText("")
+            self:SetTextColor(0.6, 0.8, 1)
+        else
+            self:HighlightText()
+        end
+    else
+        self:ClearFocus()
+    end
+end)
+
+editBox:SetScript("OnShow", function(self)
+    if LMAHI_SavedData.enableItemInventory then
+        if self:GetText() == "" then
+            self:SetText(placeholderText)
+            self:SetTextColor(0.6, 0.8, 1)
+        end
+    else
+        self:GetParent():Hide()
+    end
+end)
+
+-- Thinking label
+local thinkingLabel = editBox:CreateFontString("ItemInventoryThinkingLabel", "OVERLAY", "GameFontNormal")
+thinkingLabel:SetPoint("LEFT", editBox, "RIGHT", -75, -1)
+thinkingLabel:SetText("")
+thinkingLabel:SetTextColor(0.6, 0.8, 1)
+
+-- Blinking animation
+local function StartThinkingBlink()
+    if not LMAHI_SavedData.enableItemInventory then return end
+    thinkingLabel:SetText("Searching...")
+    local blink = true
+    local ticker = C_Timer.NewTicker(0.5, function()
+        if blink then
+            thinkingLabel:SetAlpha(0.3)
+        else
+            thinkingLabel:SetAlpha(1)
+        end
+        blink = not blink
+    end, 8) -- lasts 4 seconds
+    return ticker
+end
+
+editBox:SetScript("OnEnterPressed", function(self)
+    if not LMAHI_SavedData.enableItemInventory then
+        print("Item Inventory is disabled.")
+        self:ClearFocus()
+        return
+    end
+    local text = strtrim(self:GetText()):lower()
+    if not text:match("^[a-zA-Z%s]+$") then
+        print("Only letters are allowed in the search.")
+        self:ClearFocus()
+        return
+    end
+    if text and #text >= 3 then
+        local blinkTicker = StartThinkingBlink()
+        C_Timer.After(4, function()  --timer to slow down search
+            thinkingLabel:SetText("")
+            if ItemInventory and ItemInventory.UpdateSearchResults then
+                ItemInventory:UpdateSearchResults(text)
+            else
+                print("Search system not ready.")
+            end
+        end)
+    else
+        print("Enter at least 3 letters to search.")
+    end
+    self:ClearFocus()
+end)
+
+-- Create the show button
+local showButton = CreateFrame("Button", "ItemInventoryShowSearchButton", LMAHI.mainFrame) -- Restored parent to LMAHI.mainFrame
+showButton:SetFrameStrata("DIALOG")
+showButton:SetSize(22, 22)
+showButton:SetPoint("LEFT", searchFrame, "LEFT", -100, -1)
+showButton:SetNormalTexture("Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up")
+showButton:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
+showButton:Hide()
+
+showButton:SetScript("OnClick", function(self)
+    if LMAHI_SavedData.enableItemInventory then
+        searchFrame:Show()
+    else
+        --print("Item Inventory is disabled.")
+    end
+end)
+
+showButton:SetScript("OnEnter", function(self)
+    if LMAHI_SavedData.enableItemInventory then
+        GameTooltip:SetOwner(self, "ANCHOR_NONE")
+        GameTooltip:SetPoint("TOPLEFT", self, "BOTTOMLEFT", -30, -1)
+        GameTooltip:SetText("|cff99ccffSearch|r|cffADADAD Bag's |r|cff99ccffand|r|cffADADAD Bank's|r")
+        GameTooltip:Show()
+    end
+end)
+
+showButton:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+end)
+
+-- Search label attached to button
+local searchLabel = showButton:CreateFontString("ItemInventorySearchLabel", "ARTWORK", "GameFontNormal")
+searchLabel:SetPoint("LEFT", showButton, "RIGHT", 3, 0)
+searchLabel:SetText("|cff99ccffItem|r|cffADADAD Search |r")
+searchLabel:Hide()
+
+-- Results Frame
+local resultsFrame = CreateFrame("Frame", "ItemInventoryResultsFrame", searchFrame, "InsetFrameTemplate") -- Parent to searchFrame
+resultsFrame:SetSize(900, 250)
+resultsFrame:SetPoint("TOP", searchFrame, "BOTTOM", 310, -44)
+resultsFrame:SetFrameStrata("FULLSCREEN")
+resultsFrame:EnableMouse(true)
+resultsFrame:EnableMouseWheel(true)
+resultsFrame:SetScript("OnMouseWheel", function() end)
+resultsFrame:Hide()
+
+local resultsScrollFrame = CreateFrame("ScrollFrame", "ItemInventoryResultsScrollFrame", resultsFrame, "UIPanelScrollFrameTemplate")
+resultsScrollFrame:SetPoint("TOPLEFT", resultsFrame, "TOPLEFT", 8, -8)
+resultsScrollFrame:SetPoint("BOTTOMRIGHT", resultsFrame, "BOTTOMRIGHT", -28, 8)
+
+local resultsContent = CreateFrame("Frame", "ItemInventoryResultsContent", resultsScrollFrame)
+resultsContent:SetSize(900, 1)
+resultsScrollFrame:SetScrollChild(resultsContent)
+
+-- Background separators
+local rowCount = 9
+local rowHeight = 25
+local rowSpacing = 0
+local rowWidth = 900
+
+for i = 1, rowCount do
+    local row = CreateFrame("Frame", nil, resultsScrollFrame)
+    row:SetSize(rowWidth, rowHeight)
+    row:SetPoint("TOPLEFT", resultsScrollFrame, "TOPLEFT", 0, -((i - 1) * (rowHeight + rowSpacing) + 6))
+    if i % 2 == 0 then
+        local bg = row:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints(row)
+        bg:SetTexture("Interface\\Buttons\\WHITE8x8")
+        bg:SetVertexColor(0.9, 0.9, 0.9, 0.03)
+    end
+end
+
+-- Close button for item search
+local itemsCloseButton = CreateFrame("Button", nil, searchFrame, "UIPanelCloseButton")
+itemsCloseButton:SetSize(18, 18)
+itemsCloseButton:SetPoint("TOPRIGHT", searchFrame, "TOPRIGHT", 15, -5)
+itemsCloseButton:SetFrameStrata("HIGH")
+
+itemsCloseButton:SetScript("OnClick", function()
+    if not LMAHI_SavedData.enableItemInventory then return end
+    editBox:SetText("")
+    ItemInventory:releaseFontStrings()
+    resultsContent:SetHeight(1)
+    resultsFrame:Hide()
+    searchFrame:Hide()
+end)
+
+-- Font string pool for search results
+local fontStringPool = {}
+local function acquireFontString()
+    local fs = table.remove(fontStringPool)
+    if not fs then
+        fs = resultsContent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    end
+    fs:Show()
+    return fs
+end
+function ItemInventory:releaseFontStrings()
+    if not LMAHI_SavedData.enableItemInventory then return end
+    for _, fs in ipairs({resultsContent:GetRegions()}) do
+        if fs:IsObjectType("FontString") then
+            fs:Hide()
+            fs:SetText("")
+            fs:ClearAllPoints()
+            table.insert(fontStringPool, fs)
+        end
+    end
+end
+
+-- Add commas to strings
+function ItemInventory:FormatNumberWithCommas(number)
+    if not LMAHI_SavedData.enableItemInventory then return tostring(number) end
+    local formatted = tostring(number)
+    while true do
+        formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
+        if k == 0 then break end
+    end
+    return formatted
+end
+
+-- Helper function to determine quality from table and saved data
+function ItemInventory:GetReagentQuality(itemID)
+    if not LMAHI_SavedData.enableItemInventory then return nil end
+    local entry = LMAHI.ReagentQualityTable[itemID]
+    if not entry then return nil end
+    for character, data in pairs(self.data.itemInvCharacters or {}) do
+        if (data.inventory and data.inventory[itemID]) or (data.bank and data.bank[itemID]) then
+            return entry.quality
+        end
+    end
+    if self.data.Warband and self.data.Warband.bank and self.data.Warband.bank[itemID] then
+        return entry.quality
+    end
+    return nil
+end
+
+-- Fallback for LMAHI:FormatCharacterName
+local function FormatCharacterName(character)
+    if LMAHI and LMAHI.FormatCharacterName then
+        return LMAHI:FormatCharacterName(character)
+    else
+        return character -- Fallback to raw character name if LMAHI is unavailable
+    end
+end
+
+function ItemInventory:InitializeData()
+    if not LMAHI_SavedData.enableItemInventory then return end
+    self.data = LMAHI_SavedData
+
+    if not self.data.itemInvCharacters then
+        self.data.itemInvCharacters = {}
+    end
+    if not self.data.Warband then
+        self.data.Warband = { bank = {} }
+    end
+
+    if self.playerName then
+        if not self.data.itemInvCharacters[self.playerName] then
+            local _, class = UnitClass("player")
+            local classUpper = class and strupper(class) or "UNKNOWN"
+            LMAHI_SavedData.classColors[self.playerName] = RAID_CLASS_COLORS[classUpper] or { r = 1, g = 1, b = 1 }
+            LMAHI_SavedData.factions[self.playerName] = UnitFactionGroup("player") or "Neutral"
+            self.data.itemInvCharacters[self.playerName] = {
+                inventory = {},
+                bank = {},
+                itemInvcurrencies = {},
+                class = classUpper
+            }
+        end
+        for character, data in pairs(self.data.itemInvCharacters) do
+            local classUpper = data.class or (character == self.playerName and strupper(select(2, UnitClass("player")))) or "UNKNOWN"
+            data.class = classUpper
+            if not LMAHI_SavedData.classColors[character] then
+                LMAHI_SavedData.classColors[character] = RAID_CLASS_COLORS[classUpper] or { r = 1, g = 1, b = 1 }
+            end
+            if not LMAHI_SavedData.factions[character] then
+                LMAHI_SavedData.factions[character] = "Neutral"
+            end
+        end
+    end
+end
+
+function ItemInventory:ScanVendor()
+    if not LMAHI_SavedData.enableItemInventory then return end
+    local numItems = GetMerchantNumItems()
+    for i = 1, numItems do
+        local itemID = GetMerchantItemInfo(i)
+        if itemID then
+            local name = GetMerchantItemInfo(i)
+            local itemName = name or GetItemInfo(itemID) or "Loading..."
+            if not name then
+                C_Item.RequestLoadItemDataByID(itemID)
+            end
+        end
+    end
+end
+
+function ItemInventory:ScanVendorCurrencies(merchantIndex)
+    if not LMAHI_SavedData.enableItemInventory then return {} end
+    local currencyCost = {}
+    local numItems = GetMerchantNumItems()
+    if merchantIndex and merchantIndex <= numItems then
+        local _, _, _, _, _, _, _, extendedCost = GetMerchantItemInfo(merchantIndex)
+        if extendedCost then
+            local numCurrencies = GetMerchantItemMaxCurrencies(merchantIndex) or 0
+            for j = 1, numCurrencies do
+                local currencyID, currencyAmount = GetMerchantItemCostInfo(merchantIndex, j)
+                if currencyID and currencyAmount > 0 then
+                    local currencyName = C_CurrencyInfo.GetCurrencyInfo(currencyID).name or "Unknown"
+                    currencyCost[currencyID] = { count = currencyAmount, name = currencyName }
+                end
+            end
+        end
+    end
+    return currencyCost
+end
+
+function ItemInventory:MERCHANT_SHOW()
+    if not LMAHI_SavedData.enableItemInventory then return end
+    C_Timer.After(1.0, function()
+        self:ScanVendor()
+        self:ScanCurrencies() -- Ensure currency data is up-to-date
+    end)
+end
+
+function ItemInventory:ADDON_LOADED(addonName)
+    if addonName ~= "LockoutsManyAltsHandleIT" then return end
+    if not LMAHI_SavedData.enableItemInventory then return end
+    self:InitializeData()
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tooltip, data)
+        if not LMAHI_SavedData.enableItemInventory then return end
+        if tooltip == GameTooltip or tooltip == ItemTooltip then
+            local _, itemLink = tooltip:GetItem()
+            if itemLink then
+                local bagID = select(3, GetItemInfoInstant(itemLink))
+                if bagID and (tContains(BANK_INDEXES, bagID) or tContains(WARBAND_INDEXES, bagID)) then
+                    return
+                end
+            end
+            if not self.tooltipProcessed[tooltip] then
+                self.tooltipProcessed[tooltip] = true
+                self:OnTooltipSetItem(tooltip)
+            end
+        end
+    end)
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Currency, function(tooltip, data)
+        if not LMAHI_SavedData.enableItemInventory then return end
+        if tooltip == GameTooltip and data and data.id then
+            if not self.tooltipProcessed[tooltip] then
+                self.tooltipProcessed[tooltip] = true
+                self:OnTooltipSetMerchantCurrency(tooltip, data.id)
+            end
+        end
+    end)
+    hooksecurefunc(GameTooltip, "SetBagItem", function(tooltip, bag, slot)
+        if not LMAHI_SavedData.enableItemInventory then return end
+        local isBank = false
+        for _, bankID in ipairs(BANK_INDEXES) do
+            if bag == bankID and self.bankOpen then
+                isBank = true
+                break
+            end
+        end
+        for _, warbandID in ipairs(WARBAND_INDEXES) do
+            if bag == warbandID and self.bankOpen then
+                isBank = true
+                break
+            end
+        end
+        if isBank then
+            local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
+            if itemInfo and itemInfo.itemID then
+                if not self.tooltipProcessed[tooltip] then
+                    self.tooltipProcessed[tooltip] = true
+                    self:OnTooltipSetItem(tooltip)
+                end
+            else
+                self.tooltipProcessed[tooltip] = nil
+            end
+        end
+    end)
+    hooksecurefunc(GameTooltip, "SetMerchantItem", function(tooltip, merchantIndex)
+        if not LMAHI_SavedData.enableItemInventory then return end
+        local itemID = GetMerchantItemInfo(merchantIndex)
+        if itemID and not self.tooltipProcessed[tooltip] then
+            self.tooltipProcessed[tooltip] = true
+            self:OnTooltipSetItem(tooltip, merchantIndex)
+        end
+    end)
+    hooksecurefunc(GameTooltip, "SetCurrencyToken", function(tooltip, index)
+        if not LMAHI_SavedData.enableItemInventory then return end
+        if not self.tooltipProcessed[tooltip] then
+            self.tooltipProcessed[tooltip] = true
+            local currencyInfo = C_CurrencyInfo.GetCurrencyListInfo(index)
+            if currencyInfo and currencyInfo.currencyID then
+                self:OnTooltipSetCurrency(tooltip, currencyInfo.currencyID)
+            end
+        end
+    end)
+    GameTooltip:HookScript("OnTooltipCleared", function(tooltip)
+        if not LMAHI_SavedData.enableItemInventory then return end
+        self.tooltipProcessed[tooltip] = nil
+    end)
+end
+
+-- Add runtime check to all scan functions
+function ItemInventory:ScanInventory()
+    if not LMAHI_SavedData.enableItemInventory then return end
+    if not self.playerName or not self.data.itemInvCharacters[self.playerName] then return end
+    local now = GetTime()
+    if now - self.lastScanTimes.inventory < scanCooldown then return end
+    self.lastScanTimes.inventory = now
+
+    local inventory = {}
+    for _, bagID in ipairs(BAG_INDEXES) do
+        local numSlots = C_Container.GetContainerNumSlots(bagID)
+        for slot = 1, numSlots do
+            local itemInfo = C_Container.GetContainerItemInfo(bagID, slot)
+            if itemInfo and itemInfo.itemID then
+                local count = itemInfo.stackCount or 1
+                local itemName = GetItemInfo(itemInfo.itemID)
+                if not itemName then
+                    C_Item.RequestLoadItemDataByID(itemInfo.itemID)
+                    itemName = "Loading..."
+                end
+                if inventory[itemInfo.itemID] then
+                    inventory[itemInfo.itemID].count = inventory[itemInfo.itemID].count + count
+                else
+                    inventory[itemInfo.itemID] = { count = count, name = itemName }
+                end
+            end
+        end
+    end
+    self.data.itemInvCharacters[self.playerName].inventory = inventory
+end
+
+function ItemInventory:ScanBank()
+    if not LMAHI_SavedData.enableItemInventory then return end
+    if not self.bankOpen or not self.playerName or not self.data.itemInvCharacters[self.playerName] then return end
+    local now = GetTime()
+    if now - self.lastScanTimes.bank < scanCooldown then return end
+    self.lastScanTimes.bank = now
+
+    local canView = C_Bank and C_Bank.CanViewBank(Enum.BankType.Character)
+    local activeBankType = BankFrame and BankFrame.GetActiveBankType and BankFrame:GetActiveBankType()
+    if not canView or activeBankType ~= Enum.BankType.Character then
+        return
+    end
+
+    local bankInventory = {}
+    for _, bagID in ipairs(BANK_INDEXES) do
+        local numSlots = C_Container.GetContainerNumSlots(bagID)
+        for slot = 1, numSlots do
+            local itemInfo = C_Container.GetContainerItemInfo(bagID, slot)
+            if itemInfo and itemInfo.itemID then
+                local count = itemInfo.stackCount or 1
+                local itemName = GetItemInfo(itemInfo.itemID)
+                if not itemName then
+                    C_Item.RequestLoadItemDataByID(itemInfo.itemID)
+                    itemName = "Loading..."
+                end
+                if bankInventory[itemInfo.itemID] then
+                    bankInventory[itemInfo.itemID].count = bankInventory[itemInfo.itemID].count + count
+                else
+                    bankInventory[itemInfo.itemID] = { count = count, name = itemName }
+                end
+            end
+        end
+    end
+
+    if C_Bank and C_Bank.FetchPurchasedBankTabData then
+        local tabData = C_Bank.FetchPurchasedBankTabData(Enum.BankType.Character)
+        if tabData and #tabData > 0 then
+            for i, tab in ipairs(tabData) do
+                local tabID = tab.ID or (Enum.BagIndex.CharacterBankTab_1 and Enum.BagIndex.CharacterBankTab_1 + i - 1) or (6 + i - 1)
+                local numSlots = C_Container.GetContainerNumSlots(tabID)
+                for slot = 1, numSlots do
+                    local itemInfo = C_Container.GetContainerItemInfo(tabID, slot)
+                    if itemInfo and itemInfo.itemID then
+                        local count = itemInfo.stackCount or 1
+                        local itemName = GetItemInfo(itemInfo.itemID)
+                        if not itemName then
+                            C_Item.RequestLoadItemDataByID(itemInfo.itemID)
+                            itemName = "Loading..."
+                        end
+                        if bankInventory[itemInfo.itemID] then
+                            bankInventory[itemInfo.itemID].count = bankInventory[itemInfo.itemID].count + count
+                        else
+                            bankInventory[itemInfo.itemID] = { count = count, name = itemName }
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    self.data.itemInvCharacters[self.playerName].bank = bankInventory
+end
+
+function ItemInventory:ScanWarbandBank()
+    if not LMAHI_SavedData.enableItemInventory then return end
+    if not self.bankOpen or C_Bank.FetchBankLockedReason(Enum.BankType.Account) then
+        return
+    end
+    local now = GetTime()
+    if now - self.lastScanTimes.warband < scanCooldown then return end
+    self.lastScanTimes.warband = now
+
+    local bankInventory = {}
+    for _, tabID in ipairs(WARBAND_INDEXES) do
+        local numSlots = C_Container.GetContainerNumSlots(tabID)
+        for slot = 1, numSlots do
+            local itemInfo = C_Container.GetContainerItemInfo(tabID, slot)
+            if itemInfo and itemInfo.itemID then
+                local count = itemInfo.stackCount or 1
+                local itemName = GetItemInfo(itemInfo.itemID)
+                if not itemName then
+                    C_Item.RequestLoadItemDataByID(itemInfo.itemID)
+                    itemName = "Loading..."
+                end
+                if bankInventory[itemInfo.itemID] then
+                    bankInventory[itemInfo.itemID].count = bankInventory[itemInfo.itemID].count + count
+                else
+                    bankInventory[itemInfo.itemID] = { count = count, name = itemName }
+                end
+            end
+        end
+    end
+    self.data.Warband.bank = bankInventory
+end
+
+function ItemInventory:ScanCurrencies()
+    if not LMAHI_SavedData.enableItemInventory then return end
+    if not self.playerName or not self.data.itemInvCharacters[self.playerName] then return end
+    local now = GetTime()
+    if now - self.lastScanTimes.currency < scanCooldown then return end
+    self.lastScanTimes.currency = now
+
+    local currencyData = {}
+    for i = 1, C_CurrencyInfo.GetCurrencyListSize() do
+        local currencyInfo = C_CurrencyInfo.GetCurrencyListInfo(i)
+        if currencyInfo and currencyInfo.currencyID and currencyInfo.quantity > 0 and not C_CurrencyInfo.IsAccountWideCurrency(currencyInfo.currencyID) then
+            local currencyName = C_CurrencyInfo.GetCurrencyInfo(currencyInfo.currencyID).name or "Unknown"
+            currencyData[currencyInfo.currencyID] = { count = currencyInfo.quantity, name = currencyName }
+        end
+    end
+    self.data.itemInvCharacters[self.playerName].itemInvcurrencies = currencyData
+end
+
+function ItemInventory:BAG_UPDATE_DELAYED()
+    if not LMAHI_SavedData.enableItemInventory then return end
+    C_Timer.After(1.0, function()
+        self:ScanInventory()
+        if self.bankOpen then
+            self:ScanBank()
+            self:ScanWarbandBank()
+        end
+    end)
+end
+
+function ItemInventory:PLAYERBANKSLOTS_CHANGED(slot)
+    if not LMAHI_SavedData.enableItemInventory then return end
+    if self.bankOpen then
+        self:ScanBank()
+    end
+end
+
+function ItemInventory:BANKFRAME_OPENED()
+    if not LMAHI_SavedData.enableItemInventory then return end
+    self.bankOpen = true
+    C_Timer.After(2.0, function()
+        self:ScanBank()
+        self:ScanWarbandBank()
+        C_Timer.After(1.0, function()
+            local activeBankType = BankFrame and BankFrame.GetActiveBankType and BankFrame:GetActiveBankType()
+            if activeBankType == Enum.BankType.Character then
+                self:ScanBank()
+            elseif activeBankType == Enum.BankType.Account then
+                self:ScanWarbandBank()
+            end
+        end)
+    end)
+end
+
+function ItemInventory:BANKFRAME_CLOSED()
+    if not LMAHI_SavedData.enableItemInventory then return end
+    self.bankOpen = false
+end
+
+function ItemInventory:PLAYER_LOGIN()
+    if not LMAHI_SavedData.enableItemInventory then return end
+    self.playerName = UnitName("player") .. "-" .. GetRealmName()
+    self:InitializeData()
+    self:ScanInventory()
+    self:ScanCurrencies()
+    -- Show UI elements
+    showButton:Show()
+    searchLabel:Show()
+end
+
+function ItemInventory:BackUpCopy(orig)
+    if not LMAHI_SavedData.enableItemInventory then return orig end
+    local copy
+    if type(orig) == "table" then
+        copy = {}
+        for k, v in pairs(orig) do
+            copy[k] = self:BackUpCopy(v)
+        end
+    else
+        copy = orig
+    end
+    return copy
+end
+
+function ItemInventory:PLAYER_LOGOUT()
+    if not LMAHI_SavedData.enableItemInventory then return end
+    C_Timer.After(1.0, function()
+        self:ScanInventory()
+        self:ScanBank()
+        self:ScanWarbandBank()
+        self:ScanCurrencies()
+        if self.playerName and self.data.itemInvCharacters[self.playerName] then
+            LMAHI_SavedData.itemInvCharacters[self.playerName] = self:BackUpCopy(self.data.itemInvCharacters[self.playerName])
+            LMAHI_SavedData.Warband = self:BackUpCopy(self.data.Warband)
+        end
+    end)
+end
+
+function ItemInventory:OnTooltipSetItem(tooltip, merchantIndex)
+    if not LMAHI_SavedData.enableItemInventory then return end
+    local _, itemLink = tooltip:GetItem()
+    if not itemLink then return end
+    local itemID = GetItemInfoInstant(itemLink)
+    if not itemID then return end
+
+    local totalCount = 0
+    local charactersWithItem = {}
+    local currentCharacterEntries = {}
+    local currencyCosts = merchantIndex and self:ScanVendorCurrencies(merchantIndex) or {}
+
+    -- Collect current character's data (if any)
+    if self.playerName and self.data.itemInvCharacters[self.playerName] then
+        local data = self.data.itemInvCharacters[self.playerName]
+        local bagCount = (data.inventory and data.inventory[itemID] and data.inventory[itemID].count) or 0
+        local bankCount = (data.bank and data.bank[itemID] and data.bank[itemID].count) or 0
+        local totalCharCount = bagCount + bankCount
+        if totalCharCount > 0 then
+            totalCount = totalCount + totalCharCount
+            local coloredName = FormatCharacterName(self.playerName)
+            if bagCount > 0 then
+                table.insert(currentCharacterEntries, { left = coloredName, right = "|cffE3C429" .. self:FormatNumberWithCommas(bagCount) .. " : Bags|r" })
+            end
+            if bankCount > 0 then
+                table.insert(currentCharacterEntries, { left = coloredName, right = "|cffFAFAFA" .. self:FormatNumberWithCommas(bankCount) .. " : Bank|r" })
+            end
+        end
+    end
+
+    -- Collect other characters with their total counts
+    for character, data in pairs(self.data.itemInvCharacters or {}) do
+        if character ~= self.playerName then
+            local bagCount = (data.inventory and data.inventory[itemID] and data.inventory[itemID].count) or 0
+            local bankCount = (data.bank and data.bank[itemID] and data.bank[itemID].count) or 0
+            local totalCharCount = bagCount + bankCount
+            if totalCharCount > 0 then
+                totalCount = totalCount + totalCharCount
+                local coloredName = FormatCharacterName(character)
+                local entries = {}
+                if bagCount > 0 then
+                    table.insert(entries, { left = coloredName, right = "|cffE3C429" .. self:FormatNumberWithCommas(bagCount) .. " : Bags|r" })
+                end
+                if bankCount > 0 then
+                    table.insert(entries, { left = coloredName, right = "|cffFAFAFA" .. self:FormatNumberWithCommas(bankCount) .. " : Bank|r" })
+                end
+                table.insert(charactersWithItem, { character = character, totalCount = totalCharCount, entries = entries })
+            end
+        end
+    end
+
+    local warbandCount = (self.data.Warband and self.data.Warband.bank[itemID] and self.data.Warband.bank[itemID].count) or 0
+    if warbandCount > 0 then
+        totalCount = totalCount + warbandCount
+    end
+
+    -- Sort other characters by total count in descending order
+    table.sort(charactersWithItem, function(a, b) return a.totalCount > b.totalCount end)
+
+    -- Display currency costs for vendor items
+    if next(currencyCosts) then
+        tooltip:AddLine("")
+        for currencyID, currencyData in pairs(currencyCosts) do
+            local leftText = "|cffFFD700Vendor Cost|r"
+            local rightText = "|cffFFD700" .. self:FormatNumberWithCommas(currencyData.count) .. " : " .. currencyData.name .. "|r"
+            tooltip:AddDoubleLine(leftText, rightText)
+            -- Add current character's currency count
+            if self.playerName and self.data.itemInvCharacters[self.playerName] then
+                local currencyCount = (self.data.itemInvCharacters[self.playerName].itemInvcurrencies and 
+                                      self.data.itemInvCharacters[self.playerName].itemInvcurrencies[currencyID] and 
+                                      self.data.itemInvCharacters[self.playerName].itemInvcurrencies[currencyID].count) or 0
+                if currencyCount > 0 then
+                    tooltip:AddDoubleLine(FormatCharacterName(self.playerName), 
+                                        "|cffFCFDFF" .. self:FormatNumberWithCommas(currencyCount) .. " : " .. currencyData.name .. "|r")
+                end
+            end
+        end
+    end
+
+    -- Display Warband section if applicable
+    tooltip:AddLine("|cffffff00 |r")--always start with a space
+    if warbandCount > 0 then
+        local leftText = "|cff5EA5EBWarband|r"
+        local rightText = "|cff5EA5EB" .. self:FormatNumberWithCommas(warbandCount) .. " : Bank|r"
+        tooltip:AddDoubleLine(leftText, rightText)
+    end
+
+    -- Display current character's entries
+    if #currentCharacterEntries > 0 then
+        tooltip:AddLine("")
+        for _, entry in ipairs(currentCharacterEntries) do
+            tooltip:AddDoubleLine(entry.left, entry.right)
+        end
+    end
+
+    -- Display other characters' entries
+    if next(charactersWithItem) then
+        tooltip:AddLine("")
+        local displayedCount = 0
+        for _, charData in ipairs(charactersWithItem) do
+            if displayedCount < MAX_TOOLTIP_CHARACTERS then
+                for _, entry in ipairs(charData.entries) do
+                    tooltip:AddDoubleLine(entry.left, entry.right)
+                    displayedCount = displayedCount + 1
+                end
+            else
+                break
+            end
+        end
+
+        if #charactersWithItem > MAX_TOOLTIP_CHARACTERS or 
+           (#charactersWithItem == MAX_TOOLTIP_CHARACTERS and #currentCharacterEntries > 0) then
+            tooltip:AddLine("")
+            tooltip:AddLine("|cff9E9E9EOther characters also own this|r")
+        end
+    end
+
+    -- Display tooltip for ITEM COUNTS
+    if totalCount > 0 then
+        local totalText = "Account Wide Total  : " .. self:FormatNumberWithCommas(totalCount)
+        local paddedText = string.rep(" ", 10) .. totalText
+        tooltip:AddLine("|cffE6BF00" .. paddedText .. "|r")
+    end
+
+    tooltip:Show()
+end
+
+function ItemInventory:OnTooltipSetCurrency(tooltip, currencyID)
+    if not LMAHI_SavedData.enableItemInventory then return end
+    if not currencyID then return end
+    local totalCount = 0
+    local charactersWithCurrency = {}
+
+    -- Collect all characters with their currency counts
+    for character, data in pairs(self.data.itemInvCharacters or {}) do
+        local count = (data.itemInvcurrencies and data.itemInvcurrencies[currencyID] and data.itemInvcurrencies[currencyID].count) or 0
+        if count > 0 then
+            totalCount = totalCount + count
+            local coloredName = FormatCharacterName(character)
+            local currencyLabel = "|cffFCFDFF" .. self:FormatNumberWithCommas(count) .. " : Currency|r"
+            table.insert(charactersWithCurrency, { character = character, count = count, entry = { left = coloredName, right = currencyLabel } })
+        end
+    end
+
+    -- Sort characters by count in descending order
+    table.sort(charactersWithCurrency, function(a, b) return a.count > b.count end)
+
+    -- Display tooltip CHARACTER CURRENCY
+    tooltip:AddLine("|cffffff00 |r")--always start with a space
+    if totalCount > 0 then
+        local displayedCount = 0
+        for _, charData in ipairs(charactersWithCurrency) do
+            if displayedCount < MAX_TOOLTIP_CHARACTERS then
+                tooltip:AddDoubleLine(charData.entry.left, charData.entry.right)
+                displayedCount = displayedCount + 1
+            else
+                break
+            end
+        end
+        if #charactersWithCurrency > MAX_TOOLTIP_CHARACTERS then
+            tooltip:AddLine("")
+            tooltip:AddLine("|cff9E9E9EOther characters also own this|r")
+        end
+        local totalText = "Account Wide Total  : " .. self:FormatNumberWithCommas(totalCount)
+        local paddedText = string.rep(" ", 14) .. totalText
+        tooltip:AddLine("|cffE6BF00" .. paddedText .. "|r")
+    end
+    tooltip:Show()
+end
+
+function ItemInventory:OnTooltipSetMerchantCurrency(tooltip, currencyID)
+    if not LMAHI_SavedData.enableItemInventory then return end
+    if not currencyID then return end
+    local totalCount = 0
+    local charactersWithCurrency = {}
+
+    -- Collect all characters with their currency counts
+    for character, data in pairs(self.data.itemInvCharacters or {}) do
+        local count = (data.itemInvcurrencies and data.itemInvcurrencies[currencyID] and data.itemInvcurrencies[currencyID].count) or 0
+        if count > 0 then
+            totalCount = totalCount + count
+            local coloredName = FormatCharacterName(character)
+            local currencyLabel = "|cffFCFDFF" .. self:FormatNumberWithCommas(count) .. " : Currency|r"
+            table.insert(charactersWithCurrency, { character = character, count = count, entry = { left = coloredName, right = currencyLabel } })
+        end
+    end
+
+    -- Sort characters by count in descending order
+    table.sort(charactersWithCurrency, function(a, b) return a.count > b.count end)
+
+    -- Display tooltip MERCHANT CURRENCY
+    tooltip:AddLine("|cffffff00 |r")--always start with a space
+    if totalCount > 0 then
+        tooltip:AddLine("")
+        local displayedCount = 0
+        for _, charData in ipairs(charactersWithCurrency) do
+            if displayedCount < MAX_TOOLTIP_CHARACTERS then
+                tooltip:AddDoubleLine(charData.entry.left, charData.entry.right)
+                displayedCount = displayedCount + 1
+            else
+                break
+            end
+        end
+        if #charactersWithCurrency > MAX_TOOLTIP_CHARACTERS then
+            tooltip:AddLine("")
+            tooltip:AddLine("|cff9E9E9EOther characters also own this|r")
+        end
+        local totalText = "Account Wide Total  : " .. self:FormatNumberWithCommas(totalCount)
+        local paddedText = string.rep(" ", 14) .. totalText
+        tooltip:AddLine("|cffE6BF00" .. paddedText .. "|r")
+    end
+
+    tooltip:Show()
+end
+
+function ItemInventory:UpdateSearchResults(searchText)
+    if not LMAHI_SavedData.enableItemInventory then
+        resultsFrame:Hide()
+        return
+    end
+    self:releaseFontStrings()
+    resultsContent:SetHeight(1)
+
+    searchText = strlower(searchText or "")
+    if searchText == "" then
+        resultsFrame:Hide()
+        return
+    end
+
+    local lines = {}
+    local lineHeight = 25
+    local yOffset = -10
+
+    for character, data in pairs(self.data.itemInvCharacters or {}) do
+        local coloredName = FormatCharacterName(character)
+        for itemID, itemData in pairs(data.inventory or {}) do
+            local itemName = itemData.name or "Unknown"
+            if strlower(itemName):find(searchText) and itemData.count > 0 then
+                local bagLabel = "|cffE3C429" .. self:FormatNumberWithCommas(itemData.count) .. " : Bags|r"
+                local _, _, quality = GetItemInfo(itemID)
+                local reagentQuality = self:GetReagentQuality(itemID)
+                local displayName = itemName
+                if reagentQuality then
+                    displayName = itemName .. " (Quality " .. reagentQuality .. ")"
+                end
+                table.insert(lines, { center = coloredName, left = displayName, right = bagLabel, name = itemName, quality = reagentQuality or quality or 1, itemID = itemID, source = character .. ":Bags", isReagent = reagentQuality ~= nil })
+            end
+        end
+        for itemID, itemData in pairs(data.bank or {}) do
+            local itemName = itemData.name or "Unknown"
+            if strlower(itemName):find(searchText) and itemData.count > 0 then
+                local bankLabel = "|cffFAFAFA" .. self:FormatNumberWithCommas(itemData.count) .. " : Bank|r"
+                local _, _, quality = GetItemInfo(itemID)
+                local reagentQuality = self:GetReagentQuality(itemID)
+                local displayName = itemName
+                if reagentQuality then
+                    displayName = itemName .. " (Quality " .. reagentQuality .. ")"
+                end
+                table.insert(lines, { center = coloredName, left = displayName, right = bankLabel, name = itemName, quality = reagentQuality or quality or 1, itemID = itemID, source = character .. ":Bank", isReagent = reagentQuality ~= nil })
+            end
+        end
+        for currencyID, currData in pairs(data.itemInvcurrencies or {}) do
+            local currencyName = currData.name or "Unknown"
+            if strlower(currencyName):find(searchText) and currData.count > 0 then
+                local currencyLabel = "|cffFCFDFF" .. self:FormatNumberWithCommas(currData.count) .. " : Currency|r"
+                table.insert(lines, { center = coloredName, left = currencyName, right = currencyLabel, name = currencyName, quality = 1, itemID = currencyID, source = character .. ":Currency", isReagent = false })
+            end
+        end
+    end
+    for itemID, itemData in pairs(self.data.Warband.bank or {}) do
+        local itemName = itemData.name or "Unknown"
+        if strlower(itemName):find(searchText) and itemData.count > 0 then
+            local warbandLabel = "|cff5EA5EB" .. self:FormatNumberWithCommas(itemData.count) .. " : Bank|r"
+            local _, _, quality = GetItemInfo(itemID)
+            local reagentQuality = self:GetReagentQuality(itemID)
+            local displayName = itemName
+            if reagentQuality then
+                displayName = itemName .. " (Quality " .. reagentQuality .. ")"
+            end
+            table.insert(lines, { center = "|cff5EA5EBWarband|r", left = displayName, right = warbandLabel, name = itemName, quality = reagentQuality or quality or 1, itemID = itemID, source = "Warband:Bank", isReagent = reagentQuality ~= nil })
+        end
+    end
+
+    table.sort(lines, function(a, b)
+        if a.name == b.name then
+            if a.quality == b.quality then
+                return a.source < b.source
+            end
+            return a.quality < b.quality
+        end
+        return a.name < b.name
+    end)
+
+    if #lines == 0 then
+        local text = acquireFontString()
+        text:SetPoint("TOPLEFT", resultsContent, "TOPLEFT", 10, yOffset)
+        text:SetText("None available")
+        text:SetTextColor(1, 1, 1, 1)
+        text:SetJustifyH("LEFT")
+        text:SetWidth(290)
+        resultsContent:SetHeight(lineHeight)
+        yOffset = yOffset - lineHeight
+    else
+        for i, entry in ipairs(lines) do
+            if i > 150 then break end  -- Change for longer results list
+            local leftText = acquireFontString()
+            leftText:SetPoint("TOPLEFT", resultsContent, "TOPLEFT", 10, yOffset)
+            leftText:SetText(entry.left)
+            leftText:SetJustifyH("LEFT")
+            leftText:SetWidth(390)
+            leftText:SetMaxLines(1)
+            leftText:SetWordWrap(false)
+
+            local qualityColor
+            if entry.isReagent then
+                qualityColor = CUSTOM_QUALITY_COLORS[entry.quality] or CUSTOM_QUALITY_COLORS[1]
+            else
+                qualityColor = ITEM_QUALITY_COLORS[entry.quality] or ITEM_QUALITY_COLORS[1]
+            end
+            leftText:SetTextColor(qualityColor.r, qualityColor.g, qualityColor.b, 1)
+
+            local centerText = acquireFontString()
+            centerText:SetPoint("TOP", resultsContent, "TOP", 70, yOffset)
+            centerText:SetText(entry.center)
+            centerText:SetJustifyH("LEFT")
+            centerText:SetWidth(220)
+
+            local rightText = acquireFontString()
+            rightText:SetPoint("TOPRIGHT", resultsContent, "TOPRIGHT", -40, yOffset)
+            rightText:SetText(entry.right)
+            rightText:SetJustifyH("RIGHT")
+            rightText:SetWidth(170)
+
+            yOffset = yOffset - lineHeight
+        end
+        resultsContent:SetHeight(-yOffset)
+    end
+
+    resultsScrollFrame:SetVerticalScroll(0)
+    resultsFrame:Show()
+end
+
+ItemInventory:SetScript("OnEvent", function(self, event, ...)
+    if self[event] then
+        self[event](self, ...)
+    end
+end)
