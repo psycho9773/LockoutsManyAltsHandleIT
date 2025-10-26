@@ -1,0 +1,120 @@
+----705MemCpuTracker.lua
+
+local addonName, addon = ...
+
+-- Memory Tracker Frame
+
+local memFrame = CreateFrame("Frame", "LMAHIMemoryFrame", UIParent)
+memFrame:SetFrameStrata("DIALOG")
+memFrame:SetSize(160, 15)
+memFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 125, -4)
+memFrame.bg = memFrame:CreateTexture(nil, "BACKGROUND")
+memFrame.bg:SetAllPoints()
+memFrame.bg:SetColorTexture(0, 0, 0, 0.1)
+memFrame.text = memFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+memFrame.text:SetPoint("LEFT", memFrame, "LEFT")
+memFrame.text:SetTextColor(1, 1, 1)
+memFrame:Hide()
+
+-- CPU Tracker Frame
+local cpuFrame = CreateFrame("Frame", "LMAHICPUFrame", UIParent)
+cpuFrame:SetFrameStrata("DIALOG")
+cpuFrame:SetSize(160, 15)
+cpuFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 125, -19)
+cpuFrame.bg = cpuFrame:CreateTexture(nil, "BACKGROUND")
+cpuFrame.bg:SetAllPoints()
+cpuFrame.bg:SetColorTexture(0, 0, 0, 0.1)
+cpuFrame.text = cpuFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+cpuFrame.text:SetPoint("LEFT", cpuFrame, "LEFT")
+cpuFrame.text:SetTextColor(1, 1, 1)
+cpuFrame:Hide()
+
+-- Storage for active tickers
+local memTicker = nil
+local cpuTicker = nil
+
+-- Start tracking performance
+local function StartPerformanceTracking()
+    UpdateAddOnMemoryUsage()
+    memTicker = C_Timer.NewTicker(1, function()
+        UpdateAddOnMemoryUsage()
+        local mem = GetAddOnMemoryUsage(addonName)
+        memFrame.text:SetText(string.format("LMAHI Mem: %.2f MB", mem / 1024))
+    end)
+
+    local lastCPU = 0
+    cpuTicker = C_Timer.NewTicker(1, function()
+        UpdateAddOnCPUUsage()
+        local currentCPU = GetAddOnCPUUsage(addonName) or 0
+        local delta = currentCPU - lastCPU
+        lastCPU = currentCPU
+        local framerate = GetFramerate() or 60
+        local frameTime = 1000 / framerate
+        local percent = (delta / frameTime) * 100
+        if percent > 10 then
+            cpuFrame.text:SetTextColor(1, 0.2, 0.2)
+        else
+            cpuFrame.text:SetTextColor(1, 1, 1)
+        end
+cpuFrame.text:SetText(string.format("LMAHI CPU:   %.1f%%", percent))
+    end)
+
+    memFrame:Show()
+    cpuFrame:Show()
+end
+
+-- Stop tracking performance
+local function StopPerformanceTracking()
+    if memTicker then memTicker:Cancel() end
+    if cpuTicker then cpuTicker:Cancel() end
+    memFrame:Hide()
+    cpuFrame:Hide()
+end
+
+local trackingEnabled = false
+
+-- Create the button frame
+local memTrackertoggleButton = CreateFrame("Button", "LMAHImemTrackerToggleFrame", UIParent, "BackdropTemplate")
+memTrackertoggleButton:SetFrameStrata("DIALOG")
+memTrackertoggleButton:SetSize(40, 20)
+memTrackertoggleButton:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 73, -4)
+
+memTrackertoggleButton:SetBackdrop({
+    bgFile = "Interface\\Buttons\\WHITE8x8",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    tile = true, tileSize = 1, edgeSize = 1,
+    insets = { left = 2, right = 2, top = 2, bottom = 2 }
+})
+memTrackertoggleButton:SetBackdropColor(0.4, 0, 0, 0.5) 
+
+local memTrackerfont = memTrackertoggleButton:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+memTrackerfont:SetPoint("BOTTOM", -2, 4)
+memTrackerfont:SetJustifyH("CENTER")
+memTrackerfont:SetJustifyV("MIDDLE")
+memTrackerfont:SetText("OFF")
+memTrackerfont:SetTextColor(1, 0, 0)  
+memTrackertoggleButton.memTrackerfont = memTrackerfont
+-- Enable tracking by default on load
+trackingEnabled = true
+StartPerformanceTracking()
+memTrackerfont:SetText("ON")
+memTrackerfont:SetTextColor(0, 1, 0)
+memTrackertoggleButton:SetBackdropColor(0, 0.4, 0, 0.5)
+
+
+-- Interactivity
+memTrackertoggleButton:SetScript("OnClick", function()
+    trackingEnabled = not trackingEnabled
+    if trackingEnabled then
+        StartPerformanceTracking()
+        memTrackerfont:SetText("ON")
+        memTrackerfont:SetTextColor(0, 1, 0)  
+        memTrackertoggleButton:SetBackdropColor(0, 0.4, 0, 0.5)  
+    else
+        StopPerformanceTracking()
+        memTrackerfont:SetText("OFF")
+        memTrackerfont:SetTextColor(1, 0, 0)  
+        memTrackertoggleButton:SetBackdropColor(0.4, 0, 0, 0.5) 
+    end
+end)
+-- Blocked out to remove for people testing guess throwing an error for some
