@@ -1,0 +1,126 @@
+---- 020DataRares.lua
+
+local addonName, addon = ...
+
+LMAHI.RareData = {
+
+	     --Weekly
+		{ id = 90783, name = "11.2 Reshanor", reset = "weekly", expansion = "TWW" },
+		{ id = 91293, name = "11.2 Sthaarbs", reset = "weekly", expansion = "TWW" },--91431?
+		{ id = 90692, name = "11.2 Purple Peat", reset = "weekly", expansion = "TWW" },--90693? warrant rare
+		{ id = 90694, name = "11.2 Xy'vox the Twisted", reset = "weekly", expansion = "TWW" },--90695? warrant rare
+		{ id = 90582, name = "11.2 Hollowbane", reset = "weekly", expansion = "TWW" },--warrant rare
+		{ id = 90577, name = "11.2 Shatterpulse", reset = "weekly", expansion = "TWW" },--warrant rare
+		{ id = 90698, name = "11.2 Grubber", reset = "weekly", expansion = "TWW" },--90699?--warrant rare
+		{ id = 90696, name = "11.2 Arcana-Monger So'zer", reset = "weekly", expansion = "TWW" },--warrant rare
+		
+		--Daily
+		--DA{ id = 84993, name = "11.2 Korgoth the Hungerer", reset = "daily", expansion = "TWW" },--91286? The Oasis
+		--DA{ id = 86447, name = "11.2 Miasmawrath", reset = "daily", expansion = "TWW" },--91287? Eco-Dome Primus
+		--DA{ id = 86464, name = "11.2 The Harvester", reset = "daily", expansion = "TWW" },--91289? The Atrium
+		--DA{ id = 86465, name = "11.2 The Wallbreaker", reset = "daily", expansion = "TWW" },--91290? D attack Tazavesh
+		{ id = 90593, name = "11.2 Urmag", reset = "daily", expansion = "TWW" },--90682?
+		{ id = 90584, name = "11.2 Xarran the Binder", reset = "daily", expansion = "TWW" },
+		{ id = 90586, name = "11.2 Korgorath the Ravager", reset = "daily", expansion = "TWW" },--90675?
+		{ id = 90588, name = "11.2 Morgil the Netherspawn", reset = "daily", expansion = "TWW" },--90677?
+		{ id = 90590, name = "11.2 Prototype Mk-V", reset = "daily", expansion = "TWW" },--90679?
+		{ id = 90591, name = "11.2 Revenant of the Wasteland", reset = "daily", expansion = "TWW" },--90680?
+		{ id = 90583, name = "11.2 Shadowhowl", reset = "daily", expansion = "TWW" },--90674?		
+		{ id = 90592, name = "11.2 Stalker of the Wastes", reset = "daily", expansion = "TWW" },--90681?
+		{ id = 90589, name = "11.2 The Nightreaver", reset = "daily", expansion = "TWW" },--90678?
+		{ id = 90587, name = "11.2 Chowdar", reset = "daily", expansion = "TWW" },--90676 other?
+		{ id = 91275, name = "11.2 Malek'ta", reset = "daily", expansion = "TWW" },
+		{ id = 91276, name = "11.2 Heka'tamos", reset = "daily", expansion = "TWW" },--91422?
+		{ id = 90596, name = "11.2 Ixthar the Unblinking", reset = "daily", expansion = "TWW" },
+		{ id = 90594, name = "11.2 Maw of the Sands", reset = "daily", expansion = "TWW" },--90683?
+		{ id = 90595, name = "11.2 Orith the Dreadful", reset = "daily", expansion = "TWW" },
+		{ id = 90585, name = "11.2 Sha'ryth the Cursed", reset = "daily", expansion = "TWW" },
+
+	   
+		{ id = 90488, name = "11.1  M.A.G.N.O.", reset = "weekly", expansion = "TWW" },
+		{ id = 90489, name = "11.1  Giovante", reset = "weekly", expansion = "TWW" },
+		{ id = 90490, name = "11.1  Voltstrike the Charged", reset = "weekly", expansion = "TWW" },
+		{ id = 90491, name = "11.1  Scrapchewer", reset = "weekly", expansion = "TWW" },
+		{ id = 90492, name = "11.1  Darkfuse Precipitant", reset = "weekly", expansion = "TWW" },
+		{ id = 84877, name = "11.1  Ephemeral Agent Lathyd", reset = "weekly", expansion = "TWW" },
+		{ id = 84895, name = "11.1  Slugger the Smart", reset = "weekly", expansion = "TWW" },
+		{ id = 84907, name = "11.1  Chief Foreman Gutso", reset = "weekly", expansion = "TWW" },
+		{ id = 84884, name = "11.1  The Junk-Wall", reset = "weekly", expansion = "TWW" },
+		{ id = 84911, name = "11.1  Flyboy Snooty", reset = "weekly", expansion = "TWW" },
+		{ id = 87007, name = "11.1  Gallagio Garbage", reset = "daily", expansion = "TWW" },
+		{ id = 84927, name = "11.1  Candy Stickemup", reset = "daily", expansion = "TWW" },
+		{ id = 84928, name = "11.1  Grimewick", reset = "daily", expansion = "TWW" },
+		{ id = 84919, name = "11.1  Tally Doublespeak", reset = "daily", expansion = "TWW" },
+		{ id = 84920, name = "11.1  V.V. Goosworth", reset = "daily", expansion = "TWW" },
+		{ id = 84917, name = "11.1  Scrapbeak", reset = "daily", expansion = "TWW" },
+		{ id = 84926, name = "11.1  Nitro", reset = "daily", expansion = "TWW" },
+		{ id = 85004, name = "11.1  Swigs Farsight", reset = "daily", expansion = "TWW" },
+		{ id = 84921, name = "11.1  Thwack", reset = "daily", expansion = "TWW" },
+		{ id = 84922, name = "11.1  S.A.L.", reset = "daily", expansion = "TWW" },
+		{ id = 84918, name = "11.1  Ratspit", reset = "daily", expansion = "TWW" },
+		
+		
+		{ id = 81763, name = "11.0  Beledar's Spawn", reset = "daily", expansion = "TWW" },
+		{ id = 81633, name = "11.0  Lurker of the Deeps", reset = "daily", expansion = "TWW" },
+		
+	-- Dragonflight
+	
+		{ id = 75333, name = "10.2 Karokta", reset = "weekly", expansion = "DF" },
+		{ id = 73901, name = "10.0 Zenet Avis", reset = "weekly", expansion = "DF" },
+		
+	-- Shadowlands
+	
+		{ id = 64258, name = "9.0 Gorged Shadehound", reset = "weekly", expansion = "SL" },
+		{ id = 64455, name = "9.0 Reliwik the Defiant", reset = "daily", expansion = "SL" },
+		{ id = 64233, name = "9.0 Crimson Shardhide", reset = "daily", expansion = "SL" },
+		{ id = 64246, name = "9.0 Konthrogz the Obliterator", reset = "daily", expansion = "SL" },
+		{ id = 59869, name = "9.0 Famu the Infinite", reset = "weekly", expansion = "SL" },
+		{ id = 61720, name = "9.0 Violet Mistake", reset = "daily", expansion = "SL" },
+		
+	-- Battle for Azeroth
+	
+		{ id = 55811, name = "8.0 Rustfeather", reset = "daily", expansion = "BFA" },
+		{ id = 55512, name = "8.0 Arachnoid Harvester", reset = "daily", expansion = "BFA" },
+	
+	
+	-- Legion
+	
+		{ id = 48821, name = "7.0 Houndmaster Kerrax", reset = "daily", expansion = "LGN" },
+		{ id = 49183, name = "7.0 Blistermaw", reset = "daily", expansion = "LGN" },
+		{ id = 48721, name = "7.0 Skreeg the Devourer", reset = "daily", expansion = "LGN" },
+		{ id = 48705, name = "7.0 Venomtail Skyfin", reset = "daily", expansion = "LGN" },
+		
+	-- Warlords of Draenor
+	
+		{ id = 37464, name = "6.0 Rukhmar", reset = "weekly", expansion = "WOD" },
+			
+	-- Mists of Pandaria
+	
+		{ id = 32519, name = "5.0 Oondasta", reset = "weekly", expansion = "MOP" },
+		{ id = 32098, name = "5.0 Galleon", reset = "weekly", expansion = "MOP" },
+		{ id = 32099, name = "5.0 Sha of Anger", reset = "weekly", expansion = "MOP" },
+		{ id = 32518, name = "5.0 Nalak", reset = "weekly", expansion = "MOP" },
+		
+-------------------------------------------------------------------------------------------------------
+                                            --- JUST MADE UP STUFF TO FILL IN SOME EMPTY BLANKS -----------------------------
+	                                   --- NO QUEST FLAG COMPLETED FOR THESE FROM HERE DOWN ---
+         -- Cataclysm
+	
+		{ id = 999950005, name = "4.0 Poseidus", reset = "daily", expansion = "CAT" },
+		{ id = 999950062, name = "4.0 Aeonaxx", reset = "daily", expansion = "CAT" },
+		
+	-- Wrath of the Lich King
+	
+		{ id = 999932485, name = "3.0 King Krush", reset = "daily", expansion = "WLK" },
+		{ id = 999932491, name = "3.0 Time-Lost Proto-Drake", reset = "daily", expansion = "WLK" },
+
+	-- The Burning Crusade
+	
+		{ id = 999917144, name = "2.0 Goretooth", reset = "daily", expansion = "TBC" },
+		{ id = 999918682, name = "2.0 Bog Lurker", reset = "daily", expansion = "TBC" },
+
+	-- World of Warcraft
+	
+		{ id = 99996584, name = "1.0 King Mosh", reset = "daily", expansion = "WOW" },
+		{ id = 99995352, name = "1.0 Old Grizzlegut", reset = "daily", expansion = "WOW" },		
+    }
