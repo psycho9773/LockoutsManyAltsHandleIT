@@ -15,6 +15,9 @@ A World of Warcraft Retail addon to manage and view lockouts across multiple cha
 - Persistent saved variables for lockouts.
 - Custom input for quests and rares if not in the data yet.
 - Pageable gear section now implemented.
+- Item and currency on hover tool to display character and account totals.
+- Item search box to find those missing or lost things across all characters.
+- Instance per hour countdown tracking with on hover information
   
 ![Pageable lockout screen](https://imgur.com/Y4xm4Gs.png) )
 
@@ -31,7 +34,7 @@ A World of Warcraft Retail addon to manage and view lockouts across multiple cha
    
 ## 📦 Installation
 
-Manual install only for now. Future plans may include CurseForge support.
+ CurseForge support.
 
 ## 👤 Author
 
