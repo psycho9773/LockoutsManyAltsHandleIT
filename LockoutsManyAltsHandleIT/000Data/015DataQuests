@@ -1,0 +1,122 @@
+---- 015DataQuests.lua
+
+local addonName, addon = ...
+
+LMAHI.QuestData = {
+	-- TWW
+	         { id = 91093, name = "11.2  More Than Just a Phase", reset = "weekly", expansion = "TWW" },
+		{ id = 85460, name = "11.2  Ecological Succession", reset = "weekly", expansion = "TWW" },
+		{ id = 84993, name = "11.2  Devourer Attack: The Oasis", reset = "weekly", expansion = "TWW" },
+		{ id = 86447, name = "11.2  Devourer Attack: Eco-dome: Primus", reset = "weekly", expansion = "TWW" },
+		{ id = 86464, name = "11.2  Devourer Attack: The Atrium", reset = "weekly", expansion = "TWW" },
+		{ id = 86465, name = "11.2  Devourer Attack: Tazavesh", reset = "weekly", expansion = "TWW" },
+		{ id = 89294, name = "11.2  Special Assignment: Aligned Views", reset = "weekly", expansion = "TWW" },
+		{ id = 89293, name = "11.2  Special Assignment: Overshadowed", reset = "weekly", expansion = "TWW" },
+		{ id = 91193, name = "11.2  Special Assignment: Capstone 1", reset = "weekly", expansion = "TWW" },
+		{ id = 91203, name = "11.2  Special Assignment: Capstone 2", reset = "weekly", expansion = "TWW" },
+		{ id = 90125, name = "11.2  Eliminate Purple Peat", reset = "weekly", expansion = "TWW" },--account bound apparantly
+		{ id = 90122, name = "11.2  Eliminate Xy'vox the Twisted", reset = "weekly", expansion = "TWW" },--account bound apparantly
+		{ id = 90123, name = "11.2  Eliminate Hollowbane", reset = "weekly", expansion = "TWW" },--account bound apparantly
+		{ id = 90124, name = "11.2  Eliminate Shatterpulse", reset = "weekly", expansion = "TWW" },--account bound apparantly
+		{ id = 90126, name = "11.2  Eliminate Grubber", reset = "weekly", expansion = "TWW" },--account bound apparantly
+		{ id = 90127, name = "11.2  Eliminate Arcana-Monger So'zer", reset = "weekly", expansion = "TWW" },--account bound apparantly
+		{ id = 83432, name = "11.2  The Rookery", reset = "weekly", expansion = "TWW" },--Move these up
+		{ id = 83457, name = "11.2  The Stonevault", reset = "weekly", expansion = "TWW" },
+		{ id = 83458, name = "11.2  Priory of the Sacred Flame", reset = "weekly", expansion = "TWW" },
+		{ id = 83469, name = "11.2  City of Threads", reset = "weekly", expansion = "TWW" },
+		{ id = 83436, name = "11.2  Cinderbrew Meadery", reset = "weekly", expansion = "TWW" },
+		{ id = 83443, name = "11.2  Darkflame Cleft", reset = "weekly", expansion = "TWW" },				
+		{ id = 83459, name = "11.2  The Dawnbreaker", reset = "weekly", expansion = "TWW" },
+		{ id = 83465, name = "11.2  Ara-Kara, City of Echoes", reset = "weekly", expansion = "TWW" },		
+		{ id = 86203, name = "11.2  Operation: Floodgate", reset = "weekly", expansion = "TWW" },
+		--not in yet?{ id = 86203, name = "11.2  Eco-Dome Al'dani", reset = "weekly", expansion = "TWW" },
+		{ id = 82706, name = "11.2  Delves: Worldwide Research", reset = "weekly", expansion = "TWW" },
+		
+		--PVP		
+		{ id = 47148, name = " PvP Something Different", reset = "weekly", expansion = "TWW" },
+		{ id = 80184, name = " PvP Preserving in Battle", reset = "weekly", expansion = "TWW" },
+		{ id = 80185, name = " PvP Preserving Solo", reset = "weekly", expansion = "TWW" },
+		{ id = 80186, name = " PvP Preserving in War", reset = "weekly", expansion = "TWW" },
+		{ id = 80187, name = " PvP Preserving in Skirmishes", reset = "weekly", expansion = "TWW" },
+		{ id = 80188, name = " PvP Preserving in Arenas", reset = "weekly", expansion = "TWW" },
+		{ id = 80189, name = " PvP Preserving Teamwork", reset = "weekly", expansion = "TWW" },
+		{ id = 81793, name = " PvP Sparks of War: Isle of Dorn", reset = "weekly", expansion = "TWW" },
+		{ id = 81794, name = " PvP Sparks of War: The Ringing Deeps", reset = "weekly", expansion = "TWW" },
+		{ id = 81795, name = " PvP Sparks of War: Hallowfall", reset = "weekly", expansion = "TWW" },
+		{ id = 81796, name = " PvP Sparks of War: Azj-Kahet", reset = "weekly", expansion = "TWW" },
+		{ id = 90781, name = " PvP Sparks of War: K'aresh", reset = "weekly", expansion = "TWW" },
+		
+		{ id = 86775, name = "11.1  Urge to Surge", reset = "weekly", expansion = "TWW" },
+		{ id = 85879, name = "11.1  Reduce, Reuse, Resell", reset = "weekly", expansion = "TWW" },
+		{ id = 85869, name = "11.1  Many Jobs, Handle It!", reset = "weekly", expansion = "TWW" },
+		{ id = 85088, name = "11.1  The Main Event - The Gobfather", reset = "weekly", expansion = "TWW" },
+		
+		{ id = 83333, name = "11.0  Gearing Up for Trouble", reset = "weekly", expansion = "TWW" },
+		{ id = 82946, name = "11.0  Rollin' Down in the Deeps", reset = "weekly", expansion = "TWW" },
+		{ id = 83240, name = "11.0  The Theater Troupe", reset = "weekly", expansion = "TWW" },
+		{ id = 82449, name = "11.0  The Call of the Worldsoul", reset = "weekly", expansion = "TWW" },
+		
+		--Profession Weeklies
+		{ id = 84127, name = "11.0  Blacksmithing Services Requested", reset = "weekly", expansion = "TWW" },
+		{ id = 84128, name = "11.0  Engineering Services Requested", reset = "weekly", expansion = "TWW" },
+		{ id = 84129, name = "11.0  Inscription Services Requested", reset = "weekly", expansion = "TWW" },
+		{ id = 84130, name = "11.0  Jewelcrafting Services Requested", reset = "weekly", expansion = "TWW" },
+		{ id = 84131, name = "11.0  Leatherworking Services Requested", reset = "weekly", expansion = "TWW" },
+		{ id = 84132, name = "11.0  Tailoring Services Requested", reset = "weekly", expansion = "TWW" },
+		{ id = 84133, name = "11.0  Alchemy Services Requested", reset = "weekly", expansion = "TWW" },
+		--Mining Weeklies
+		{ id = 83103, name = "11.0  Acquiring Aqirite", reset = "weekly", expansion = "TWW" },
+		{ id = 83102, name = "11.0  Bismuth is Business", reset = "weekly", expansion = "TWW" },
+		{ id = 83104, name = "11.0  Identifying Ironclaw", reset = "weekly", expansion = "TWW" },
+		{ id = 83106, name = "11.0  Null Pebble Excavation", reset = "weekly", expansion = "TWW" },
+		{ id = 83105, name = "11.0  Rush-order Requisition", reset = "weekly", expansion = "TWW" },
+		--Herbalism Weeklies
+		{ id = 82970, name = "11.0  A Bloom and a Blossom", reset = "weekly", expansion = "TWW" },
+		{ id = 82962, name = "11.0  A Handful of Luredrops", reset = "weekly", expansion = "TWW" },
+		{ id = 82965, name = "11.0  Light and Shadow", reset = "weekly", expansion = "TWW" },
+		{ id = 82958, name = "11.0  Little Blessings", reset = "weekly", expansion = "TWW" },
+		{ id = 82916, name = "11.0  When Fungi Bloom", reset = "weekly", expansion = "TWW" },
+		
+	-- DF
+		{ id = 72373, name = "10.0  Aiding the Accord: The Hunt is On", reset = "weekly", expansion = "DF" },
+		{ id = 77254, name = "10.0  Aiding the Accord: Time Rift", reset = "weekly", expansion = "DF" },
+		{ id = 75259, name = "10.0  Aiding the Accord: Zskera Vaults", reset = "weekly", expansion = "DF" },
+		{ id = 77976, name = "10.0  Aiding the Accord: Dreamsurge", reset = "weekly", expansion = "DF" },
+		{ id = 75860, name = "10.0  Aiding the Accord: Researchers Under Fire", reset = "weekly", expansion = "DF" },
+		
+	-- SL
+		{ id = 63949, name = "9.0  Shaping Fate", reset = "weekly", expansion = "SL" },
+		{ id = 77254, name = "9.0  Patterns Within Patterns", reset = "weekly", expansion = "SL" },
+	
+	-- BFA
+		{ id = 56410, name = "8.0  Discs of Norgannon", reset = "daily", expansion = "BFA" },
+		{ id = 56471, name = "8.0  Unprofitable Ventures", reset = "daily", expansion = "BFA" },
+		
+	-- LGN
+		{ id = 43896, name = "7.0  Sealing Fate: Piles of Gold", reset = "daily", expansion = "LGN" },
+		{ id = 43897, name = "7.0  Sealing Fate: Immense Fortune of Gold", reset = "daily", expansion = "LGN" },
+		
+	-- WOD
+		{ id = 39565, name = "6.0  Rumble in the Jungle", reset = "weekly", expansion = "WOD" },
+		{ id = 39433, name = "6.0  Unseen Influence", reset = "daily", expansion = "WOD" },
+
+	-- MOP
+		{ id = 33334, name = "5.0  Strong Enough To Survive", reset = "weekly", expansion = "MOP" },
+		{ id = 33338, name = "5.0  Empowering the Hourglass", reset = "weekly", expansion = "MOP" },
+		
+	-- CAT
+		{ id = 27048, name = "4.0  Underground Economy", reset = "daily", expansion = "CAT" },
+		{ id = 28488, name = "4.0  Beneath the Surface", reset = "daily", expansion = "CAT" },	
+
+	-- WLK
+		{ id = 12813, name = "3.0  From Their Corpses, Rise!", reset = "daily", expansion = "WLK" },
+		{ id = 13069, name = "3.0  Shoot 'Em Up", reset = "daily", expansion = "WLK" },
+
+	-- TBC
+		{ id = 11101, name = "2.0  The Deadliest Trap Ever Laid", reset = "daily", expansion = "TBC" },
+		{ id = 11008, name = "2.0  Fires Over Skettis", reset = "daily", expansion = "TBC" },	
+
+	-- WOW
+		{ id = 11546, name = "1.0  Open for Business", reset = "daily", expansion = "WOW" },
+		{ id = 11548, name = "1.0  Your Continued Support", reset = "daily", expansion = "WOW" },		
+    }
