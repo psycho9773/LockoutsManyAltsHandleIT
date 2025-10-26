@@ -1,0 +1,67 @@
+---- 030DataReagents.lua
+
+local addonName, addon = ...
+
+                                       -- Reagent Quality Table for searching BASIC REAGENT QUALTIIES
+LMAHI.ReagentData = {
+
+    -- TWW reagents
+    -- Ore
+    [210930] = { name = "Bismuth", quality = 1 }, [210931] = { name = "Bismuth", quality = 2 }, [210932] = { name = "Bismuth", quality = 3 },
+    [210933] = { name = "Aqirite", quality = 1 }, [210934] = { name = "Aqirite", quality = 2 }, [210935] = { name = "Aqirite", quality = 3 },
+    [210936] = { name = "Ironclaw Ore", quality = 1 }, [210937] = { name = "Ironclaw Ore", quality = 2 }, [210938] = { name = "Ironclaw Ore", quality = 3 },
+    [238201] = { name = "Desolate Talus", quality = 1 }, [238212] = { name = "Desolate Talus", quality = 2 }, [238213] = { name = "Desolate Talus", quality = 3 },
+    -- Herbs
+    [210796] = { name = "Mycobloom", quality = 1 }, [210797] = { name = "Mycobloom", quality = 2 }, [210798] = { name = "Mycobloom", quality = 3 },
+    [210799] = { name = "Luredrop", quality = 1 }, [210800] = { name = "Luredrop", quality = 2 }, [210801] = { name = "Luredrop", quality = 3 },
+    [210802] = { name = "Orbinid", quality = 1 }, [210803] = { name = "Orbinid", quality = 2 }, [210804] = { name = "Orbinid", quality = 3 },
+    [210805] = { name = "Blessing Blossom", quality = 1 }, [210806] = { name = "Blessing Blossom", quality = 2 }, [210807] = { name = "Blessing Blossom", quality = 3 },
+    [210808] = { name = "Arathor's Spear", quality = 1 }, [210809] = { name = "Arathor's Spear", quality = 2 }, [210810] = { name = "Arathor's Spear", quality = 3 },
+    [239690] = { name = "Phantom Bloom", quality = 1 }, [239691] = { name = "Phantom Bloom", quality = 2 }, [239692] = { name = "Phantom Bloom", quality = 3 },
+    -- Cloth
+    [222795] = { name = "Spool of Weaverthread", quality = 1 }, [222796] = { name = "Spool of Weaverthread", quality = 2 }, [222797] = { name = "Spool of Weaverthread", quality = 3 },
+    [224828] = { name = "Weavercloth", quality = 1 }, [228231] = { name = "Weavercloth", quality = 2 }, [228232] = { name = "Weavercloth", quality = 3 },
+    [222804] = { name = "Weavercloth Bolt", quality = 1 }, [222805] = { name = "Weavercloth Bolt", quality = 2 }, [222806] = { name = "Weavercloth Bolt", quality = 3 },
+    [222789] = { name = "Spool of Duskthread", quality = 1 }, [222790] = { name = "Spool of Duskthread", quality = 2 }, [222791] = { name = "Spool of Duskthread", quality = 3 },
+    [224824] = { name = "Duskweave", quality = 1 }, [228233] = { name = "Duskweave", quality = 2 }, [228234] = { name = "Duskweave", quality = 3 },
+    [222798] = { name = "Duskweave Bolt", quality = 1 }, [222799] = { name = "Duskweave Bolt", quality = 2 }, [222800] = { name = "Duskweave Bolt", quality = 3 },
+    [222792] = { name = "Spool of Dawnthread", quality = 1 }, [222793] = { name = "Spool of Dawnthread", quality = 2 }, [222794] = { name = "Spool of Dawnthread", quality = 3 },
+    [224826] = { name = "Dawnweave", quality = 1 }, [228235] = { name = "Dawnweave", quality = 2 }, [228236] = { name = "Dawnweave", quality = 3 },
+    [222801] = { name = "Dawnweave Bolt", quality = 1 }, [222802] = { name = "Dawnweave Bolt", quality = 2 }, [222803] = { name = "Dawnweave Bolt", quality = 3 },
+    [224832] = { name = "Exquisite Weavercloth Bolt", quality = 1 }, [224833] = { name = "Exquisite Weavercloth Bolt", quality = 2 }, [224834] = { name = "Exquisite Weavercloth Bolt", quality = 3 },
+    -- Engineering
+    [221853] = { name = "Handful of Bismuth Bolts", quality = 1 }, [221854] = { name = "Handful of Bismuth Bolts", quality = 2 }, [221855] = { name = "Handful of Bismuth Bolts", quality = 3 },
+    [221856] = { name = "Whimsical Wiring", quality = 1 }, [221857] = { name = "Whimsical Wiring", quality = 2 }, [221858] = { name = "Whimsical Wiring", quality = 3 },
+    [221859] = { name = "Gyrating Gear", quality = 1 }, [221860] = { name = "Gyrating Gear", quality = 2 }, [221861] = { name = "Gyrating Gear", quality = 3 },
+    [221862] = { name = "Safety Switch", quality = 1 }, [221863] = { name = "Safety Switch", quality = 2 }, [221864] = { name = "Safety Switch", quality = 3 },
+    [221868] = { name = "Entropy Enhancer", quality = 1 }, [221869] = { name = "Entropy Enhancer", quality = 2 }, [221870] = { name = "Entropy Enhancer", quality = 3 },
+    [221865] = { name = "Chaos Circuit", quality = 1 }, [221866] = { name = "Chaos Circuit", quality = 2 }, [221867] = { name = "Chaos Circuit", quality = 3 },
+    -- Leatherworking
+   [212664] = { name = "Stormcharged Leather", quality = 1 }, [212665] = { name = "Stormcharged Leather", quality = 2 }, [212666] = { name = "Stormcharged Leather", quality = 3 },
+   [212667] = { name = "Gloom Chitin", quality = 1 }, [212668] = { name = "Gloom Chitin", quality = 2 }, [212669] = { name = "Gloom Chitin", quality = 3 },
+   [212674] = { name = "Sunless Carapace", quality = 1 }, [212675] = { name = "Sunless Carapace", quality = 2 }, [212676] = { name = "Sunless Carapace", quality = 3 },
+   [212670] = { name = "Thunderous Hide", quality = 1 }, [212672] = { name = "Thunderous Hide", quality = 2 }, [212673] = { name = "Thunderous Hide", quality = 3 },
+    --Enchanting
+   [219946] = { name = "Storm Dust", quality = 1 }, [219947] = { name = "Storm Dust", quality = 2 }, [219948] = { name = "Storm Dust", quality = 3 },
+   [219949] = { name = "Gleaming Shard", quality = 1 }, [219950] = { name = "Gleaming Shard", quality = 2 }, [219951] = { name = "Gleaming Shard", quality = 3 },
+   [219952] = { name = "Refulgent Crystal", quality = 1 }, [219954] = { name = "Refulgent Crystal", quality = 2 }, [219955] = { name = "Refulgent Crystal", quality = 3 },
+   --Blacksmithing
+   [222417] = { name = "Core Alloy", quality = 1 }, [222418] = { name = "Core Alloy", quality = 2 }, [222419] = { name = "Core Alloy", quality = 3 },
+   [222426] = { name = "Ironclaw Alloy", quality = 1 }, [222427] = { name = "Ironclaw Alloy", quality = 2 }, [222428] = { name = "Ironclaw Alloy", quality = 3 },
+   [222420] = { name = "Charged Alloy", quality = 1 }, [222421] = { name = "Charged Alloy", quality = 2 }, [222422] = { name = "Charged Alloy", quality = 3 },
+   [222423] = { name = "Sanctified Alloy", quality = 1 }, [222424] = { name = "Sanctified Alloy", quality = 2 }, [222425] = { name = "Sanctified Alloy", quality = 3 },
+   --JewelCrafting
+  [213219] = { name = "Crushed Gemstones", quality = 1 }, [213220] = { name = "Crushed Gemstones", quality = 2 }, [213221] = { name = "Crushed Gemstones", quality = 3 },
+  [213756] = { name = "Marbled Stone", quality = 1 }, [213757] = { name = "Marbled Stone", quality = 2 }, [213758] = { name = "Marbled Stone", quality = 3 },
+  [213750] = { name = "Engraved Gemcutter", quality = 1 }, [213751] = { name = "Engraved Gemcutter", quality = 2 }, [213752] = { name = "Engraved Gemcutter", quality = 3 },
+  [211806] = { name = "Gilded Vial", quality = 1 }, [211807] = { name = "Gilded Vial", quality = 2 }, [211808] = { name = "Gilded Vial", quality = 3 },
+  [213753] = { name = "Decorative Lens", quality = 1 }, [213754] = { name = "Decorative Lens", quality = 2 }, [213755] = { name = "Decorative Lens", quality = 3 },  
+  [213759] = { name = "Inverted Prism", quality = 1 }, [213760] = { name = "Inverted Prism", quality = 2 }, [213761] = { name = "Inverted Prism", quality = 3 },
+  --Inscription
+  [222615] = { name = "Apricate Ink", quality = 1 }, [222616] = { name = "Apricate Ink", quality = 2 }, [222617] = { name = "Apricate Ink", quality = 3 },
+  [222609] = { name = "Shadow Ink", quality = 1 }, [222610] = { name = "Shadow Ink", quality = 2 }, [222611] = { name = "Shadow Ink", quality = 3 },
+  [222558] = { name = "Boundless Cipher", quality = 1 }, [222559] = { name = "Boundless Cipher", quality = 2 }, [222560] = { name = "Boundless Cipher", quality = 3 },
+  [222555] = { name = "Codified Greenwood", quality = 1 }, [222556] = { name = "Codified Greenwood", quality = 2 }, [222557] = { name = "Codified Greenwood", quality = 3 },
+   --Alchemy
+  [212563] = { name = "Harmonious Horticulture", quality = 1 }, [212564] = { name = "Harmonious Horticulture", quality = 2 }, [212565] = { name = "Harmonious Horticulture", quality = 3 },	
+}
