@@ -1,0 +1,110 @@
+---- 025DataCurrencies.lua
+
+local addonName, addon = ...
+
+LMAHI.CurrencyData = {
+
+     -- Move these up each exapansion
+		{ id = 2123, name = "Bloody Tokens", expansion = "TWW" },
+		{ id = 1602, name = "Conquest", expansion = "TWW" },
+		{ id = 1792, name = "Honor", expansion = "TWW" , isAccountWide = true },
+		{ id = 1166, name = "Timewarped", expansion = "TWW", isAccountWide = true },
+		{ id = 2588, name = "Riders of Azeroth Badge", expansion = "TWW" , isAccountWide = true },
+		{ id = 3309, name = "Hellstone Shard", expansion = "TWW" , isAccountWide = true },
+		{ id = 515, name = "Darkmoon Prize Ticket", expansion = "TWW" , isAccountWide = true },
+	-- All of TWW
+		{ id = 3149, name = "Displaced Corrupted Memntos", expansion = "TWW", isAccountWide = true },
+		{ id = 3218, name = "Empty Kaja'Cola Can", expansion = "TWW", isAccountWide = true },
+		{ id = 3090, name = "Flame-Blessed Iron", expansion = "TWW", isAccountWide = true },
+		{ id = 3056, name = "Kej", expansion = "TWW", isAccountWide = true },
+		{ id = 3226, name = "Market Research", expansion = "TWW", isAccountWide = true },
+		{ id = 3055, name = "Mereldar Derby Mark", expansion = "TWW", isAccountWide = true },
+		{ id = 3093, name = "Nerub-ar Finery", expansion = "TWW", isAccountWide = true },
+		{ id = 3089, name = "Residual Memories", expansion = "TWW", isAccountWide = true },
+		{ id = 2815, name = "Resonance Crystals", expansion = "TWW", isAccountWide = true },
+		{ id = 3303, name = "Untethered Coin", expansion = "TWW", isAccountWide = true },
+		{ id = 3220, name = "Vintage Kaja'Cola Can", expansion = "TWW", isAccountWide = true },
+		{ id = 2803, name = "Undercoin", expansion = "TWW", isAccountWide = true },
+		{ id = 3008, name = "Valorstones", expansion = "TWW", isAccountWide = true }, -- Tradeable only after a certain time Back and forth
+                  ------------------------------------------------------------------------- valorstones might be permenant now ?
+	         --{ id = 3278, name = "Ethereal Strands", expansion = "TWW", isAccountWide = true },  --left off since all show the same
+		--{ id = 2032, name = "Trader's Tender", expansion = "TWW" , isAccountWide = true },  --maybe later fix it
+		
+	-- season 3
+		{ id = 3028, name = "Restored Coffer Key", expansion = "TWW" },
+		{ id = 3284, name = "11.2 Weathered Ethereal Crest", expansion = "TWW" },
+		{ id = 3286, name = "11.2 Carved Ethereal Crest", expansion = "TWW" },
+		{ id = 3289, name = "11.2 Runed Ethereal Crest", expansion = "TWW" },
+		{ id = 3290, name = "11.2 Gilded Ethereal Crest", expansion = "TWW" },
+		{ id = 3269, name = "11.2 Ethereal Voidsplinter", expansion = "TWW" },		
+		{ id = 3141, name = "11.2 Starlight Spark Dust", expansion = "TWW" },		
+
+	-- season 2
+		{ id = 3107, name = "11.1 Weathered Undermine Crest", expansion = "TWW" },
+		{ id = 3108, name = "11.1 Carved Undermine Crest", expansion = "TWW" },
+		{ id = 3109, name = "11.1 Runed Undermine Crest", expansion = "TWW" },
+		{ id = 3110, name = "11.1 Gilded Undermine Crest", expansion = "TWW" },
+		{ id = 3116, name = "11.1 Essence of Kaja'mite", expansion = "TWW" },
+
+
+	-- DF select currencies
+		{ id = 2003, name = "10.0 Dragon Isles Supplies", expansion = "DF", isAccountWide = true },
+		{ id = 2118, name = "10.0 Elemental Overflow", expansion = "DF", isAccountWide = true },
+		{ id = 2650, name = "10.0 Emerald Dewdrop", expansion = "DF" },
+		{ id = 2657, name = "10.0 Mysterious Fragment", expansion = "DF", isAccountWide = true },
+		{ id = 2594, name = "10.0 Paracausal Flakes", expansion = "DF", isAccountWide = true },
+		
+	-- SL select currencies
+		{ id = 1931, name = "9.0 Cataloged Research", expansion = "SL", isAccountWide = true },
+		{ id = 2009, name = "9.0 Cosmic Flux", expansion = "SL", isAccountWide = true },
+		{ id = 1979, name = "9.0 Cyphers of the First Ones", expansion = "SL", isAccountWide = true },
+		{ id = 1885, name = "9.0 Grateful Offering", expansion = "SL", isAccountWide = true },
+		{ id = 1813, name = "9.0 Reservoir Anima", expansion = "SL" },
+
+	-- BFA select currencies
+		{ id = 1755, name = "8.0 Coalescing Visions", expansion = "BFA", isAccountWide = true },
+		{ id = 1719, name = "8.0 Corrupted Mementos", expansion = "BFA", isAccountWide = true },
+		{ id = 1803, name = "8.0 Echoes of Ny'alotha", expansion = "BFA", isAccountWide = true },
+		{ id = 1716, name = "8.0 Honorbound Service Medal", expansion = "BFA", isAccountWide = true },
+		{ id = 1721, name = "8.0 Prismatic Manapearl", expansion = "BFA", isAccountWide = true },
+
+	-- LGN select currencies
+		{ id = 1416, name = "7.0 Coins of Air", expansion = "LGN" },
+		{ id = 1275, name = "7.0 Curious Coin", expansion = "LGN", isAccountWide = true },
+		{ id = 1226, name = "7.0 Nethershard", expansion = "LGN", isAccountWide = true },
+		{ id = 1220, name = "7.0 Order Resources", expansion = "LGN", isAccountWide = true },
+		{ id = 1533, name = "7.0 Wakening Essence", expansion = "LGN" },
+		{ id = 1508, name = "7.0 Veiled Argunite", expansion = "LGN", isAccountWide = true },
+
+	-- WOD select currencies
+		{ id = 823, name = "6.0 Apexis Crystal", expansion = "WOD", isAccountWide = true },
+		{ id = 980, name = "6.0 Dingy Iron Coins", expansion = "WOD" },
+		{ id = 824, name = "6.0 Garrison Resources", expansion = "WOD" },
+		{ id = 1101, name = "6.0 Oil", expansion = "WOD" },
+	
+
+	-- MOP select currencies
+		{ id = 697, name = "5.0 Elder Charm of Good Fortune", expansion = "MOP" },
+		{ id = 738, name = "5.0 Lesser Charm of Good Fortune", expansion = "MOP" },
+		{ id = 752, name = "5.0 Mogu Rune of Fate", expansion = "MOP" },
+		{ id = 777, name = "5.0 Timeless Coin", expansion = "MOP", isAccountWide = true },
+
+
+	-- CAT select currencies
+		{ id = 615, name = "4.0 Essence of Corrupted Deathwing", expansion = "CAT" },
+		{ id = 416, name = "4.0 Mark of the World Tree", expansion = "CAT" },
+		{ id = 614, name = "4.0 Mote of Darkness", expansion = "CAT" },
+		
+
+	-- WLK select currencies
+		{ id = 241, name = "3.0 Champion's Seal", expansion = "WLK", isAccountWide = true },
+		
+		
+	-- TBC select currencies
+		{ id = 1704, name = "2.0 Spirit Shard", expansion = "TBC" },
+		
+	-- WOW select currencies
+		{ id = 9999999, name = "1.0 Gold", expansion = "WOW" },
+		{ id = 9999998, name = "1.0 Silver", expansion = "WOW" },
+		{ id = 9999997, name = "1.0 Copper", expansion = "WOW" },
+}
