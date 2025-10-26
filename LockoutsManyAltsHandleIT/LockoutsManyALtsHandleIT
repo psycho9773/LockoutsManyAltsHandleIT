@@ -1,0 +1,31 @@
+## Interface: 110205
+## Title: LockoutsManyAltsHandleIT
+## Notes: Tracks raid, dungeon, quest, and rare lockouts across multiple characters.
+## Author: Psycho -
+## SavedVariables: LMAHI_SavedData
+## Version: 1.0.42
+## IconTexture: 975738
+## License: MIT License
+
+#Data 000-599
+000Data/000DataAllTables.lua
+000Data/005DataRaids.lua
+000Data/010DataDungeons.lua
+000Data/015DataQuests.lua
+000Data/020DataRares.lua
+000Data/025DataCurrencies.lua
+000Data/030DataReagents.lua
+
+#Core 600-699
+600Core/601Core.lua
+600Core/650ItemInventory.lua
+
+#Utilities 700-799
+700Utilities/700LockoutResetLogic.lua
+#Use to block out memory tracker
+#700Utilities/705MemCpuTracker.lua
+700Utilities/710MemGarbageCollection.lua
+700Utilities/715SlashCommands.lua
+
+#Display 800-
+800Display/801Display.lua
