@@ -1,0 +1,163 @@
+---- 010DataDungeons.lua
+
+local addonName, addon = ...
+
+LMAHI.DungeonData = {   -- mapChallengeModeID added for current Mythic + dungeons
+----USE THIS for map challengemode look up : 
+--/run for _,id in ipairs(C_ChallengeMode.GetMapTable()) do local name=C_ChallengeMode.GetMapUIInfo(id); print(id, name) end
+
+--new midnight stuff  9999-9997 temporary
+		{ id = 9999, name = "Winderunner Spire", reset = "weekly", mapChallengeModeID = "UNKNOWN", expansion = "MDN" },--9999 temporary mapChallengeModeID = "UNKNOWN"
+		{ id = 2811, name = "Magisters' Terrace", reset = "weekly", mapChallengeModeID = "UNKNOWN", expansion = "MDN" },	--2811 temporary not sure yet same name as other mapChallengeModeID = "UNKNOWN"
+		{ id = 2813, name = "Murder Row", reset = "weekly", mapChallengeModeID = "UNKNOWN", expansion = "MDN" },--mapChallengeModeID = "UNKNOWN"
+		{ id = 2825, name = "Den of Nalorakk", reset = "weekly", mapChallengeModeID = "UNKNOWN", expansion = "MDN" },--mapChallengeModeID = "UNKNOWN"
+		{ id = 2874, name = "Maisara Caverns", reset = "weekly", mapChallengeModeID = "UNKNOWN", expansion = "MDN" },--mapChallengeModeID = "UNKNOWN"
+		 --Current season dungeons ^^^^^^Not known YET^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+		{ id = 2859, name = "The Blinding Vale", reset = "weekly", mapChallengeModeID = "UNKNOWN", expansion = "MDN" },--mapChallengeModeID = "UNKNOWN"
+		{ id = 2923, name = "Voidscar Arena", reset = "weekly", mapChallengeModeID = "UNKNOWN", expansion = "MDN" },--mapChallengeModeID = "UNKNOWN"
+		{ id = 2915, name = "Nexus-Point Xenas", reset = "weekly", mapChallengeModeID = "UNKNOWN", expansion = "MDN" },-- mapChallengeModeID = "UNKNOWN"
+--end of midnight stuff
+
+			-- update challengemode ID's every season
+		{ id = 2287, name = "Halls of Atonement", reset = "weekly", mapChallengeModeID = 378, expansion = "TWW" },-- lecacy dungeons that 
+		{ id = 2449, name = "Tazavesh: Streets of Wonder", reset = "weekly", mapChallengeModeID = 391, expansion = "TWW" },--need to be unblocked
+		{ id = 2450, name = "Tazavesh: So’leah’s Gambit", reset = "weekly", mapChallengeModeID = 392, expansion = "TWW" },--and back to SL
+		{ id = 2551, name = "Priory of the Sacred Flame", reset = "weekly", mapChallengeModeID = 499, expansion = "TWW" },
+		{ id = 2557, name = "Operation: Floodgate", reset = "weekly", mapChallengeModeID = 525, expansion = "TWW" },		
+		{ id = 2555, name = "The Dawnbreaker", reset = "weekly", mapChallengeModeID = 505, expansion = "TWW" },
+		{ id = 2556, name = "Ara-Kara, City of Echoes", reset = "weekly", mapChallengeModeID = 503, expansion = "TWW" },
+		{ id = 2558, name = "Eco-Dome Al’dani", reset = "weekly", mapChallengeModeID = 542, expansion = "TWW" },
+		-- Current season dungeons ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+		{ id = 2549, name = "The Rookery", reset = "weekly", mapChallengeModeID = "UNKNOWN", expansion = "TWW" },
+		{ id = 2550, name = "The Stonevault", reset = "weekly", mapChallengeModeID = "UNKNOWN", expansion = "TWW" },
+		{ id = 2552, name = "City of Threads", reset = "weekly", mapChallengeModeID = "UNKNOWN", expansion = "TWW" },
+		{ id = 2553, name = "Cinderbrew Meadery", reset = "weekly", mapChallengeModeID = "UNKNOWN", expansion = "TWW" },
+		{ id = 2554, name = "Darkflame Cleft", reset = "weekly", mapChallengeModeID = "UNKNOWN", expansion = "TWW" },
+
+		--No Longer Mythic + 
+		{ id = 2451, name = "Uldaman: Legacy of Tyr", reset = "daily", expansion = "DF" },
+		{ id = 2515, name = "Neltharus", reset = "daily", expansion = "DF" },
+		{ id = 2516, name = "The Nokhud Offensive", reset = "daily", expansion = "DF" },
+		{ id = 2517, name = "The Azure Vault", reset = "daily", expansion = "DF" },
+		{ id = 2518, name = "Algeth’ar Academy", reset = "daily", expansion = "DF" },
+		{ id = 2519, name = "Brackenhide Hollow", reset = "daily", expansion = "DF" },
+		{ id = 2520, name = "Ruby Life Pools", reset = "daily", expansion = "DF" },
+		{ id = 2521, name = "Halls of Infusion", reset = "daily", expansion = "DF" },
+		{ id = 2569, name = "Dawn of the Infinite: Galakrond's Fall", reset = "daily", expansion = "DF" },
+		{ id = 2570, name = "Dawn of the Infinite: Murozond's Rise", reset = "daily", expansion = "DF" },
+		{ id = 2284, name = "Sanguine Depths", reset = "daily", expansion = "SL" },
+		{ id = 2285, name = "Spires of Ascension", reset = "daily", expansion = "SL" },
+		{ id = 2286, name = "The Necrotic Wake", reset = "daily", expansion = "SL" },
+		{ id = 2287, name = "Halls of Atonement", reset = "daily", expansion = "SL" },
+		{ id = 2289, name = "Plaguefall", reset = "daily", expansion = "SL" },
+		{ id = 2290, name = "Mists of Tirna Scithe", reset = "daily", expansion = "SL" },
+		{ id = 2291, name = "De Other Side", reset = "daily", expansion = "SL" },
+		{ id = 2293, name = "Theater of Pain", reset = "daily", expansion = "SL" },
+		--{ id = 2449, name = "Tazavesh: Streets of Wonder", reset = "weekly", mapChallengeModeID = 399, expansion = "SL" },--need to be unblocked
+		--{ id = 2450, name = "Tazavesh: So’leah’s Gambit", reset = "weekly", mapChallengeModeID = 400, expansion = "SL" },
+--REMOVED{ id = 2441, name = "Tazavesh, the Veiled Market", reset = "daily", expansion = "SL" }, removed and split in to two ^permenant block 
+		{ id = 1594, name = "The MOTHERLODE!!", reset = "daily", expansion = "BFA" },
+		{ id = 1754, name = "Freehold", reset = "daily", expansion = "BFA" },
+		{ id = 1762, name = "Kings' Rest", reset = "daily", expansion = "BFA" },
+		{ id = 1763, name = "Atal'Dazar", reset = "daily", expansion = "BFA" },
+		{ id = 1771, name = "Tol Dagor", reset = "daily", expansion = "BFA" },
+		{ id = 1822, name = "Siege of Boralus", reset = "daily", expansion = "BFA" },
+		{ id = 1841, name = "The Underrot", reset = "daily", expansion = "BFA" },
+		{ id = 1862, name = "Waycrest Manor", reset = "daily", expansion = "BFA" },
+		{ id = 1864, name = "Shrine of the Storm", reset = "daily", expansion = "BFA" },
+		{ id = 1877, name = "Temple of Sethraliss", reset = "daily", expansion = "BFA" },
+		{ id = 2097, name = "Operation: Mechagon", reset = "daily", expansion = "BFA" },
+		{ id = 1456, name = "Eye of Azshara", reset = "daily", expansion = "LGN" },
+		{ id = 1458, name = "Neltharion's Lair", reset = "daily", expansion = "LGN" },
+		{ id = 1466, name = "Darkheart Thicket", reset = "daily", expansion = "LGN" },
+		{ id = 1477, name = "Halls of Valor", reset = "daily", expansion = "LGN" },
+		{ id = 1492, name = "Maw of Souls", reset = "daily", expansion = "LGN" },
+		{ id = 1493, name = "Vault of the Wardens", reset = "daily", expansion = "LGN" },
+		{ id = 1501, name = "Black Rook Hold", reset = "daily", expansion = "LGN" },
+		{ id = 1516, name = "The Arcway", reset = "daily", expansion = "LGN" },
+		{ id = 1544, name = "Assault on Violet Hold", reset = "daily", expansion = "LGN" },
+		{ id = 1571, name = "Court of Stars", reset = "daily", expansion = "LGN" },
+		{ id = 1651, name = "Return to Karazhan", reset = "daily", expansion = "LGN" },
+		{ id = 1677, name = "Cathedral of Eternal Night", reset = "daily", expansion = "LGN" },
+		{ id = 1753, name = "Seat of the Triumvirate", reset = "daily", expansion = "LGN" },
+		{ id = 1175, name = "Bloodmaul Slag Mines", reset = "daily", expansion = "WOD" },
+		{ id = 1195, name = "Iron Docks", reset = "daily", expansion = "WOD" },
+		{ id = 1182, name = "Auchindoun", reset = "daily", expansion = "WOD" },
+		{ id = 1209, name = "Skyreach", reset = "daily", expansion = "WOD" },
+		{ id = 1208, name = "Grimrail Depot", reset = "daily", expansion = "WOD" },
+		{ id = 1176, name = "Shadowmoon Burial Grounds", reset = "daily", expansion = "WOD" },
+		{ id = 1279, name = "The Everbloom", reset = "daily", expansion = "WOD" },
+		{ id = 1358, name = "Upper Blackrock Spire", reset = "daily", expansion = "WOD" },  --mythic was implemented for dungeons
+		{ id = 959, name = "Temple of the Jade Serpent", reset = "daily", expansion = "MOP" },
+		{ id = 960, name = "Stormstout Brewery", reset = "daily", expansion = "MOP" },
+		{ id = 961, name = "Shado-Pan Monastery", reset = "daily", expansion = "MOP" },
+		{ id = 962, name = "Mogu'shan Palace", reset = "daily", expansion = "MOP" },
+		{ id = 963, name = "Gate of the Setting Sun", reset = "daily", expansion = "MOP" },
+		{ id = 964, name = "Siege of Niuzao Temple", reset = "daily", expansion = "MOP" },
+		{ id = 1001, name = "Scarlet Halls", reset = "daily", expansion = "MOP" },
+		{ id = 1004, name = "Scarlet Monastery", reset = "daily", expansion = "MOP" },
+		{ id = 1007, name = "Scholomance", reset = "daily", expansion = "MOP" },
+		{ id = 645, name = "Blackrock Caverns", reset = "daily", expansion = "CAT" },
+		{ id = 643, name = "Throne of the Tides", reset = "daily", expansion = "CAT" },
+		{ id = 725, name = "The Stonecore", reset = "daily", expansion = "CAT" },
+		{ id = 657, name = "The Vortex Pinnacle", reset = "daily", expansion = "CAT" },
+		{ id = 755, name = "Lost City of the Tol'vir", reset = "daily", expansion = "CAT" },
+		{ id = 644, name = "Halls of Origination", reset = "daily", expansion = "CAT" },
+		{ id = 670, name = "Grim Batol", reset = "daily", expansion = "CAT" },
+		{ id = 859.1, name = "Zul'Aman", reset = "daily", expansion = "CAT" },
+		{ id = 859, name = "Zul'Gurub", reset = "daily", expansion = "CAT" },
+		{ id = 938, name = "End Time", reset = "daily", expansion = "CAT" },
+		{ id = 939, name = "Well of Eternity", reset = "daily", expansion = "CAT" },
+		{ id = 940, name = "Hour of Twilight", reset = "daily", expansion = "CAT" },
+		{ id = 574, name = "Utgarde Keep", reset = "daily", expansion = "WLK" },
+		{ id = 575, name = "Utgarde Pinnacle", reset = "daily", expansion = "WLK" },
+		{ id = 576, name = "The Nexus", reset = "daily", expansion = "WLK" },
+		{ id = 578, name = "The Oculus", reset = "daily", expansion = "WLK" },
+		{ id = 595, name = "The Culling of Stratholme", reset = "daily", expansion = "WLK" },
+		{ id = 599, name = "Halls of Stone", reset = "daily", expansion = "WLK" },
+		{ id = 600, name = "Drak'Tharon Keep", reset = "daily", expansion = "WLK" },
+		{ id = 601, name = "Azjol-Nerub", reset = "daily", expansion = "WLK" },
+		{ id = 602, name = "Halls of Lightning", reset = "daily", expansion = "WLK" },
+		{ id = 604, name = "Gundrak", reset = "daily", expansion = "WLK" },
+		{ id = 608, name = "The Violet Hold", reset = "daily", expansion = "WLK" },
+		{ id = 619, name = "Ahn'kahet: The Old Kingdom", reset = "daily", expansion = "WLK" },
+		{ id = 632, name = "The Forge of Souls", reset = "daily", expansion = "WLK" },
+		{ id = 650, name = "Trial of the Champion", reset = "daily", expansion = "WLK" },
+		{ id = 658, name = "Pit of Saron", reset = "daily", expansion = "WLK" },
+		{ id = 668, name = "Halls of Reflection", reset = "daily", expansion = "WLK" },
+		{ id = 542, name = "The Blood Furnace", reset = "daily", expansion = "TBC" },
+		{ id = 543, name = "Hellfire Ramparts", reset = "daily", expansion = "TBC" },
+		{ id = 540, name = "The Shattered Halls", reset = "daily", expansion = "TBC" },
+		{ id = 547, name = "The Slave Pens", reset = "daily", expansion = "TBC" },
+		{ id = 546, name = "The Underbog", reset = "daily", expansion = "TBC" },
+		{ id = 545, name = "The Steamvault", reset = "daily", expansion = "TBC" },
+		{ id = 557, name = "Mana-Tombs", reset = "daily", expansion = "TBC" },
+		{ id = 558, name = "Auchenai Crypts", reset = "daily", expansion = "TBC" },
+		{ id = 556, name = "Sethekk Halls", reset = "daily", expansion = "TBC" },
+		{ id = 555, name = "Shadow Labyrinth", reset = "daily", expansion = "TBC" },
+		{ id = 560, name = "Old Hillsbrad Foothills", reset = "daily", expansion = "TBC" },
+		{ id = 269, name = "The Black Morass", reset = "daily", expansion = "TBC" },
+		{ id = 554, name = "The Mechanar", reset = "daily", expansion = "TBC" },
+		{ id = 553, name = "The Botanica", reset = "daily", expansion = "TBC" },
+		{ id = 552, name = "The Arcatraz", reset = "daily", expansion = "TBC" },
+		{ id = 585, name = "Magisters' Terrace", reset = "daily", expansion = "TBC" },  -- Heroic implemented for dungeons SFK and Deadmines from classic
+		{ id = 764, name = "Shadowfang Keep (CAT)", reset = "daily", expansion = "WOW" },
+		{ id = 756, name = "The Deadmines (CAT)", reset = "daily", expansion = "WOW" },
+		{ id = 33, name = "Shadowfang Keep", reset = "daily", expansion = "WOW" },
+		{ id = 36, name = "The Deadmines", reset = "daily", expansion = "WOW" },	
+		{ id = 34, name = "The Stockade", reset = "daily", expansion = "WOW" },
+		{ id = 43, name = "Wailing Caverns", reset = "daily", expansion = "WOW" },
+		{ id = 47, name = "Razorfen Kraul", reset = "daily", expansion = "WOW" },
+		{ id = 48, name = "Blackfathom Deeps", reset = "daily", expansion = "WOW" },
+		{ id = 70, name = "Uldaman", reset = "daily", expansion = "WOW" },
+		{ id = 90, name = "Gnomeregan", reset = "daily", expansion = "WOW" },
+		{ id = 109, name = "The Temple of Atal'Hakkar", reset = "daily", expansion = "WOW" },
+		{ id = 129, name = "Razorfen Downs", reset = "daily", expansion = "WOW" },
+		{ id = 209, name = "Zul'Farrak", reset = "daily", expansion = "WOW" },
+		{ id = 229, name = "Blackrock Spire", reset = "daily", expansion = "WOW" },
+		{ id = 230, name = "Blackrock Depths", reset = "daily", expansion = "WOW" },
+		{ id = 329, name = "Stratholme", reset = "daily", expansion = "WOW" },
+		{ id = 349, name = "Maraudon", reset = "daily", expansion = "WOW" },
+		{ id = 389, name = "Ragefire Chasm", reset = "daily", expansion = "WOW" },
+		{ id = 429, name = "Dire Maul", reset = "daily", expansion = "WOW" },
+    }
